@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { db } from '../db';
+import { db, resetLocalAppData } from '../db';
 import { newProject } from '../lib/projectFactory';
 import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { openPrintableReport } from '../lib/exporters';
@@ -37,6 +37,16 @@ export function Dashboard() {
         </button>
         <button className="secondary" onClick={() => navigate('/papelera')}>
           <TrashIcon className="icon" /> Papelera
+        </button>
+        <button
+          className="secondary danger-outline"
+          onClick={() => {
+            if (confirm('Esto borra los datos locales de esta app en este dispositivo y reinicia la app. Usalo solo si queda bloqueada.')) {
+              resetLocalAppData();
+            }
+          }}
+        >
+          Reiniciar app local
         </button>
       </header>
 

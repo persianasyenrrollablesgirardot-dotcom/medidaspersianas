@@ -31,41 +31,23 @@ class TechnicalFieldDB extends Dexie {
   syncQueue!: Table<SyncQueueItem, number>;
 
   constructor() {
-    super('AppTecnicaCampoJunoDB');
+    super('AppCampoJunoStableDB');
     this.version(1).stores({
       projects: '++id, code, clientName, status, createdAt, updatedAt, deletedAt, synced',
       catalog: '++id',
       syncQueue: '++id, type, status, createdAt',
     });
-    this.version(2).stores({
-      projects: '++id, code, clientName, status, createdAt, updatedAt, deletedAt, synced',
-      catalog: '++id',
-      syncQueue: '++id, type, status, createdAt',
-    }).upgrade(async tx => {
-      const projects = tx.table<TechnicalProject, number>('projects');
-      const catalogTable = tx.table<TechnicalCatalog, number>('catalog');
-      const now = Date.now();
-
-      await projects.toCollection().modify(project => {
-        project.deletedAt = project.deletedAt || 0;
-        project.synced = project.synced ?? false;
-        project.updatedAt = project.updatedAt || now;
-        project.createdAt = project.createdAt || now;
-        project.status = project.status || 'draft';
-        project.spaces = project.spaces || [];
-      });
-
-      const existingCatalog = await catalogTable.toCollection().first();
-      if (!existingCatalog) {
-        await catalogTable.add({ ...DEFAULT_CATALOG, lastUpdatedAt: now });
-      } else {
-        await catalogTable.update(existingCatalog.id!, normalizeCatalog(existingCatalog));
-      }
-    });
   }
 }
 
 export const db = new TechnicalFieldDB();
+
+export async function resetLocalAppData() {
+  db.close();
+  await Dexie.delete('AppCampoJunoStableDB');
+  await Dexie.delete('AppTecnicaCampoJunoDB');
+  window.location.reload();
+}
 
 db.on('ready', async () => {
   const count = await db.catalog.count();
