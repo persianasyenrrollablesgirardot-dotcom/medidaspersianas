@@ -10,7 +10,25 @@ export default defineConfig({
     VitePWA({
       disable: process.env.NODE_ENV === 'development',
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icons.svg', 'pwa-192.png', 'pwa-512.png'],
+      workbox: {
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
+      },
+      includeAssets: [
+        'favicon.svg',
+        'icons.svg',
+        'pwa-192.png',
+        'pwa-512.png',
+        'planos/plano-a.jpeg',
+        'planos/plano-b.jpeg',
+        'planos/plano-c.jpeg',
+        'planos/plano-d.jpeg',
+        'planos/plano-e.jpeg',
+        'planos/plano-f.jpeg',
+        'planos/plano-g.jpeg',
+        'planos/plano-h.jpeg',
+      ],
       manifest: {
         name: 'App Tecnica Campo Juno',
         short_name: 'Tecnica Juno',
