@@ -51,6 +51,7 @@ export function EditableSelect({
         <div className="inline-add">
           <TextInput value={draft} onChange={e => setDraft(e.target.value)} placeholder={`Nueva opcion para ${label}`} autoFocus />
           <button className="primary" type="button" onClick={add}>Agregar</button>
+          <button className="secondary" type="button" onClick={() => { setDraft(''); setAdding(false); }}>Cancelar</button>
         </div>
       )}
     </div>

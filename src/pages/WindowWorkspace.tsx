@@ -96,6 +96,24 @@ export function WindowWorkspace() {
     setActiveSolutionId(nextSolutions[0]?.id);
   };
 
+  const repairAngleSolutions = () => {
+    const plan = win.planTemplate;
+    if (!plan) return;
+    const nextSolutions = Array.from({ length: plan.solutionCount }, (_, index) => {
+      const current = win.solutions[index];
+      return current
+        ? { ...current, name: current.name || `Persiana ${index + 1}`, planTemplate: plan }
+        : { ...newSolution(`Persiana ${index + 1}`, 'inside'), planTemplate: plan };
+    });
+    updateWindow(project, space.id, win.id, current => ({
+      ...current,
+      quickMode: 'angle45',
+      planTemplate: plan,
+      solutions: nextSolutions,
+    }));
+    setActiveSolutionId(nextSolutions[0]?.id);
+  };
+
   const clearPlanTemplate = () => {
     updateWindow(project, space.id, win.id, current => ({
       ...current,
@@ -167,6 +185,11 @@ export function WindowWorkspace() {
           <QuickModeSelector mode={win.quickMode || 'simple'} onChange={setQuickMode} />
           {(win.quickMode || 'simple') === 'angle45' && (
             <PlanTemplatePicker selected={win.planTemplate} onSelect={applyPlanTemplate} onClear={clearPlanTemplate} />
+          )}
+          {(win.quickMode || 'simple') === 'angle45' && win.planTemplate && win.solutions.length !== win.planTemplate.solutionCount && (
+            <button className="secondary wide" type="button" onClick={repairAngleSolutions}>
+              Reparar persianas del plano {win.planTemplate.label}
+            </button>
           )}
           {(win.quickMode || 'simple') === 'simple' || win.planTemplate ? (
             <>
@@ -287,6 +310,15 @@ function CustomWindowFields({
     setAddingField(false);
   };
 
+  const addOptionToField = (fieldId: string) => {
+    const value = prompt('Nueva opcion para este campo');
+    const clean = value?.trim();
+    if (!clean) return;
+    const field = (catalog.customWindowFields || []).find(item => item.id === fieldId);
+    if (!field || field.options.includes(clean)) return;
+    updateFieldOptions(fieldId, [...field.options, clean]);
+  };
+
   const updateFieldOptions = (fieldId: string, options: string[]) => {
     onCatalogChange({
       customWindowFields: (catalog.customWindowFields || []).map(field => field.id === fieldId ? { ...field, options } : field),
@@ -327,6 +359,9 @@ function CustomWindowFields({
               }}
               onDeleteOption={value => updateFieldOptions(field.id, field.options.filter(option => option !== value))}
             />
+            <button className="secondary small custom-option-button" type="button" onClick={() => addOptionToField(field.id)}>
+              <PlusIcon className="icon" /> Opcion directa
+            </button>
             <button className="mini-danger" type="button" onClick={() => deleteField(field.id)}>
               <TrashIcon className="icon" />
             </button>
@@ -441,6 +476,7 @@ function DivisionsForm({ solution, onChange }: { solution: TechnicalSolution; on
         <div className={hasMismatch ? 'warn' : 'ok'}><strong>Suma partes</strong><span>{sumWidths.toFixed(2)} m</span></div>
       </div>
       <div className="division-tools">
+        <button className="secondary small" type="button" onClick={() => onChange({ divisions: [...normalizedDivisions(), { id: uid('part'), label: `Parte ${solution.divisions.length + 1}`, width: 0, height: commonHeight }] })}>Agregar manual</button>
         <button className="secondary small" type="button" onClick={() => splitEvenly(2)}>2 iguales</button>
         <button className="secondary small" type="button" onClick={() => splitEvenly(3)}>3 iguales</button>
         <button className="secondary small" type="button" onClick={() => splitEvenly(4)}>4 iguales</button>
