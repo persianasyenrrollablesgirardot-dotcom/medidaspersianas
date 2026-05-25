@@ -1,0 +1,189 @@
+export type ProjectStatus = 'draft' | 'quick_quote' | 'technical_pending' | 'ready_for_fabrication' | 'archived';
+export type SolutionStatus = 'quick' | 'technical_pending' | 'needs_review' | 'ready_for_fabrication' | 'blocked';
+export type MountLayer = 'inside' | 'outside' | 'wall' | 'ceiling' | 'frame' | 'mixed';
+export type InstallSurface = 'concrete' | 'drywall' | 'wood' | 'aluminum' | 'tile' | 'unknown';
+export type DriveType = 'manual' | 'motor' | 'none';
+export type EvidenceKind = 'general' | 'measurement' | 'obstacle' | 'electric' | 'level' | 'detail';
+export type MountPlanId = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H';
+export type QuickWindowMode = 'simple' | 'angle45';
+
+export interface TechnicalProject {
+  id?: number;
+  code: string;
+  clientName: string;
+  clientDocument?: string;
+  siteName?: string;
+  city?: string;
+  address?: string;
+  contactPhone?: string;
+  status: ProjectStatus;
+  spaces: SpaceRecord[];
+  createdAt: number;
+  updatedAt: number;
+  deletedAt?: number;
+  synced: boolean;
+}
+
+export interface SpaceRecord {
+  id: string;
+  name: string;
+  notes?: string;
+  windows: WindowRecord[];
+}
+
+export interface WindowRecord {
+  id: string;
+  label: string;
+  openingType?: string;
+  shape?: string;
+  quickMode?: QuickWindowMode;
+  planTemplate?: MountPlanTemplate;
+  customFields?: Record<string, string>;
+  geometry: WindowGeometry;
+  siteConditions: SiteCondition[];
+  evidence: EvidenceItem[];
+  solutions: TechnicalSolution[];
+  notes?: string;
+}
+
+export interface WindowGeometry {
+  widthTop?: number;
+  widthMiddle?: number;
+  widthBottom?: number;
+  heightLeft?: number;
+  heightCenter?: number;
+  heightRight?: number;
+  depth?: number;
+  angleDegrees?: number;
+  levelStatus?: 'level' | 'minor_unlevel' | 'severe_unlevel';
+}
+
+export interface SiteCondition {
+  id: string;
+  label: string;
+  severity: 'low' | 'medium' | 'high';
+  notes?: string;
+}
+
+export interface EvidenceItem {
+  id: string;
+  kind: EvidenceKind;
+  label: string;
+  dataUrl: string;
+  createdAt: number;
+}
+
+export interface TechnicalSolution {
+  id: string;
+  name: string;
+  layer: MountLayer;
+  system: string;
+  fabric?: string;
+  color?: string;
+  mount?: string;
+  surface?: InstallSurface;
+  drive: DriveType;
+  controlSide?: 'left' | 'right' | 'center' | 'none';
+  planTemplate?: MountPlanTemplate;
+  quickQuote?: QuickQuote;
+  assembly: AssemblyParams;
+  divisions: DivisionPart[];
+  accessories: AccessoryItem[];
+  motor?: MotorParams;
+  status: SolutionStatus;
+  alerts: TechnicalAlert[];
+  notes?: string;
+}
+
+export interface MountPlanTemplate {
+  id: MountPlanId;
+  label: string;
+  imageUrl: string;
+  layout: 'L' | 'U';
+  rollDirection: 'front' | 'back';
+  solutionCount: number;
+  centralDivisions?: number;
+  notes?: string;
+}
+
+export interface QuickQuote {
+  width: number;
+  height: number;
+  manualArea?: number;
+  pricePerM2?: number;
+  quantity: number;
+  estimatedTotal?: number;
+  note?: string;
+}
+
+export interface AssemblyParams {
+  fabricationWidth?: number;
+  fabricationHeight?: number;
+  profileColor?: string;
+  tubeProfileRail?: string;
+  bracketType?: string;
+  valance?: string;
+  chainColor?: string;
+  bottomProfile?: string;
+  deductionNotes?: string;
+}
+
+export interface DivisionPart {
+  id: string;
+  label: string;
+  width: number;
+  height: number;
+  controlSide?: 'left' | 'right' | 'center' | 'none';
+  notes?: string;
+}
+
+export interface AccessoryItem {
+  id: string;
+  name: string;
+  qty: number;
+  notes?: string;
+}
+
+export interface MotorParams {
+  motorSide?: 'left' | 'right';
+  powerPoint: 'available' | 'missing' | 'unknown';
+  voltage?: string;
+  groundPole?: 'yes' | 'no' | 'unknown';
+  distanceToPowerM?: number;
+  controlChannel?: string;
+  wifiNeeded?: boolean;
+  headrailSpaceOk?: 'yes' | 'no' | 'unknown';
+  notes?: string;
+}
+
+export interface TechnicalAlert {
+  id: string;
+  level: 'info' | 'warning' | 'blocker';
+  message: string;
+}
+
+export interface TechnicalCatalog {
+  id?: number;
+  systems: string[];
+  fabrics: string[];
+  colors: string[];
+  mounts: string[];
+  surfaces: string[];
+  openingTypes: string[];
+  shapes: string[];
+  customWindowFields: Array<{
+    id: string;
+    label: string;
+    options: string[];
+  }>;
+  siteConditions: Array<{ label: string; severity: 'low' | 'medium' | 'high' }>;
+  lastUpdatedAt: number;
+}
+
+export interface SyncQueueItem {
+  id?: number;
+  type: 'upsert_project' | 'delete_project';
+  payload: unknown;
+  status: 'pending' | 'processing' | 'failed';
+  createdAt: number;
+}
