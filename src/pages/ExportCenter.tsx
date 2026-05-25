@@ -7,7 +7,10 @@ import { ArrowDownTrayIcon, ArrowUpTrayIcon, DocumentTextIcon } from '@heroicons
 
 export function ExportCenter() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const projects = useLiveQuery(() => db.projects.where('deletedAt').equals(0).toArray()) || [];
+  const projects = useLiveQuery(async () => {
+    const all = await db.projects.toArray();
+    return all.filter(project => (project.deletedAt || 0) === 0);
+  }) || [];
 
   const exportJson = () => {
     downloadText(`backup_app_tecnica_campo_juno_${Date.now()}.json`, JSON.stringify(buildBackup(projects), null, 2), 'application/json');

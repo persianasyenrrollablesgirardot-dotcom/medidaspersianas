@@ -8,13 +8,23 @@ import { openPrintableReport } from '../lib/exporters';
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const projects = useLiveQuery(() => db.projects.where('deletedAt').equals(0).reverse().sortBy('updatedAt')) || [];
+  const projects = useLiveQuery(async () => {
+    const all = await db.projects.toArray();
+    return all
+      .filter(project => (project.deletedAt || 0) === 0)
+      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  }) || [];
   const catalog = useLiveQuery(() => db.catalog.toCollection().first());
 
   const create = async () => {
-    const id = await db.projects.add(newProject());
-    toast.success('Proyecto tecnico creado');
-    navigate(`/project/${id}`);
+    try {
+      const id = await db.projects.add(newProject());
+      toast.success('Proyecto creado');
+      navigate(`/project/${id}`);
+    } catch (error) {
+      console.error(error);
+      toast.error('No se pudo crear. Reinicia la app y borra cache si persiste.');
+    }
   };
 
   return (

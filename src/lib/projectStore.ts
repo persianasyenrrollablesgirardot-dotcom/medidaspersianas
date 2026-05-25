@@ -1,6 +1,5 @@
 import { db } from '../db';
 import type { EvidenceKind, SpaceRecord, TechnicalProject, TechnicalSolution, WindowRecord } from '../types';
-import { evaluateSolution } from './rules';
 import { quoteTotal } from './metrics';
 import { uid } from './ids';
 
@@ -18,7 +17,7 @@ export async function saveProject(project: TechnicalProject) {
         ...window,
         solutions: window.solutions.map(solution => ({
           ...solution,
-          alerts: evaluateSolution(window, solution),
+          alerts: solution.alerts || [],
           quickQuote: solution.quickQuote ? { ...solution.quickQuote, estimatedTotal: quoteTotal(solution.quickQuote) } : undefined,
         })),
       })),
