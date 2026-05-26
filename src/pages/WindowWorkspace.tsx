@@ -338,15 +338,6 @@ function CustomWindowFields({
     setAddingField(false);
   };
 
-  const addOptionToField = (fieldId: string) => {
-    const value = prompt('Nueva opcion para este campo');
-    const clean = value?.trim();
-    if (!clean) return;
-    const field = (catalog.customWindowFields || []).find(item => item.id === fieldId);
-    if (!field || field.options.includes(clean)) return;
-    updateFieldOptions(fieldId, [...field.options, clean]);
-  };
-
   const updateFieldOptions = (fieldId: string, options: string[]) => {
     onCatalogChange({
       customWindowFields: (catalog.customWindowFields || []).map(field => field.id === fieldId ? { ...field, options } : field),
@@ -387,9 +378,6 @@ function CustomWindowFields({
               }}
               onDeleteOption={value => updateFieldOptions(field.id, field.options.filter(option => option !== value))}
             />
-            <button className="secondary small custom-option-button" type="button" onClick={() => addOptionToField(field.id)}>
-              <PlusIcon className="icon" /> Opcion directa
-            </button>
             <button className="mini-danger" type="button" onClick={() => deleteField(field.id)}>
               <TrashIcon className="icon" />
             </button>

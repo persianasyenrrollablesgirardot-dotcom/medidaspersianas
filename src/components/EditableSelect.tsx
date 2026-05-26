@@ -39,11 +39,11 @@ export function EditableSelect({
       </Field>
       <div className="option-tools">
         <button className="secondary small" type="button" onClick={() => setAdding(v => !v)}>
-          <PlusIcon className="icon" /> Opcion
+          <PlusIcon className="icon" /> Agregar opcion
         </button>
         {value && (
           <button className="secondary small danger-outline" type="button" onClick={() => onDeleteOption(value)}>
-            <TrashIcon className="icon" /> Borrar
+            <TrashIcon className="icon" /> Borrar opcion
           </button>
         )}
       </div>

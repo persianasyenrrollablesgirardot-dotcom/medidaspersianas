@@ -194,7 +194,6 @@ button { cursor: pointer; }
 .custom-fields { border: 1px dashed #2b2b2b; border-radius: 8px; padding: 10px; display: grid; gap: 10px; }
 .custom-field-item { position: relative; border: 1px solid #202020; border-radius: 8px; padding: 10px; padding-right: 50px; background: #090909; }
 .custom-field-item .mini-danger { position: absolute; right: 8px; top: 28px; }
-.custom-option-button { margin-top: 8px; }
 
 .editor { display: grid; gap: 12px; }
 .panel { padding: 15px; display: grid; gap: 13px; }
