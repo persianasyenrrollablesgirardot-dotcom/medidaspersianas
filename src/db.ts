@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { TechnicalCatalog, TechnicalProject, SyncQueueItem } from './types';
+import type { ProjectSummary, TechnicalCatalog, TechnicalProject, SyncQueueItem } from './types';
 
 export const DEFAULT_CATALOG: TechnicalCatalog = {
   systems: ['Enrollables', 'Blackout', 'Screen Solar', 'Sheer Elegance', 'Panel Japones', 'Romana', 'Vertical', 'Hannas', 'Toldo Romano', 'Riel'],
@@ -27,6 +27,7 @@ export const DEFAULT_CATALOG: TechnicalCatalog = {
 
 class TechnicalFieldDB extends Dexie {
   projects!: Table<TechnicalProject, number>;
+  projectSummaries!: Table<ProjectSummary, number>;
   catalog!: Table<TechnicalCatalog, number>;
   syncQueue!: Table<SyncQueueItem, number>;
 
@@ -34,6 +35,12 @@ class TechnicalFieldDB extends Dexie {
     super('AppCampoJunoStableDB');
     this.version(1).stores({
       projects: '++id, code, clientName, status, createdAt, updatedAt, deletedAt, synced',
+      catalog: '++id',
+      syncQueue: '++id, type, status, createdAt',
+    });
+    this.version(2).stores({
+      projects: '++id, code, clientName, status, createdAt, updatedAt, deletedAt, synced',
+      projectSummaries: '++id, &projectId, code, clientName, status, updatedAt, deletedAt, synced',
       catalog: '++id',
       syncQueue: '++id, type, status, createdAt',
     });
@@ -60,10 +67,10 @@ db.on('ready', async () => {
   }
 
   const fortyDaysAgo = Date.now() - (40 * 24 * 60 * 60 * 1000);
-  const expired = (await db.projects.toArray()).filter(project => (project.deletedAt || 0) > 0 && (project.deletedAt || 0) <= fortyDaysAgo);
-  if (expired.length > 0) {
-    await db.projects.bulkDelete(expired.map(project => project.id!));
-  }
+  const expired = await db.projects.where('deletedAt').belowOrEqual(fortyDaysAgo).and(project => (project.deletedAt || 0) > 0).primaryKeys();
+  if (expired.length > 0) await db.projects.bulkDelete(expired as number[]);
+  const expiredSummaries = await db.projectSummaries.where('deletedAt').belowOrEqual(fortyDaysAgo).and(project => (project.deletedAt || 0) > 0).primaryKeys();
+  if (expiredSummaries.length > 0) await db.projectSummaries.bulkDelete(expiredSummaries as number[]);
 });
 
 function normalizeCatalog(catalog: TechnicalCatalog): Partial<TechnicalCatalog> {

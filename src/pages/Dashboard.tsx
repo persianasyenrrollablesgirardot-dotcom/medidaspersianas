@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -5,20 +6,28 @@ import { db, resetLocalAppData } from '../db';
 import { newProject } from '../lib/projectFactory';
 import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { openPrintableReport } from '../lib/exporters';
+import { rebuildMissingProjectSummaries, upsertProjectSummary } from '../lib/projectStore';
 
 export function Dashboard() {
   const navigate = useNavigate();
   const projects = useLiveQuery(async () => {
-    const all = await db.projects.toArray();
-    return all
-      .filter(project => (project.deletedAt || 0) === 0)
-      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-  }) || [];
+    const summaries = await db.projectSummaries.where('deletedAt').equals(0).toArray();
+    return summaries.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  }, []) || [];
   const catalog = useLiveQuery(() => db.catalog.toCollection().first());
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      rebuildMissingProjectSummaries().catch(error => console.error('No se pudo reconstruir indice de proyectos', error));
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const create = async () => {
     try {
-      const id = await db.projects.add(newProject());
+      const project = newProject();
+      const id = await db.projects.add(project);
+      await upsertProjectSummary({ ...project, id });
       toast.success('Proyecto creado');
       navigate(`/project/${id}`);
     } catch (error) {
@@ -67,39 +76,40 @@ export function Dashboard() {
 
       <section className="list">
         {projects.map(project => {
-          const windows = project.spaces.reduce((sum, space) => sum + space.windows.length, 0);
-          const solutions = project.spaces.reduce((sum, space) => sum + space.windows.reduce((wSum, w) => wSum + w.solutions.length, 0), 0);
           return (
             <article key={project.id} className="project-card">
-              <button className="project-open" onClick={() => navigate(`/project/${project.id}/spaces`)}>
+              <button className="project-open" onClick={() => navigate(`/project/${project.projectId}/spaces`)}>
                 <div>
                   <strong>{project.clientName || 'Proyecto sin cliente'}</strong>
                   <span>{project.siteName || project.address || project.code}</span>
                 </div>
                 <div className="card-meta">
-                  <span>{project.spaces.length} espacios</span>
-                  <span>{windows} ventanas</span>
-                  <span>{solutions} soluciones</span>
+                  <span>{project.spacesCount} espacios</span>
+                  <span>{project.windowsCount} ventanas</span>
+                  <span>{project.solutionsCount} soluciones</span>
                 </div>
               </button>
               <div className="project-card-actions">
                 <button
                   className="project-quote"
-                  onClick={() => navigate(`/project/${project.id}/quote`)}
+                  onClick={() => navigate(`/project/${project.projectId}/quote`)}
                   aria-label={`Cotizacion rapida de ${project.clientName || project.code}`}
                 >
                   <CalculatorIcon className="icon" />
                 </button>
                 <button
                   className="project-detail"
-                  onClick={() => navigate(`/project/${project.id}/detail`)}
+                  onClick={() => navigate(`/project/${project.projectId}/detail`)}
                   aria-label={`Ver detalle de ${project.clientName || project.code}`}
                 >
                   <DocumentMagnifyingGlassIcon className="icon" />
                 </button>
                 <button
                   className="project-pdf"
-                  onClick={() => openPrintableReport([project], catalog)}
+                  onClick={async () => {
+                    const fullProject = await db.projects.get(project.projectId);
+                    if (fullProject) openPrintableReport([fullProject], catalog);
+                  }}
                   aria-label={`Descargar PDF de ${project.clientName || project.code}`}
                 >
                   <DocumentArrowDownIcon className="icon" />
@@ -107,7 +117,9 @@ export function Dashboard() {
                 <button
                   className="project-delete"
                   onClick={async () => {
-                    await db.projects.update(project.id!, { deletedAt: Date.now(), updatedAt: Date.now(), synced: false });
+                    const deletedAt = Date.now();
+                    await db.projects.update(project.projectId, { deletedAt, updatedAt: deletedAt, synced: false });
+                    await db.projectSummaries.update(project.id!, { deletedAt, updatedAt: deletedAt, synced: false });
                     toast.success('Proyecto movido a papelera');
                   }}
                   aria-label={`Mover ${project.clientName || project.code} a papelera`}

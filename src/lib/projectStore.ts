@@ -1,5 +1,5 @@
 import { db } from '../db';
-import type { EvidenceKind, SpaceRecord, TechnicalProject, TechnicalSolution, WindowRecord } from '../types';
+import type { EvidenceKind, ProjectSummary, SpaceRecord, TechnicalProject, TechnicalSolution, WindowRecord } from '../types';
 import { quoteTotal } from './metrics';
 import { uid } from './ids';
 
@@ -27,10 +27,52 @@ export async function saveProject(project: TechnicalProject) {
   const previous = saveQueues.get(project.id) || Promise.resolve();
   const next = previous
     .catch(() => undefined)
-    .then(() => db.projects.put(hydrated))
+    .then(async () => {
+      await db.projects.put(hydrated);
+      await upsertProjectSummary(hydrated);
+    })
     .then(() => undefined);
   saveQueues.set(project.id, next);
   await next;
+}
+
+export function buildProjectSummary(project: TechnicalProject): ProjectSummary | undefined {
+  if (!project.id) return undefined;
+  const windowsCount = project.spaces.reduce((sum, space) => sum + space.windows.length, 0);
+  const solutionsCount = project.spaces.reduce((sum, space) => sum + space.windows.reduce((winSum, window) => winSum + window.solutions.length, 0), 0);
+  return {
+    projectId: project.id,
+    code: project.code,
+    clientName: project.clientName,
+    siteName: project.siteName,
+    address: project.address,
+    status: project.status,
+    spacesCount: project.spaces.length,
+    windowsCount,
+    solutionsCount,
+    deletedAt: project.deletedAt || 0,
+    updatedAt: project.updatedAt,
+    synced: project.synced,
+  };
+}
+
+export async function upsertProjectSummary(project: TechnicalProject) {
+  const summary = buildProjectSummary(project);
+  if (!summary) return;
+  const existing = await db.projectSummaries.where('projectId').equals(project.id!).first();
+  await db.projectSummaries.put(existing?.id ? { ...summary, id: existing.id } : summary);
+}
+
+export async function rebuildMissingProjectSummaries() {
+  const indexed = new Set((await db.projectSummaries.toArray()).map(summary => summary.projectId));
+  let processed = 0;
+  await db.projects.each(async project => {
+    if (project.id && !indexed.has(project.id)) {
+      await upsertProjectSummary(project);
+      processed += 1;
+      if (processed % 3 === 0) await new Promise(resolve => window.setTimeout(resolve, 80));
+    }
+  });
 }
 
 export function updateSpace(project: TechnicalProject, spaceId: string, updater: (space: SpaceRecord) => SpaceRecord) {
@@ -62,15 +104,36 @@ export function updateSolution(
 
 export function addEvidence(project: TechnicalProject, spaceId: string, windowId: string, file: File, kind: EvidenceKind) {
   const reader = new FileReader();
-  reader.onloadend = () => updateWindow(project, spaceId, windowId, window => ({
-    ...window,
-    evidence: [...window.evidence, {
-      id: uid('evidence'),
-      kind,
-      label: file.name,
-      dataUrl: String(reader.result),
-      createdAt: Date.now(),
-    }],
-  }));
+  reader.onloadend = async () => {
+    const dataUrl = await compressImageDataUrl(String(reader.result));
+    updateWindow(project, spaceId, windowId, window => ({
+      ...window,
+      evidence: [...window.evidence, {
+        id: uid('evidence'),
+        kind,
+        label: file.name,
+        dataUrl,
+        createdAt: Date.now(),
+      }],
+    }));
+  };
   reader.readAsDataURL(file);
+}
+
+async function compressImageDataUrl(dataUrl: string): Promise<string> {
+  if (!dataUrl.startsWith('data:image/')) return dataUrl;
+  const image = new Image();
+  image.src = dataUrl;
+  await image.decode();
+  const maxSide = 1280;
+  const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return dataUrl;
+  ctx.drawImage(image, 0, 0, width, height);
+  return canvas.toDataURL('image/jpeg', 0.72);
 }

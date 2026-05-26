@@ -8,26 +8,30 @@ const RETENTION_DAYS = 40;
 
 export function ProjectTrash() {
   const projects = useLiveQuery(async () => {
-    const all = await db.projects.toArray();
+    const all = await db.projectSummaries.where('deletedAt').above(0).toArray();
     return all
-      .filter(project => (project.deletedAt || 0) > 0)
       .sort((a, b) => (b.deletedAt || 0) - (a.deletedAt || 0));
   }) || [];
 
   const restore = async (id: number) => {
     await db.projects.update(id, { deletedAt: 0, updatedAt: Date.now(), synced: false });
+    const summary = await db.projectSummaries.where('projectId').equals(id).first();
+    if (summary?.id) await db.projectSummaries.update(summary.id, { deletedAt: 0, updatedAt: Date.now(), synced: false });
     toast.success('Proyecto restaurado');
   };
 
   const removeForever = async (id: number) => {
     if (!confirm('Eliminar definitivamente este proyecto? Esta accion no se puede deshacer.')) return;
     await db.projects.delete(id);
+    const summary = await db.projectSummaries.where('projectId').equals(id).first();
+    if (summary?.id) await db.projectSummaries.delete(summary.id);
     toast.success('Proyecto eliminado definitivamente');
   };
 
   const emptyTrash = async () => {
     if (!confirm('Vaciar toda la papelera? Esta accion no se puede deshacer.')) return;
-    await db.projects.bulkDelete(projects.map(project => project.id!));
+    await db.projects.bulkDelete(projects.map(project => project.projectId));
+    await db.projectSummaries.bulkDelete(projects.map(project => project.id!));
     toast.success('Papelera vaciada');
   };
 
@@ -59,10 +63,10 @@ export function ProjectTrash() {
                 <em>Se elimina automaticamente en {remaining} dias</em>
               </div>
               <div className="trash-actions">
-                <button className="secondary" onClick={() => restore(project.id!)}>
+                <button className="secondary" onClick={() => restore(project.projectId)}>
                   <ArrowPathIcon className="icon" /> Restaurar
                 </button>
-                <button className="secondary danger-outline" onClick={() => removeForever(project.id!)}>
+                <button className="secondary danger-outline" onClick={() => removeForever(project.projectId)}>
                   <TrashIcon className="icon" /> Eliminar
                 </button>
               </div>

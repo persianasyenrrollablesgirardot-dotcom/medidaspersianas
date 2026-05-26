@@ -24,6 +24,22 @@ export interface TechnicalProject {
   synced: boolean;
 }
 
+export interface ProjectSummary {
+  id?: number;
+  projectId: number;
+  code: string;
+  clientName: string;
+  siteName?: string;
+  address?: string;
+  status: ProjectStatus;
+  spacesCount: number;
+  windowsCount: number;
+  solutionsCount: number;
+  deletedAt?: number;
+  updatedAt: number;
+  synced: boolean;
+}
+
 export interface SpaceRecord {
   id: string;
   name: string;
