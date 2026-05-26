@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -10,6 +10,7 @@ import { rebuildMissingProjectSummaries, upsertProjectSummary } from '../lib/pro
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const [creating, setCreating] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const projects = useLiveQuery(async () => {
     const summaries = await db.projectSummaries.where('deletedAt').equals(0).toArray();
@@ -18,16 +19,26 @@ export function Dashboard() {
   const fullProjectCount = useLiveQuery(() => db.projects.count(), []) || 0;
   const catalog = useLiveQuery(() => db.catalog.toCollection().first());
 
+  useEffect(() => {
+    const onBlocked = () => toast.error('El almacenamiento local esta bloqueado por una version anterior. Cierra la app completamente y abre de nuevo.');
+    window.addEventListener('juno-storage-blocked', onBlocked);
+    return () => window.removeEventListener('juno-storage-blocked', onBlocked);
+  }, []);
+
   const create = async () => {
+    if (creating) return;
+    setCreating(true);
     try {
       const project = newProject();
-      const id = await db.projects.add(project);
+      const id = await withTimeout(db.projects.add(project), 6000);
       await upsertProjectSummary({ ...project, id });
       toast.success('Proyecto creado');
       navigate(`/project/${id}`);
     } catch (error) {
       console.error(error);
-      toast.error('No se pudo crear. Reinicia la app y borra cache si persiste.');
+      toast.error(error instanceof Error ? error.message : 'No se pudo crear el proyecto');
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -50,8 +61,8 @@ export function Dashboard() {
         <p>App Tecnica Campo Juno</p>
         <h1>Levantamiento tecnico de campo</h1>
         <div className="hero-actions">
-          <button className="primary" onClick={create}>
-            <PlusIcon className="icon" /> Nuevo proyecto
+          <button className="primary" onClick={create} disabled={creating}>
+            <PlusIcon className="icon" /> {creating ? 'Creando...' : 'Nuevo proyecto'}
           </button>
           <button className="secondary" onClick={() => navigate('/papelera')}>
             <TrashIcon className="icon" /> Papelera
@@ -147,6 +158,13 @@ export function Dashboard() {
       </section>
     </div>
   );
+}
+
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('El almacenamiento local no respondio. Cierra completamente la app y abre de nuevo.')), ms)),
+  ]);
 }
 
 function Stat({ label, value }: { label: string; value: number }) {

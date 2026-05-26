@@ -1,6 +1,8 @@
 import Dexie, { type Table } from 'dexie';
 import type { ProjectSummary, TechnicalCatalog, TechnicalProject, SyncQueueItem } from './types';
 
+const DB_NAME = 'AppCampoJunoMobileV3DB';
+
 export const DEFAULT_CATALOG: TechnicalCatalog = {
   systems: ['Enrollables', 'Blackout', 'Screen Solar', 'Sheer Elegance', 'Panel Japones', 'Romana', 'Vertical', 'Hannas', 'Toldo Romano', 'Riel'],
   fabrics: ['Blackout', 'Screen 1%', 'Screen 3%', 'Screen 5%', 'Decorativa', 'Sheer', 'Traslucida'],
@@ -32,13 +34,8 @@ class TechnicalFieldDB extends Dexie {
   syncQueue!: Table<SyncQueueItem, number>;
 
   constructor() {
-    super('AppCampoJunoStableDB');
+    super(DB_NAME);
     this.version(1).stores({
-      projects: '++id, code, clientName, status, createdAt, updatedAt, deletedAt, synced',
-      catalog: '++id',
-      syncQueue: '++id, type, status, createdAt',
-    });
-    this.version(2).stores({
       projects: '++id, code, clientName, status, createdAt, updatedAt, deletedAt, synced',
       projectSummaries: '++id, &projectId, code, clientName, status, updatedAt, deletedAt, synced',
       catalog: '++id',
@@ -51,10 +48,22 @@ export const db = new TechnicalFieldDB();
 
 export async function resetLocalAppData() {
   db.close();
-  await Dexie.delete('AppCampoJunoStableDB');
-  await Dexie.delete('AppTecnicaCampoJunoDB');
+  await Promise.all([
+    Dexie.delete(DB_NAME),
+    Dexie.delete('AppCampoJunoStableDB'),
+    Dexie.delete('AppTecnicaCampoJunoDB'),
+  ]);
   window.location.reload();
 }
+
+db.on('blocked', () => {
+  window.dispatchEvent(new CustomEvent('juno-storage-blocked'));
+});
+
+db.on('versionchange', () => {
+  db.close();
+  window.location.reload();
+});
 
 db.on('ready', async () => {
   const count = await db.catalog.count();
