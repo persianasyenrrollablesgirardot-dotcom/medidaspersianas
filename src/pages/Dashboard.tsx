@@ -1,79 +1,29 @@
-import { useEffect, useState } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { db, ensureStorageReady, repairLocalAppStorage, resetLocalAppData } from '../db';
+import { resetLocalAppData } from '../db';
 import { newProject } from '../lib/projectFactory';
 import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { openPrintableReport } from '../lib/exporters';
-import { rebuildMissingProjectSummaries, upsertProjectSummary } from '../lib/projectStore';
-import { addFallbackProject, deleteFallbackProject, isFallbackId, useFallbackSummaries } from '../lib/localFallbackStore';
+import { addFallbackProject, deleteFallbackProject, getFallbackProject, useFallbackSummaries } from '../lib/localFallbackStore';
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const [storageStatus, setStorageStatus] = useState<'checking' | 'ready' | 'blocked'>('checking');
   const [creating, setCreating] = useState(false);
-  const [rebuilding, setRebuilding] = useState(false);
-  const projects = useLiveQuery(async () => {
-    const summaries = await db.projectSummaries.where('deletedAt').equals(0).toArray();
-    return summaries.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-  }, []) || [];
-  const fallbackProjects = useFallbackSummaries();
-  const visibleProjects = [...fallbackProjects, ...projects].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-  const fullProjectCount = useLiveQuery(() => db.projects.count(), []) || 0;
-  const catalog = useLiveQuery(() => db.catalog.toCollection().first());
-
-  useEffect(() => {
-    const onBlocked = () => toast.error('El almacenamiento local esta bloqueado por una version anterior. Cierra la app completamente y abre de nuevo.');
-    window.addEventListener('juno-storage-blocked', onBlocked);
-    return () => window.removeEventListener('juno-storage-blocked', onBlocked);
-  }, []);
-
-  useEffect(() => {
-    let alive = true;
-    withTimeout(ensureStorageReady(), 15000)
-      .then(() => {
-        if (alive) setStorageStatus('ready');
-      })
-      .catch(error => {
-        console.error(error);
-        if (alive) setStorageStatus('blocked');
-      });
-    return () => {
-      alive = false;
-    };
-  }, []);
+  const visibleProjects = useFallbackSummaries();
 
   const create = async () => {
     if (creating) return;
     setCreating(true);
     try {
-      await withTimeout(ensureStorageReady(), 20000);
-      const project = newProject();
-      const id = await withTimeout(db.projects.add(project), 20000);
-      await upsertProjectSummary({ ...project, id });
+      const fallbackId = addFallbackProject(newProject());
       toast.success('Proyecto creado');
-      navigate(`/project/${id}`);
+      navigate(`/project/${fallbackId}`);
     } catch (error) {
       console.error(error);
-      const fallbackId = addFallbackProject(newProject());
-      toast.success('Proyecto creado en modo respaldo local');
-      navigate(`/project/${fallbackId}`);
+      toast.error('No se pudo guardar en este dispositivo. Revisa espacio disponible o reinstala la app.');
     } finally {
       setCreating(false);
-    }
-  };
-
-  const recoverOldList = async () => {
-    setRebuilding(true);
-    try {
-      await rebuildMissingProjectSummaries();
-      toast.success('Listado reconstruido');
-    } catch (error) {
-      console.error(error);
-      toast.error('No se pudo reconstruir el listado');
-    } finally {
-      setRebuilding(false);
     }
   };
 
@@ -83,8 +33,8 @@ export function Dashboard() {
         <p>App Tecnica Campo Juno</p>
         <h1>Levantamiento tecnico de campo</h1>
         <div className="hero-actions">
-          <button className="primary" onClick={create} disabled={creating || storageStatus === 'checking'}>
-            <PlusIcon className="icon" /> {creating ? 'Creando...' : storageStatus === 'checking' ? 'Preparando...' : storageStatus === 'blocked' ? 'Nuevo proyecto respaldo' : 'Nuevo proyecto'}
+          <button className="primary" onClick={create} disabled={creating}>
+            <PlusIcon className="icon" /> {creating ? 'Creando...' : 'Nuevo proyecto'}
           </button>
           <button className="secondary" onClick={() => navigate('/papelera')}>
             <TrashIcon className="icon" /> Papelera
@@ -102,16 +52,6 @@ export function Dashboard() {
         </div>
       </header>
 
-      {storageStatus === 'blocked' && (
-        <section className="storage-warning">
-          <strong>Almacenamiento local bloqueado</strong>
-          <span>Android no esta respondiendo con la base local de la app. Esta reparacion limpia cache, service worker y base local de esta app.</span>
-          <button className="secondary danger-outline" type="button" onClick={repairLocalAppStorage}>
-            Reparar almacenamiento
-          </button>
-        </section>
-      )}
-
       <section className="stats-row">
         <Stat label="Proyectos" value={visibleProjects.length} />
         <Stat label="Pendientes" value={visibleProjects.filter(p => p.status !== 'ready_for_fabrication').length} />
@@ -123,11 +63,6 @@ export function Dashboard() {
           <h2>Proyectos activos</h2>
           <p className="muted">{visibleProjects.length} registros locales</p>
         </div>
-        {fullProjectCount > projects.length && (
-          <button className="secondary" type="button" disabled={rebuilding} onClick={recoverOldList}>
-            {rebuilding ? 'Recuperando...' : 'Recuperar listado antiguo'}
-          </button>
-        )}
       </div>
 
       <section className="list">
@@ -162,9 +97,9 @@ export function Dashboard() {
                 </button>
                 <button
                   className="project-pdf"
-                  onClick={async () => {
-                    const fullProject = isFallbackId(project.projectId) ? undefined : await db.projects.get(project.projectId);
-                    if (fullProject) openPrintableReport([fullProject], catalog);
+                  onClick={() => {
+                    const fullProject = getFallbackProject(project.projectId);
+                    if (fullProject) openPrintableReport([fullProject]);
                   }}
                   aria-label={`Descargar PDF de ${project.clientName || project.code}`}
                 >
@@ -172,14 +107,8 @@ export function Dashboard() {
                 </button>
                 <button
                   className="project-delete"
-                  onClick={async () => {
-                    const deletedAt = Date.now();
-                    if (isFallbackId(project.projectId)) {
-                      deleteFallbackProject(project.projectId);
-                    } else {
-                      await db.projects.update(project.projectId, { deletedAt, updatedAt: deletedAt, synced: false });
-                      await db.projectSummaries.update(project.id!, { deletedAt, updatedAt: deletedAt, synced: false });
-                    }
+                  onClick={() => {
+                    deleteFallbackProject(project.projectId);
                     toast.success('Proyecto movido a papelera');
                   }}
                   aria-label={`Mover ${project.clientName || project.code} a papelera`}
@@ -194,13 +123,6 @@ export function Dashboard() {
       </section>
     </div>
   );
-}
-
-async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => window.setTimeout(() => reject(new Error('El almacenamiento local no respondio. Cierra completamente la app y abre de nuevo.')), ms)),
-  ]);
 }
 
 function Stat({ label, value }: { label: string; value: number }) {

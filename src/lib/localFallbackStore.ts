@@ -9,14 +9,14 @@ export function isFallbackId(id?: number) {
 }
 
 export function addFallbackProject(project: TechnicalProject): number {
-  const id = -Date.now();
+  const id = -Date.now() - Math.floor(Math.random() * 1000);
   writeFallbackProjects([{ ...project, id, updatedAt: Date.now(), synced: false }, ...getFallbackProjects()]);
   return id;
 }
 
 export function getFallbackProjects(): TechnicalProject[] {
   try {
-    const raw = window.localStorage.getItem(PROJECTS_KEY);
+    const raw = window.localStorage.getItem(PROJECTS_KEY) || window.sessionStorage.getItem(PROJECTS_KEY);
     return raw ? JSON.parse(raw) as TechnicalProject[] : [];
   } catch {
     return [];
@@ -87,6 +87,11 @@ function projectToSummary(project: TechnicalProject): ProjectSummary {
 }
 
 function writeFallbackProjects(projects: TechnicalProject[]) {
-  window.localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
+  const payload = JSON.stringify(projects);
+  try {
+    window.localStorage.setItem(PROJECTS_KEY, payload);
+  } catch {
+    window.sessionStorage.setItem(PROJECTS_KEY, payload);
+  }
   window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
 }
