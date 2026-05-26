@@ -319,8 +319,23 @@ button { cursor: pointer; }
   border: 1px solid #222; background: #0d0d0d; border-radius: 8px; padding: 12px;
   display: grid; gap: 12px;
 }
-.quick-line-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.quick-line-head span { color: #59a7ff; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .1em; }
+.quick-line-head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: start; gap: 10px; }
+.quick-line-title { display: grid; gap: 3px; min-width: 0; }
+.quick-line-title span { color: #59a7ff; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
+.quick-line-title strong { font-size: 17px; line-height: 1.2; overflow-wrap: anywhere; }
+.quick-line-title em { color: #aab7c4; font-size: 12px; font-style: normal; font-weight: 800; overflow-wrap: anywhere; }
+.quick-line-tags { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.quick-line-tags span {
+  border: 1px solid #23364a; border-radius: 999px; background: #09131d; color: #9dcaff;
+  padding: 5px 8px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0;
+}
+.quote-context-strip {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
+  border: 1px solid #202020; border-radius: 8px; background: #090909; padding: 8px;
+}
+.quote-context-strip div { display: grid; gap: 3px; min-width: 0; }
+.quote-context-strip span { color: #7f8a96; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
+.quote-context-strip strong { color: #f4f7fb; font-size: 13px; overflow-wrap: anywhere; }
 .quick-measure-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
 .quick-line-total {
   border: 1px solid #1d3a27; background: #08170e; border-radius: 8px; padding: 10px;
@@ -340,7 +355,8 @@ button { cursor: pointer; }
   .big-total strong { font-size: 24px; }
   .space-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .window-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .measure-triplet, .vano-diagnosis, .division-summary, .division-row, .selected-plan, .quick-mode-panel { grid-template-columns: 1fr; }
+  .measure-triplet, .vano-diagnosis, .division-summary, .division-row, .selected-plan, .quick-mode-panel, .quick-line-head, .quote-context-strip { grid-template-columns: 1fr; }
+  .quick-line-tags { justify-content: flex-start; }
   .selected-plan img { width: 100%; }
   .space-tile { min-height: 150px; }
   .window-tile { min-height: 146px; }

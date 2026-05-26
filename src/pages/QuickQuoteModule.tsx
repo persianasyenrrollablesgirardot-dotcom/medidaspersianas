@@ -131,10 +131,9 @@ export function QuickQuoteModule() {
       </section>
 
       <section className="quick-line-list">
-        {lines.map((line, index) => (
+        {lines.map(line => (
           <QuoteLineEditor
             key={line.solution.id}
-            index={index}
             line={line}
             systems={catalog.systems}
             fabrics={catalog.fabrics}
@@ -149,7 +148,6 @@ export function QuickQuoteModule() {
 }
 
 function QuoteLineEditor({
-  index,
   line,
   systems,
   fabrics,
@@ -157,7 +155,6 @@ function QuoteLineEditor({
   onChange,
   onDelete,
 }: {
-  index: number;
   line: QuoteLine;
   systems: string[];
   fabrics: string[];
@@ -176,10 +173,33 @@ function QuoteLineEditor({
   return (
     <article className="quick-line-card">
       <div className="quick-line-head">
-        <span>Persiana {index + 1}</span>
+        <div className="quick-line-title">
+          <span>{line.space.name}</span>
+          <strong>{line.window.label}</strong>
+          <em>{line.solution.name}</em>
+        </div>
+        <div className="quick-line-tags">
+          <span>{line.solution.system}</span>
+          <span>{line.solution.layer === 'inside' ? 'Interna' : line.solution.layer === 'outside' ? 'Externa' : line.solution.layer}</span>
+        </div>
         <button className="mini-danger" type="button" onClick={onDelete} aria-label="Eliminar persiana">
           <TrashIcon className="icon" />
         </button>
+      </div>
+
+      <div className="quote-context-strip">
+        <div>
+          <span>Espacio</span>
+          <strong>{line.space.name}</strong>
+        </div>
+        <div>
+          <span>Ventana</span>
+          <strong>{line.window.label}</strong>
+        </div>
+        <div>
+          <span>Persiana</span>
+          <strong>{line.solution.name}</strong>
+        </div>
       </div>
 
       <div className="grid-2">

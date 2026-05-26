@@ -194,7 +194,12 @@ export function WindowWorkspace() {
           {(win.quickMode || 'simple') === 'simple' || win.planTemplate ? (
             <>
               <SolutionPicker win={win} activeId={activeSolution.id} onPick={setActiveSolutionId} onAddInside={() => addSol('inside')} onAddOutside={() => addSol('outside')} onDeleteActive={deleteActiveSolution} />
-              <QuickLayerSelector solution={activeSolution} onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)} />
+              <QuickSolutionBasics
+                solution={activeSolution}
+                systems={catalog.systems}
+                fabrics={catalog.fabrics}
+                onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)}
+              />
               <QuickForm solution={activeSolution} onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)} />
               <DivisionsForm solution={activeSolution} onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)} />
             </>
@@ -268,19 +273,42 @@ function PlanTemplatePicker({ selected, onSelect, onClear }: { selected?: MountP
   );
 }
 
-function QuickLayerSelector({ solution, onChange }: { solution: TechnicalSolution; onChange: (patch: Partial<TechnicalSolution>) => void }) {
+function QuickSolutionBasics({
+  solution,
+  systems,
+  fabrics,
+  onChange,
+}: {
+  solution: TechnicalSolution;
+  systems: string[];
+  fabrics: string[];
+  onChange: (patch: Partial<TechnicalSolution>) => void;
+}) {
   return (
     <div className="quick-layer-row">
-      <Field label="Instalacion de esta persiana">
-        <SelectInput value={solution.layer} onChange={e => onChange({ layer: e.target.value as TechnicalSolution['layer'] })}>
-          <option value="inside">Interna</option>
-          <option value="outside">Externa</option>
-          <option value="wall">Pared</option>
-          <option value="ceiling">Techo</option>
-          <option value="frame">Marco</option>
-          <option value="mixed">Mixta</option>
-        </SelectInput>
-      </Field>
+      <div className="grid-2">
+        <Field label="Tipo de persiana">
+          <SelectInput value={solution.system} onChange={e => onChange({ system: e.target.value })}>
+            {systems.map(system => <option key={system}>{system}</option>)}
+          </SelectInput>
+        </Field>
+        <Field label="Instalacion de esta persiana">
+          <SelectInput value={solution.layer} onChange={e => onChange({ layer: e.target.value as TechnicalSolution['layer'] })}>
+            <option value="inside">Interna</option>
+            <option value="outside">Externa</option>
+            <option value="wall">Pared</option>
+            <option value="ceiling">Techo</option>
+            <option value="frame">Marco</option>
+            <option value="mixed">Mixta</option>
+          </SelectInput>
+        </Field>
+        <Field label="Tipo de tela">
+          <SelectInput value={solution.fabric || ''} onChange={e => onChange({ fabric: e.target.value })}>
+            <option value="">Sin definir</option>
+            {fabrics.map(fabric => <option key={fabric}>{fabric}</option>)}
+          </SelectInput>
+        </Field>
+      </div>
     </div>
   );
 }
