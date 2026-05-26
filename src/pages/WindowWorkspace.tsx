@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useParams } from 'react-router-dom';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { db } from '../db';
+import { DEFAULT_CATALOG, db } from '../db';
 import { Field, SelectInput, TextArea, TextInput } from '../components/Field';
 import { EditableSelect } from '../components/EditableSelect';
 import { MeasureInput } from '../components/MeasureInput';
@@ -13,8 +13,9 @@ import { newSolution } from '../lib/projectFactory';
 import { evidenceLabel } from '../lib/labels';
 import { quoteArea, quoteTotal, solutionArea } from '../lib/metrics';
 import { uid } from '../lib/ids';
-import type { DivisionPart, EvidenceKind, MountPlanTemplate, QuickWindowMode, TechnicalSolution } from '../types';
+import type { DivisionPart, EvidenceKind, MountPlanTemplate, QuickWindowMode, TechnicalProject, TechnicalSolution } from '../types';
 import type { TechnicalCatalog } from '../types';
+import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
 
 type Tab = 'quick' | 'evidence';
 
@@ -32,8 +33,10 @@ const PLAN_TEMPLATES: MountPlanTemplate[] = [
 export function WindowWorkspace() {
   const { id, spaceId, windowId } = useParams();
   const [tab, setTab] = useState<Tab>('quick');
-  const project = useLiveQuery(() => db.projects.get(Number(id)), [id]);
-  const catalog = useLiveQuery(() => db.catalog.toCollection().first());
+  const fallbackProject = useFallbackProject(id);
+  const dbProject = useLiveQuery<TechnicalProject | undefined>(() => isFallbackId(Number(id)) ? Promise.resolve(undefined) : db.projects.get(Number(id)), [id]);
+  const project = fallbackProject || dbProject;
+  const catalog = useLiveQuery<TechnicalCatalog | undefined>(() => isFallbackId(Number(id)) ? Promise.resolve(DEFAULT_CATALOG) : db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), [id]) || DEFAULT_CATALOG;
   const space = project?.spaces.find(s => s.id === spaceId);
   const win = space?.windows.find(w => w.id === windowId);
   const firstSolutionId = win?.solutions[0]?.id;

@@ -6,11 +6,15 @@ import { PageHeader } from '../components/PageHeader';
 import { TextInput } from '../components/Field';
 import { newSpace } from '../lib/projectFactory';
 import { saveProject } from '../lib/projectStore';
+import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
+import type { TechnicalProject } from '../types';
 
 export function SpaceList() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const project = useLiveQuery(() => db.projects.get(Number(id)), [id]);
+  const fallbackProject = useFallbackProject(id);
+  const dbProject = useLiveQuery<TechnicalProject | undefined>(() => isFallbackId(Number(id)) ? Promise.resolve(undefined) : db.projects.get(Number(id)), [id]);
+  const project = fallbackProject || dbProject;
 
   if (!project) return <div className="page"><div className="empty">Cargando espacios...</div></div>;
 

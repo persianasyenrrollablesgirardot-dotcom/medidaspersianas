@@ -5,11 +5,12 @@ import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Field, SelectInput, TextInput } from '../components/Field';
 import { MeasureInput } from '../components/MeasureInput';
 import { PageHeader } from '../components/PageHeader';
-import { db } from '../db';
+import { DEFAULT_CATALOG, db } from '../db';
 import { newSolution, newWindow } from '../lib/projectFactory';
 import { saveProject } from '../lib/projectStore';
 import { quoteArea, quoteTotal } from '../lib/metrics';
-import type { SpaceRecord, TechnicalProject, TechnicalSolution, WindowRecord } from '../types';
+import type { SpaceRecord, TechnicalCatalog, TechnicalProject, TechnicalSolution, WindowRecord } from '../types';
+import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
 
 interface QuoteLine {
   space: SpaceRecord;
@@ -19,8 +20,10 @@ interface QuoteLine {
 
 export function QuickQuoteModule() {
   const { id } = useParams();
-  const project = useLiveQuery(() => db.projects.get(Number(id)), [id]);
-  const catalog = useLiveQuery(() => db.catalog.toCollection().first());
+  const fallbackProject = useFallbackProject(id);
+  const dbProject = useLiveQuery<TechnicalProject | undefined>(() => isFallbackId(Number(id)) ? Promise.resolve(undefined) : db.projects.get(Number(id)), [id]);
+  const project = fallbackProject || dbProject;
+  const catalog = useLiveQuery<TechnicalCatalog | undefined>(() => isFallbackId(Number(id)) ? Promise.resolve(DEFAULT_CATALOG) : db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), [id]) || DEFAULT_CATALOG;
 
   const lines = useMemo<QuoteLine[]>(() => {
     if (!project) return [];

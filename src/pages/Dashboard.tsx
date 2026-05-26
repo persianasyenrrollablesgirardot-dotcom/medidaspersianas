@@ -7,6 +7,7 @@ import { newProject } from '../lib/projectFactory';
 import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { openPrintableReport } from '../lib/exporters';
 import { rebuildMissingProjectSummaries, upsertProjectSummary } from '../lib/projectStore';
+import { addFallbackProject, deleteFallbackProject, isFallbackId, useFallbackSummaries } from '../lib/localFallbackStore';
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ export function Dashboard() {
     const summaries = await db.projectSummaries.where('deletedAt').equals(0).toArray();
     return summaries.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   }, []) || [];
+  const fallbackProjects = useFallbackSummaries();
+  const visibleProjects = [...fallbackProjects, ...projects].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   const fullProjectCount = useLiveQuery(() => db.projects.count(), []) || 0;
   const catalog = useLiveQuery(() => db.catalog.toCollection().first());
 
@@ -53,7 +56,9 @@ export function Dashboard() {
       navigate(`/project/${id}`);
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : 'No se pudo crear el proyecto');
+      const fallbackId = addFallbackProject(newProject());
+      toast.success('Proyecto creado en modo respaldo local');
+      navigate(`/project/${fallbackId}`);
     } finally {
       setCreating(false);
     }
@@ -78,8 +83,8 @@ export function Dashboard() {
         <p>App Tecnica Campo Juno</p>
         <h1>Levantamiento tecnico de campo</h1>
         <div className="hero-actions">
-          <button className="primary" onClick={create} disabled={creating || storageStatus !== 'ready'}>
-            <PlusIcon className="icon" /> {creating ? 'Creando...' : storageStatus === 'checking' ? 'Preparando...' : 'Nuevo proyecto'}
+          <button className="primary" onClick={create} disabled={creating || storageStatus === 'checking'}>
+            <PlusIcon className="icon" /> {creating ? 'Creando...' : storageStatus === 'checking' ? 'Preparando...' : storageStatus === 'blocked' ? 'Nuevo proyecto respaldo' : 'Nuevo proyecto'}
           </button>
           <button className="secondary" onClick={() => navigate('/papelera')}>
             <TrashIcon className="icon" /> Papelera
@@ -108,15 +113,15 @@ export function Dashboard() {
       )}
 
       <section className="stats-row">
-        <Stat label="Proyectos" value={projects.length} />
-        <Stat label="Pendientes" value={projects.filter(p => p.status !== 'ready_for_fabrication').length} />
-        <Stat label="Listos" value={projects.filter(p => p.status === 'ready_for_fabrication').length} />
+        <Stat label="Proyectos" value={visibleProjects.length} />
+        <Stat label="Pendientes" value={visibleProjects.filter(p => p.status !== 'ready_for_fabrication').length} />
+        <Stat label="Listos" value={visibleProjects.filter(p => p.status === 'ready_for_fabrication').length} />
       </section>
 
       <div className="section-title list-title">
         <div>
           <h2>Proyectos activos</h2>
-          <p className="muted">{projects.length} registros locales</p>
+          <p className="muted">{visibleProjects.length} registros locales</p>
         </div>
         {fullProjectCount > projects.length && (
           <button className="secondary" type="button" disabled={rebuilding} onClick={recoverOldList}>
@@ -126,7 +131,7 @@ export function Dashboard() {
       </div>
 
       <section className="list">
-        {projects.map(project => {
+        {visibleProjects.map(project => {
           return (
             <article key={project.id} className="project-card">
               <button className="project-open" onClick={() => navigate(`/project/${project.projectId}/spaces`)}>
@@ -158,7 +163,7 @@ export function Dashboard() {
                 <button
                   className="project-pdf"
                   onClick={async () => {
-                    const fullProject = await db.projects.get(project.projectId);
+                    const fullProject = isFallbackId(project.projectId) ? undefined : await db.projects.get(project.projectId);
                     if (fullProject) openPrintableReport([fullProject], catalog);
                   }}
                   aria-label={`Descargar PDF de ${project.clientName || project.code}`}
@@ -169,8 +174,12 @@ export function Dashboard() {
                   className="project-delete"
                   onClick={async () => {
                     const deletedAt = Date.now();
-                    await db.projects.update(project.projectId, { deletedAt, updatedAt: deletedAt, synced: false });
-                    await db.projectSummaries.update(project.id!, { deletedAt, updatedAt: deletedAt, synced: false });
+                    if (isFallbackId(project.projectId)) {
+                      deleteFallbackProject(project.projectId);
+                    } else {
+                      await db.projects.update(project.projectId, { deletedAt, updatedAt: deletedAt, synced: false });
+                      await db.projectSummaries.update(project.id!, { deletedAt, updatedAt: deletedAt, synced: false });
+                    }
                     toast.success('Proyecto movido a papelera');
                   }}
                   aria-label={`Mover ${project.clientName || project.code} a papelera`}
@@ -181,7 +190,7 @@ export function Dashboard() {
             </article>
           );
         })}
-        {projects.length === 0 && <div className="empty">Todavia no hay proyectos tecnicos.</div>}
+        {visibleProjects.length === 0 && <div className="empty">Todavia no hay proyectos tecnicos.</div>}
       </section>
     </div>
   );

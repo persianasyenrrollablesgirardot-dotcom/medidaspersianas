@@ -2,11 +2,16 @@ import { db } from '../db';
 import type { EvidenceKind, ProjectSummary, SpaceRecord, TechnicalProject, TechnicalSolution, WindowRecord } from '../types';
 import { quoteTotal } from './metrics';
 import { uid } from './ids';
+import { isFallbackId, saveFallbackProject } from './localFallbackStore';
 
 const saveQueues = new Map<number, Promise<void>>();
 
 export async function saveProject(project: TechnicalProject) {
   if (!project.id) return;
+  if (isFallbackId(project.id)) {
+    saveFallbackProject(project);
+    return;
+  }
   const hydrated: TechnicalProject = {
     ...project,
     updatedAt: Date.now(),

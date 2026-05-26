@@ -2,15 +2,18 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useParams } from 'react-router-dom';
 import { DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import { PageHeader } from '../components/PageHeader';
-import { db } from '../db';
+import { DEFAULT_CATALOG, db } from '../db';
 import { openPrintableReport } from '../lib/exporters';
 import { quoteArea, quoteTotal, solutionArea } from '../lib/metrics';
-import type { TechnicalSolution } from '../types';
+import type { TechnicalCatalog, TechnicalProject, TechnicalSolution } from '../types';
+import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
 
 export function ProjectDetail() {
   const { id } = useParams();
-  const project = useLiveQuery(() => db.projects.get(Number(id)), [id]);
-  const catalog = useLiveQuery(() => db.catalog.toCollection().first());
+  const fallbackProject = useFallbackProject(id);
+  const dbProject = useLiveQuery<TechnicalProject | undefined>(() => isFallbackId(Number(id)) ? Promise.resolve(undefined) : db.projects.get(Number(id)), [id]);
+  const project = fallbackProject || dbProject;
+  const catalog = useLiveQuery<TechnicalCatalog | undefined>(() => isFallbackId(Number(id)) ? Promise.resolve(DEFAULT_CATALOG) : db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), [id]) || DEFAULT_CATALOG;
 
   if (!project) {
     return <div className="page"><div className="empty">Cargando detalle del proyecto...</div></div>;

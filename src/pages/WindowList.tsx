@@ -6,11 +6,15 @@ import { PageHeader } from '../components/PageHeader';
 import { newWindow } from '../lib/projectFactory';
 import { updateSpace } from '../lib/projectStore';
 import { statusLabel } from '../lib/labels';
+import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
+import type { TechnicalProject } from '../types';
 
 export function WindowList() {
   const { id, spaceId } = useParams();
   const navigate = useNavigate();
-  const project = useLiveQuery(() => db.projects.get(Number(id)), [id]);
+  const fallbackProject = useFallbackProject(id);
+  const dbProject = useLiveQuery<TechnicalProject | undefined>(() => isFallbackId(Number(id)) ? Promise.resolve(undefined) : db.projects.get(Number(id)), [id]);
+  const project = fallbackProject || dbProject;
   const space = project?.spaces.find(s => s.id === spaceId);
 
   if (!project || !space) return <div className="page"><div className="empty">Cargando ventanas...</div></div>;
