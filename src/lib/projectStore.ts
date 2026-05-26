@@ -65,14 +65,14 @@ export async function upsertProjectSummary(project: TechnicalProject) {
 
 export async function rebuildMissingProjectSummaries() {
   const indexed = new Set((await db.projectSummaries.toArray()).map(summary => summary.projectId));
-  let processed = 0;
-  await db.projects.each(async project => {
-    if (project.id && !indexed.has(project.id)) {
-      await upsertProjectSummary(project);
-      processed += 1;
-      if (processed % 3 === 0) await new Promise(resolve => window.setTimeout(resolve, 80));
-    }
-  });
+  const keys = await db.projects.orderBy('updatedAt').reverse().primaryKeys();
+  for (const key of keys) {
+    const projectId = Number(key);
+    if (indexed.has(projectId)) continue;
+    const project = await db.projects.get(projectId);
+    if (project) await upsertProjectSummary(project);
+    await new Promise(resolve => window.setTimeout(resolve, 120));
+  }
 }
 
 export function updateSpace(project: TechnicalProject, spaceId: string, updater: (space: SpaceRecord) => SpaceRecord) {

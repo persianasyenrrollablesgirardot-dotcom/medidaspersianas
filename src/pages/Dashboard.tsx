@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -10,18 +10,13 @@ import { rebuildMissingProjectSummaries, upsertProjectSummary } from '../lib/pro
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const [rebuilding, setRebuilding] = useState(false);
   const projects = useLiveQuery(async () => {
     const summaries = await db.projectSummaries.where('deletedAt').equals(0).toArray();
     return summaries.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   }, []) || [];
+  const fullProjectCount = useLiveQuery(() => db.projects.count(), []) || 0;
   const catalog = useLiveQuery(() => db.catalog.toCollection().first());
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      rebuildMissingProjectSummaries().catch(error => console.error('No se pudo reconstruir indice de proyectos', error));
-    }, 900);
-    return () => window.clearTimeout(timer);
-  }, []);
 
   const create = async () => {
     try {
@@ -33,6 +28,19 @@ export function Dashboard() {
     } catch (error) {
       console.error(error);
       toast.error('No se pudo crear. Reinicia la app y borra cache si persiste.');
+    }
+  };
+
+  const recoverOldList = async () => {
+    setRebuilding(true);
+    try {
+      await rebuildMissingProjectSummaries();
+      toast.success('Listado reconstruido');
+    } catch (error) {
+      console.error(error);
+      toast.error('No se pudo reconstruir el listado');
+    } finally {
+      setRebuilding(false);
     }
   };
 
@@ -72,6 +80,11 @@ export function Dashboard() {
           <h2>Proyectos activos</h2>
           <p className="muted">{projects.length} registros locales</p>
         </div>
+        {fullProjectCount > projects.length && (
+          <button className="secondary" type="button" disabled={rebuilding} onClick={recoverOldList}>
+            {rebuilding ? 'Recuperando...' : 'Recuperar listado antiguo'}
+          </button>
+        )}
       </div>
 
       <section className="list">
