@@ -45,6 +45,17 @@ class TechnicalFieldDB extends Dexie {
 }
 
 export const db = new TechnicalFieldDB();
+let storageReadyPromise: Promise<void> | undefined;
+
+export function ensureStorageReady() {
+  if (!storageReadyPromise) {
+    storageReadyPromise = db.open().then(() => undefined).catch(error => {
+      storageReadyPromise = undefined;
+      throw error;
+    });
+  }
+  return storageReadyPromise;
+}
 
 export async function resetLocalAppData() {
   db.close();
@@ -54,6 +65,24 @@ export async function resetLocalAppData() {
     Dexie.delete('AppTecnicaCampoJunoDB'),
   ]);
   window.location.reload();
+}
+
+export async function repairLocalAppStorage() {
+  db.close();
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map(registration => registration.unregister()));
+  }
+  if ('caches' in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(key => caches.delete(key)));
+  }
+  await Promise.all([
+    Dexie.delete(DB_NAME),
+    Dexie.delete('AppCampoJunoStableDB'),
+    Dexie.delete('AppTecnicaCampoJunoDB'),
+  ]);
+  window.location.replace(`/?reparado=${Date.now()}`);
 }
 
 db.on('blocked', () => {
@@ -75,12 +104,18 @@ db.on('ready', async () => {
     }
   }
 
+  window.setTimeout(() => {
+    cleanupExpiredProjects().catch(error => console.error('No se pudo limpiar papelera vencida', error));
+  }, 2500);
+});
+
+async function cleanupExpiredProjects() {
   const fortyDaysAgo = Date.now() - (40 * 24 * 60 * 60 * 1000);
   const expired = await db.projects.where('deletedAt').belowOrEqual(fortyDaysAgo).and(project => (project.deletedAt || 0) > 0).primaryKeys();
   if (expired.length > 0) await db.projects.bulkDelete(expired as number[]);
   const expiredSummaries = await db.projectSummaries.where('deletedAt').belowOrEqual(fortyDaysAgo).and(project => (project.deletedAt || 0) > 0).primaryKeys();
   if (expiredSummaries.length > 0) await db.projectSummaries.bulkDelete(expiredSummaries as number[]);
-});
+}
 
 function normalizeCatalog(catalog: TechnicalCatalog): Partial<TechnicalCatalog> {
   return {

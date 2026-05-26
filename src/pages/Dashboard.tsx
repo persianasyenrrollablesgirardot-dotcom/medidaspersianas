@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { db, resetLocalAppData } from '../db';
+import { db, ensureStorageReady, repairLocalAppStorage, resetLocalAppData } from '../db';
 import { newProject } from '../lib/projectFactory';
 import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { openPrintableReport } from '../lib/exporters';
@@ -10,6 +10,7 @@ import { rebuildMissingProjectSummaries, upsertProjectSummary } from '../lib/pro
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const [storageStatus, setStorageStatus] = useState<'checking' | 'ready' | 'blocked'>('checking');
   const [creating, setCreating] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const projects = useLiveQuery(async () => {
@@ -25,12 +26,28 @@ export function Dashboard() {
     return () => window.removeEventListener('juno-storage-blocked', onBlocked);
   }, []);
 
+  useEffect(() => {
+    let alive = true;
+    withTimeout(ensureStorageReady(), 15000)
+      .then(() => {
+        if (alive) setStorageStatus('ready');
+      })
+      .catch(error => {
+        console.error(error);
+        if (alive) setStorageStatus('blocked');
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const create = async () => {
     if (creating) return;
     setCreating(true);
     try {
+      await withTimeout(ensureStorageReady(), 20000);
       const project = newProject();
-      const id = await withTimeout(db.projects.add(project), 6000);
+      const id = await withTimeout(db.projects.add(project), 20000);
       await upsertProjectSummary({ ...project, id });
       toast.success('Proyecto creado');
       navigate(`/project/${id}`);
@@ -61,8 +78,8 @@ export function Dashboard() {
         <p>App Tecnica Campo Juno</p>
         <h1>Levantamiento tecnico de campo</h1>
         <div className="hero-actions">
-          <button className="primary" onClick={create} disabled={creating}>
-            <PlusIcon className="icon" /> {creating ? 'Creando...' : 'Nuevo proyecto'}
+          <button className="primary" onClick={create} disabled={creating || storageStatus !== 'ready'}>
+            <PlusIcon className="icon" /> {creating ? 'Creando...' : storageStatus === 'checking' ? 'Preparando...' : 'Nuevo proyecto'}
           </button>
           <button className="secondary" onClick={() => navigate('/papelera')}>
             <TrashIcon className="icon" /> Papelera
@@ -79,6 +96,16 @@ export function Dashboard() {
           </button>
         </div>
       </header>
+
+      {storageStatus === 'blocked' && (
+        <section className="storage-warning">
+          <strong>Almacenamiento local bloqueado</strong>
+          <span>Android no esta respondiendo con la base local de la app. Esta reparacion limpia cache, service worker y base local de esta app.</span>
+          <button className="secondary danger-outline" type="button" onClick={repairLocalAppStorage}>
+            Reparar almacenamiento
+          </button>
+        </section>
+      )}
 
       <section className="stats-row">
         <Stat label="Proyectos" value={projects.length} />
