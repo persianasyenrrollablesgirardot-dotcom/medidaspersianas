@@ -5,7 +5,7 @@ import { resetLocalAppData } from '../db';
 import { newProject } from '../lib/projectFactory';
 import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { openPrintableReport } from '../lib/exporters';
-import { addFallbackProject, deleteFallbackProject, getFallbackProject, useFallbackSummaries } from '../lib/localFallbackStore';
+import { addFallbackProject, getFallbackProject, trashFallbackProject, useFallbackSummaries } from '../lib/localFallbackStore';
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -108,7 +108,7 @@ export function Dashboard() {
                 <button
                   className="project-delete"
                   onClick={() => {
-                    deleteFallbackProject(project.projectId);
+                    trashFallbackProject(project.projectId);
                     toast.success('Proyecto movido a papelera');
                   }}
                   aria-label={`Mover ${project.clientName || project.code} a papelera`}

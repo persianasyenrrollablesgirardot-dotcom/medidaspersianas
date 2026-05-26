@@ -1,37 +1,27 @@
-import { useLiveQuery } from 'dexie-react-hooks';
 import toast from 'react-hot-toast';
 import { ArrowPathIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { db } from '../db';
 import { PageHeader } from '../components/PageHeader';
+import { deleteFallbackProject, restoreFallbackProject, useFallbackTrashSummaries } from '../lib/localFallbackStore';
 
 const RETENTION_DAYS = 40;
 
 export function ProjectTrash() {
-  const projects = useLiveQuery(async () => {
-    const all = await db.projectSummaries.where('deletedAt').above(0).toArray();
-    return all
-      .sort((a, b) => (b.deletedAt || 0) - (a.deletedAt || 0));
-  }) || [];
+  const projects = useFallbackTrashSummaries();
 
-  const restore = async (id: number) => {
-    await db.projects.update(id, { deletedAt: 0, updatedAt: Date.now(), synced: false });
-    const summary = await db.projectSummaries.where('projectId').equals(id).first();
-    if (summary?.id) await db.projectSummaries.update(summary.id, { deletedAt: 0, updatedAt: Date.now(), synced: false });
+  const restore = (id: number) => {
+    restoreFallbackProject(id);
     toast.success('Proyecto restaurado');
   };
 
-  const removeForever = async (id: number) => {
+  const removeForever = (id: number) => {
     if (!confirm('Eliminar definitivamente este proyecto? Esta accion no se puede deshacer.')) return;
-    await db.projects.delete(id);
-    const summary = await db.projectSummaries.where('projectId').equals(id).first();
-    if (summary?.id) await db.projectSummaries.delete(summary.id);
+    deleteFallbackProject(id);
     toast.success('Proyecto eliminado definitivamente');
   };
 
-  const emptyTrash = async () => {
+  const emptyTrash = () => {
     if (!confirm('Vaciar toda la papelera? Esta accion no se puede deshacer.')) return;
-    await db.projects.bulkDelete(projects.map(project => project.projectId));
-    await db.projectSummaries.bulkDelete(projects.map(project => project.id!));
+    projects.forEach(project => deleteFallbackProject(project.projectId));
     toast.success('Papelera vaciada');
   };
 

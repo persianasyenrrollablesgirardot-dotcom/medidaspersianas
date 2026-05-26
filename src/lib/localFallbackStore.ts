@@ -37,6 +37,30 @@ export function deleteFallbackProject(id: number) {
   writeFallbackProjects(getFallbackProjects().filter(project => project.id !== id));
 }
 
+export function trashFallbackProject(id: number) {
+  const deletedAt = Date.now();
+  writeFallbackProjects(getFallbackProjects().map(project => project.id === id ? { ...project, deletedAt, updatedAt: deletedAt, synced: false } : project));
+}
+
+export function restoreFallbackProject(id: number) {
+  writeFallbackProjects(getFallbackProjects().map(project => project.id === id ? { ...project, deletedAt: 0, updatedAt: Date.now(), synced: false } : project));
+}
+
+export function useFallbackTrashSummaries() {
+  const [projects, setProjects] = useState(() => getFallbackProjects());
+
+  useEffect(() => {
+    const refresh = () => setProjects(getFallbackProjects());
+    window.addEventListener(CHANGE_EVENT, refresh);
+    return () => window.removeEventListener(CHANGE_EVENT, refresh);
+  }, []);
+
+  return useMemo(() => projects
+    .filter(project => (project.deletedAt || 0) > 0)
+    .map(projectToSummary)
+    .sort((a, b) => (b.deletedAt || 0) - (a.deletedAt || 0)), [projects]);
+}
+
 export function useFallbackProject(id?: string) {
   const numericId = Number(id);
   const [project, setProject] = useState<TechnicalProject | undefined>(() => isFallbackId(numericId) ? getFallbackProject(numericId) : undefined);
