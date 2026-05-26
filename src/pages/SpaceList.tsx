@@ -19,6 +19,13 @@ export function SpaceList() {
   return (
     <div className="page">
       <PageHeader title="Espacios" subtitle={project.clientName || project.code} backTo="/" />
+      <div className="section-title list-title">
+        <div>
+          <h2>Ambientes del proyecto</h2>
+          <p className="muted">{project.spaces.length} espacios registrados</p>
+        </div>
+        <button className="primary" onClick={add}><PlusIcon className="icon" /> Agregar</button>
+      </div>
       <section className="space-grid">
         {project.spaces.map(space => {
           const solutions = space.windows.reduce((sum, win) => sum + win.solutions.length, 0);
@@ -39,7 +46,6 @@ export function SpaceList() {
           );
         })}
       </section>
-      <button className="primary wide" onClick={add}><PlusIcon className="icon" /> Agregar espacio</button>
     </div>
   );
 }

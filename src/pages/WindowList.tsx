@@ -20,6 +20,13 @@ export function WindowList() {
   return (
     <div className="page">
       <PageHeader title={space.name} subtitle="Ventanas del espacio" backTo={`/project/${project.id}/spaces`} />
+      <div className="section-title list-title">
+        <div>
+          <h2>Ventanas levantadas</h2>
+          <p className="muted">{space.windows.length} ventanas en este espacio</p>
+        </div>
+        <button className="primary" onClick={add}><PlusIcon className="icon" /> Agregar</button>
+      </div>
       <section className="window-grid">
         {space.windows.map(win => {
           const blockers = win.solutions.reduce((sum, sol) => sum + sol.alerts.filter(a => a.level === 'blocker').length, 0);
@@ -41,7 +48,6 @@ export function WindowList() {
         })}
         {space.windows.length === 0 && <div className="empty">Este espacio todavia no tiene ventanas.</div>}
       </section>
-      <button className="primary wide" onClick={add}><PlusIcon className="icon" /> Agregar ventana</button>
     </div>
   );
 }

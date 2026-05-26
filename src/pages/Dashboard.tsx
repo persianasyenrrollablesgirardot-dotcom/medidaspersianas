@@ -32,22 +32,24 @@ export function Dashboard() {
       <header className="hero">
         <p>App Tecnica Campo Juno</p>
         <h1>Levantamiento tecnico de campo</h1>
-        <button className="primary" onClick={create}>
-          <PlusIcon className="icon" /> Nuevo proyecto
-        </button>
-        <button className="secondary" onClick={() => navigate('/papelera')}>
-          <TrashIcon className="icon" /> Papelera
-        </button>
-        <button
-          className="secondary danger-outline"
-          onClick={() => {
-            if (confirm('Esto borra los datos locales de esta app en este dispositivo y reinicia la app. Usalo solo si queda bloqueada.')) {
-              resetLocalAppData();
-            }
-          }}
-        >
-          Reiniciar app local
-        </button>
+        <div className="hero-actions">
+          <button className="primary" onClick={create}>
+            <PlusIcon className="icon" /> Nuevo proyecto
+          </button>
+          <button className="secondary" onClick={() => navigate('/papelera')}>
+            <TrashIcon className="icon" /> Papelera
+          </button>
+          <button
+            className="secondary danger-outline"
+            onClick={() => {
+              if (confirm('Esto borra los datos locales de esta app en este dispositivo y reinicia la app. Usalo solo si queda bloqueada.')) {
+                resetLocalAppData();
+              }
+            }}
+          >
+            Reiniciar app local
+          </button>
+        </div>
       </header>
 
       <section className="stats-row">
@@ -55,6 +57,13 @@ export function Dashboard() {
         <Stat label="Pendientes" value={projects.filter(p => p.status !== 'ready_for_fabrication').length} />
         <Stat label="Listos" value={projects.filter(p => p.status === 'ready_for_fabrication').length} />
       </section>
+
+      <div className="section-title list-title">
+        <div>
+          <h2>Proyectos activos</h2>
+          <p className="muted">{projects.length} registros locales</p>
+        </div>
+      </div>
 
       <section className="list">
         {projects.map(project => {
