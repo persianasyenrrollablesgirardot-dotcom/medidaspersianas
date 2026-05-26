@@ -1,19 +1,19 @@
 :root {
-  color: #f6f7f9;
-  background: #070809;
+  color: #17202a;
+  background: #f3f6f4;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --bg: #070809;
-  --surface: #101113;
-  --surface-2: #15181b;
-  --surface-3: #0c0f12;
-  --line: #25292d;
-  --line-soft: #1b1f23;
-  --text: #f6f7f9;
-  --muted: #98a2ad;
-  --blue: #2f8cff;
-  --green: #8ef0a3;
-  --amber: #ffd58a;
-  --red: #ff7777;
+  --bg: #f3f6f4;
+  --surface: #ffffff;
+  --surface-2: #eef4f7;
+  --surface-3: #f8fbfc;
+  --line: #d9e1e5;
+  --line-soft: #e6ecef;
+  --text: #17202a;
+  --muted: #6b7785;
+  --blue: #216dd8;
+  --green: #1d8f55;
+  --amber: #9b6b10;
+  --red: #c43d3d;
 }
 
 * { box-sizing: border-box; }
@@ -364,6 +364,156 @@ button { cursor: pointer; }
 }
 .quick-line-total span { color: #8ef0a3; font-size: 13px; font-weight: 900; }
 .quick-line-total strong { font-size: 20px; }
+
+body { color: var(--text); }
+.app-shell { background: linear-gradient(180deg, #edf5f3 0%, var(--bg) 260px); color: var(--text); }
+.bottom-nav {
+  background: rgba(255, 255, 255, .94);
+  border-top-color: #dbe4e8;
+  box-shadow: 0 -10px 28px rgba(34, 59, 75, .12);
+}
+.nav-item { color: #7a8793; }
+.nav-item.active { color: var(--blue); }
+.hero {
+  border-color: #cddce3;
+  background: linear-gradient(135deg, #e6f2f1, #f9fbff 48%, #fff7e8);
+  box-shadow: 0 18px 45px rgba(50, 74, 91, .12);
+}
+.hero p, .topbar p { color: #527a98; }
+.primary { background: var(--blue); color: #fff; box-shadow: 0 10px 24px rgba(33, 109, 216, .18); }
+.secondary, .ghost {
+  background: #ffffff;
+  color: #24313f;
+  border-color: #d3dde4;
+}
+.secondary.purple { border-color: #d8c9ee; color: #5f3d9b; background: #fbf8ff; }
+.danger-outline {
+  border-color: #f0c7c7;
+  color: #b83232;
+  background: #fff5f5;
+}
+.stat, .project-card, .panel, .window-card, .solution-card, .flow-card, .space-tile, .window-tile,
+.sub-panel, .quick-line-card, .detail-space, .detail-window, .detail-solution, .trash-card {
+  border-color: var(--line-soft);
+  background: var(--surface);
+  box-shadow: 0 10px 28px rgba(34, 59, 75, .06);
+}
+.space-tile-main, .window-tile-main, .flow-card-main {
+  background: #edf5f7;
+  color: var(--text);
+}
+.space-tile-main span, .window-tile-main span, .flow-card-main span, .project-card span { color: var(--muted); }
+.card-meta span, .chip, .pill, .detail-tags em {
+  border-color: #d9e3e8;
+  background: #f7fafb;
+  color: #53606d;
+}
+.pill.active, .segmented .selected, .quick-mode-card.selected, .plan-template-card.selected {
+  background: #e7f1ff;
+  border-color: var(--blue);
+  color: #164f9d;
+  box-shadow: inset 0 0 0 1px rgba(33, 109, 216, .3);
+}
+.empty {
+  color: var(--muted);
+  border-color: #d7e1e6;
+  background: #fbfcfd;
+}
+.input {
+  background: #ffffff;
+  color: var(--text);
+  border-color: #cfdbe2;
+}
+.input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(33, 109, 216, .12); }
+.measure-native .input {
+  background: #f7fbff;
+  border-color: #c9dceb;
+  color: #17202a;
+}
+.measure-native span, .big-total span, .quick-quote-total span, .quick-summary-card span,
+.quick-line-title span, .detail-section-title span, .detail-window-head span, .totals {
+  color: #527a98;
+}
+.field span, .division-summary strong, .detail-value span { color: #6b7785; }
+.panel h2, .solution-card h3, .detail-custom > strong { color: #304252; }
+.quick-mode-card, .plan-template-card {
+  background: #ffffff;
+  border-color: #dce5ea;
+  color: var(--text);
+}
+.quick-mode-card span, .plan-template-card em, .selected-plan span, .detail-note, .detail-section-title p {
+  color: #647484;
+}
+.quick-layer-row, .custom-fields, .custom-field-item, .evidence-box, .measure-band, .plan-picker-panel,
+.selected-plan, .big-total, .quick-box, .quick-quote-hero, .quick-summary-card, .quote-context-strip,
+.detail-cover, .detail-plan, .detail-custom, .detail-division-table div, .detail-value {
+  border-color: #dce6eb;
+  background: #f8fbfc;
+}
+.vano-panel { background: #f3f8fb; border-color: #d5e4ec; }
+.vano-diagnosis div, .division-summary div, .division-status, .readonly-measure {
+  border-color: #dce6eb;
+  background: #ffffff;
+  color: var(--text);
+}
+.readonly-measure.strong, .quick-line-total, .division-summary .ok, .division-status.ok, .vano-diagnosis .ok {
+  border-color: #bfe5ce;
+  background: #effaf3;
+  color: #167c48;
+}
+.division-summary .warn, .division-status.warn, .vano-diagnosis .warn, .quick-box.warn {
+  border-color: #efd89d;
+  background: #fff8e5;
+  color: #8a610f;
+}
+.alert.warning, .detail-alert.warning {
+  border-color: #efd89d;
+  background: #fff8e5;
+  color: #8a610f;
+}
+.alert.blocker, .detail-alert.blocker {
+  border-color: #efc6c6;
+  background: #fff1f1;
+  color: #a83232;
+}
+.alert, .detail-alert.info {
+  border-color: #cbdff0;
+  background: #f0f7ff;
+  color: #235c8f;
+}
+.project-delete, .mini-danger {
+  border-color: #efc6c6;
+  background: #fff1f1;
+  color: #b83232;
+}
+.project-detail { border-color: #cbdff0; background: #f0f7ff; color: #235c8f; }
+.project-pdf { border-color: #bfe5ce; background: #effaf3; color: #167c48; }
+.project-quote { border-color: #efd89d; background: #fff8e5; color: #8a610f; }
+.window-tile-main em.ok { background: #dff7e7; color: #167c48; }
+.window-tile-main em.warn { background: #fff1bf; color: #8a610f; }
+.window-tile-main em.bad { background: #ffe1e1; color: #a83232; }
+.segmented {
+  background: #eef3f6;
+  border-color: #d9e1e5;
+}
+.segmented button { color: #6b7785; }
+.quick-line-tags span {
+  border-color: #cbdff0;
+  background: #edf6ff;
+  color: #235c8f;
+}
+.quote-context-strip strong, .detail-value strong, .detail-division-table span,
+.division-summary span, .quick-line-title strong, .quick-line-title em {
+  color: var(--text);
+}
+.quick-line-total span, .quick-line-total strong, .quick-summary-card b { color: #167c48; }
+.export-action {
+  border-color: #dce6eb;
+  background: #ffffff;
+  color: var(--text);
+}
+.export-action span { color: var(--muted); }
+.thumb img { border-color: #d9e3e8; }
 
 @media (max-width: 760px) {
   .app-main { height: calc(100vh - 70px); padding-bottom: 24px; }
