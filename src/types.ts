@@ -203,3 +203,12 @@ export interface SyncQueueItem {
   status: 'pending' | 'processing' | 'failed';
   createdAt: number;
 }
+
+export interface InvoiceRecord {
+  id?: number;
+  type: 'COTIZACION' | 'FACTURA';
+  documentNumber: string;
+  clientName: string;
+  total: number;
+  date: number; // timestamp
+}

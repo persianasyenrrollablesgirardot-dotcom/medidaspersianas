@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { ProjectSummary, TechnicalCatalog, TechnicalProject, SyncQueueItem } from './types';
+import type { ProjectSummary, TechnicalCatalog, TechnicalProject, SyncQueueItem, InvoiceRecord } from './types';
 
 const DB_NAME = 'AppCampoJunoMobileV3DB';
 
@@ -32,14 +32,16 @@ class TechnicalFieldDB extends Dexie {
   projectSummaries!: Table<ProjectSummary, number>;
   catalog!: Table<TechnicalCatalog, number>;
   syncQueue!: Table<SyncQueueItem, number>;
+  invoices!: Table<InvoiceRecord, number>;
 
   constructor() {
     super(DB_NAME);
-    this.version(1).stores({
+    this.version(2).stores({
       projects: '++id, code, clientName, status, createdAt, updatedAt, deletedAt, synced',
       projectSummaries: '++id, &projectId, code, clientName, status, updatedAt, deletedAt, synced',
       catalog: '++id',
       syncQueue: '++id, type, status, createdAt',
+      invoices: '++id, type, documentNumber, clientName, date'
     });
   }
 }
@@ -55,6 +57,24 @@ export function ensureStorageReady() {
     });
   }
   return storageReadyPromise;
+}
+
+export async function generateDocumentSequence(type: 'COTIZACION' | 'FACTURA'): Promise<string> {
+  const prefix = type === 'COTIZACION' ? 'COT-' : 'FAC-';
+  const lastRecord = await db.invoices
+    .where('type')
+    .equals(type)
+    .reverse()
+    .sortBy('id')
+    .then(arr => arr[0]);
+
+  if (!lastRecord || !lastRecord.documentNumber) {
+    return `${prefix}0001`;
+  }
+  
+  const lastNumber = parseInt(lastRecord.documentNumber.replace(prefix, ''), 10);
+  const nextNumber = isNaN(lastNumber) ? 1 : lastNumber + 1;
+  return `${prefix}${nextNumber.toString().padStart(4, '0')}`;
 }
 
 export async function resetLocalAppData() {

@@ -1,9 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useParams } from 'react-router-dom';
-import { DocumentArrowDownIcon, IdentificationIcon } from '@heroicons/react/24/outline';
+import { DocumentArrowDownIcon, IdentificationIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import { PageHeader } from '../components/PageHeader';
 import { DEFAULT_CATALOG, db } from '../db';
-import { openPrintableReport, type PdfReportProfile } from '../lib/exporters';
+import { openPrintableReport, technicalSummary, type PdfReportProfile } from '../lib/exporters';
 import { quoteArea, quoteTotal, solutionArea } from '../lib/metrics';
 import type { TechnicalCatalog, TechnicalProject, TechnicalSolution } from '../types';
 import { isFallbackId, useFallbackCatalog, useFallbackProject } from '../lib/localFallbackStore';
@@ -47,6 +47,17 @@ export function ProjectDetail() {
               <DocumentArrowDownIcon className="icon" /> {item.label}
             </button>
           ))}
+          <button 
+            className="secondary" 
+            style={{ borderColor: '#10b981', color: '#10b981' }}
+            type="button" 
+            onClick={() => {
+              const summary = technicalSummary(project);
+              navigate('/facturacion', { state: { autoGenerateText: summary } });
+            }}
+          >
+            <SparklesIcon className="icon" /> Generar Factura / Cot. con IA
+          </button>
         </div>
       </section>
 

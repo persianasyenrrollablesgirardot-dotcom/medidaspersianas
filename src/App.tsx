@@ -10,6 +10,7 @@ import { ExportCenter } from './pages/ExportCenter';
 import { ProjectTrash } from './pages/ProjectTrash';
 import { ProjectDetail } from './pages/ProjectDetail';
 import { QuickQuoteModule } from './pages/QuickQuoteModule';
+import { Facturacion } from './pages/Facturacion';
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/project/:id/space/:spaceId" element={<WindowList />} />
           <Route path="/project/:id/space/:spaceId/window/:windowId" element={<WindowWorkspace />} />
           <Route path="/exports" element={<ExportCenter />} />
+          <Route path="/facturacion" element={<Facturacion />} />
           <Route path="/papelera" element={<ProjectTrash />} />
           <Route path="/trash" element={<ProjectTrash />} />
           <Route path="*" element={<Navigate to="/" replace />} />

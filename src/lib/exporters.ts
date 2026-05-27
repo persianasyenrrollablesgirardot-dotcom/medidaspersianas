@@ -44,14 +44,12 @@ export function technicalSummary(project: TechnicalProject): string {
     lines.push(`== ${space.name.toUpperCase()} ==`);
     for (const win of space.windows) {
       lines.push(`- ${win.label} | ${win.openingType || 'tipo pendiente'} | ${win.shape || 'forma pendiente'}`);
-      const g = win.geometry;
-      lines.push(`  Medidas vano: ancho ${g.widthTop || '-'} / ${g.widthMiddle || '-'} / ${g.widthBottom || '-'} - alto ${g.heightLeft || '-'} / ${g.heightCenter || '-'} / ${g.heightRight || '-'}`);
       for (const sol of win.solutions) {
         lines.push(`  > ${sol.name} [${sol.layer}] ${sol.system} ${sol.fabric || ''}`);
         if (sol.quickQuote) {
-          lines.push(`    Rapida: ${sol.quickQuote.width || 0} x ${sol.quickQuote.height || 0} - ${quoteArea(sol.quickQuote).toFixed(2)} m2 - ${quoteTotal(sol.quickQuote).toLocaleString('es-CO')} COP estimado`);
+          lines.push(`    Cotizacion: ${quoteArea(sol.quickQuote).toFixed(2)} m2 - ${quoteTotal(sol.quickQuote).toLocaleString('es-CO')} COP estimado`);
         }
-        lines.push(`    Fabricacion: ${sol.assembly.fabricationWidth || '-'} x ${sol.assembly.fabricationHeight || '-'} - area tecnica ${solutionArea(sol).toFixed(2)} m2`);
+        lines.push(`    Area: ${solutionArea(sol).toFixed(2)} m2`);
         if (sol.divisions.length) lines.push(`    Divisiones: ${sol.divisions.map(d => `${d.label} ${d.width}x${d.height}`).join(' | ')}`);
         if (sol.alerts.length) lines.push(`    Alertas: ${sol.alerts.map(a => a.message).join(' | ')}`);
         if (sol.notes) lines.push(`    Notas: ${sol.notes}`);

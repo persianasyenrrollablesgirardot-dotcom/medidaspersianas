@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { resetLocalAppData } from '../db';
 import { newProject } from '../lib/projectFactory';
-import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, IdentificationIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { openPrintableReport, type PdfReportProfile } from '../lib/exporters';
+import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, IdentificationIcon, PlusIcon, TrashIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { openPrintableReport, technicalSummary, type PdfReportProfile } from '../lib/exporters';
 import { addFallbackProject, getFallbackProject, trashFallbackProject, useFallbackSummaries } from '../lib/localFallbackStore';
 
 export function Dashboard() {
@@ -74,7 +74,7 @@ export function Dashboard() {
       <section className="list">
         {visibleProjects.map(project => {
           return (
-            <article key={project.id} className="project-card">
+            <article key={project.projectId} className="project-card">
               <button className="project-open" onClick={() => navigate(`/project/${project.projectId}/spaces`)}>
                 <div>
                   <strong>{project.clientName || 'Proyecto sin cliente'}</strong>
@@ -151,6 +151,21 @@ export function Dashboard() {
                     {item.label}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  className="report-pill"
+                  style={{ color: '#10b981', borderColor: '#10b981', fontWeight: 'bold' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const fullProject = getFallbackProject(project.projectId);
+                    if (fullProject) {
+                      const summary = technicalSummary(fullProject);
+                      navigate('/facturacion', { state: { autoGenerateText: summary } });
+                    }
+                  }}
+                >
+                  <SparklesIcon className="icon" style={{width: 14, height: 14, display: 'inline', marginRight: 4}} /> IA
+                </button>
               </div>
             </article>
           );
