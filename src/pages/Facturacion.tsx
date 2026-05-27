@@ -249,9 +249,16 @@ export function Facturacion() {
       </div>
 
       {/* Columna Derecha: Vista Previa PDF Rígido (Factura + Condiciones Originales) */}
-      <div style={{ flex: '1 1 400px', minHeight: '500px', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--glass-border)', background: '#fff', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <div style={{ flex: '1 1 400px', minHeight: '500px', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--glass-border)', background: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
         {pdfUrl ? (
-          <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none' }} title="PDF Final" />
+          <>
+            <div style={{ width: '100%', padding: '10px', background: 'var(--surface-2)', borderBottom: '1px solid var(--line)', textAlign: 'center' }}>
+               <button onClick={() => window.open(pdfUrl, '_blank')} className="secondary" style={{ width: '100%', background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--blue)' }}>
+                 🔍 Pantalla Completa (Recomendado en Celular)
+               </button>
+            </div>
+            <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none', flex: 1 }} title="PDF Final" />
+          </>
         ) : (
           <div style={{ textAlign: 'center', color: '#9ca3af' }}>
              <FileText size={48} style={{margin: '0 auto', marginBottom: '1rem', opacity: 0.5}} />
