@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { resetLocalAppData } from '../db';
 import { newProject } from '../lib/projectFactory';
-import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, IdentificationIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { openPrintableReport, type PdfReportProfile } from '../lib/exporters';
 import { addFallbackProject, getFallbackProject, trashFallbackProject, useFallbackSummaries } from '../lib/localFallbackStore';
 
@@ -87,6 +87,13 @@ export function Dashboard() {
                 </div>
               </button>
               <div className="project-card-actions">
+                <button
+                  className="project-setup"
+                  onClick={() => navigate(`/project/${project.projectId}`)}
+                  aria-label={`Editar datos de ${project.clientName || project.code}`}
+                >
+                  <IdentificationIcon className="icon" />
+                </button>
                 <button
                   className="project-quote"
                   onClick={() => navigate(`/project/${project.projectId}/quote`)}

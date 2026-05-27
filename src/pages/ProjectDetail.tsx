@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { useParams } from 'react-router-dom';
-import { DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { useNavigate, useParams } from 'react-router-dom';
+import { DocumentArrowDownIcon, IdentificationIcon } from '@heroicons/react/24/outline';
 import { PageHeader } from '../components/PageHeader';
 import { DEFAULT_CATALOG, db } from '../db';
 import { openPrintableReport, type PdfReportProfile } from '../lib/exporters';
@@ -10,6 +10,7 @@ import { isFallbackId, useFallbackCatalog, useFallbackProject } from '../lib/loc
 
 export function ProjectDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const numericProjectId = Number(id);
   const fallbackMode = isFallbackId(numericProjectId);
   const fallbackProject = useFallbackProject(id);
@@ -50,6 +51,9 @@ export function ProjectDetail() {
       </section>
 
       <section className="panel detail-cover">
+        <button className="secondary detail-edit-button" type="button" onClick={() => navigate(`/project/${project.id}`)}>
+          <IdentificationIcon className="icon" /> Editar datos basicos
+        </button>
         <div className="detail-cover-grid">
           <DetailValue label="Cliente" value={project.clientName || 'Sin definir'} />
           <DetailValue label="Cedula / NIT" value={project.clientDocument || 'Sin definir'} />
