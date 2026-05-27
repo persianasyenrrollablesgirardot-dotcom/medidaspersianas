@@ -93,6 +93,19 @@ button { cursor: pointer; }
 .project-open { width: 100%; min-height: 116px; border: 0; background: transparent; color: inherit; padding: 16px; text-align: left; display: grid; gap: 14px; align-content: center; }
 .project-card strong { display: block; font-size: 17px; line-height: 1.2; overflow-wrap: anywhere; }
 .project-card span { color: var(--muted); font-size: 12px; }
+.project-report-actions {
+  grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 7px;
+  border-top: 1px solid #e6ecef; padding: 0 16px 14px;
+}
+.project-report-actions > span { color: #527a98; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
+.report-pill {
+  border: 1px solid #d7e1e6; background: #f8fbfc; color: #24313f; border-radius: 999px;
+  min-height: 32px; padding: 0 10px; font-size: 11px; font-weight: 900;
+}
+.report-pill.client { border-color: #bfe5ce; background: #effaf3; color: #167c48; }
+.report-pill.supplier { border-color: #cbdff0; background: #f0f7ff; color: #235c8f; }
+.report-pill.installer { border-color: #efd89d; background: #fff8e5; color: #8a610f; }
+.report-pill.internal { border-color: #d8c9ee; background: #fbf8ff; color: #5f3d9b; }
 .project-card-actions { position: absolute; right: 12px; top: 12px; display: grid; grid-template-columns: 36px 36px 36px 36px; gap: 8px; }
 .project-delete, .project-detail, .project-pdf, .project-quote {
   width: 36px; min-height: 36px;
@@ -554,6 +567,7 @@ body { color: var(--text); }
   .window-tile-main strong { font-size: 16px; }
   .project-card { padding-right: 12px; padding-top: 56px; }
   .project-open { min-height: 108px; padding: 14px; }
+  .project-report-actions { padding: 0 14px 14px; }
   .project-card-actions { left: 12px; right: auto; top: 10px; grid-template-columns: repeat(4, 34px); gap: 7px; }
   .project-delete, .project-detail, .project-pdf, .project-quote { width: 34px; min-height: 34px; }
   .quick-quote-hero, .quick-line-total, .report-profile-actions { display: grid; grid-template-columns: 1fr; }

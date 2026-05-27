@@ -4,13 +4,19 @@ import toast from 'react-hot-toast';
 import { resetLocalAppData } from '../db';
 import { newProject } from '../lib/projectFactory';
 import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { openPrintableReport } from '../lib/exporters';
+import { openPrintableReport, type PdfReportProfile } from '../lib/exporters';
 import { addFallbackProject, getFallbackProject, trashFallbackProject, useFallbackSummaries } from '../lib/localFallbackStore';
 
 export function Dashboard() {
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const visibleProjects = useFallbackSummaries();
+  const reportProfiles: Array<{ profile: PdfReportProfile; label: string }> = [
+    { profile: 'client', label: 'Cliente' },
+    { profile: 'supplier', label: 'Proveedor' },
+    { profile: 'installer', label: 'Instalador' },
+    { profile: 'internal', label: 'Interno' },
+  ];
 
   const create = async () => {
     if (creating) return;
@@ -99,9 +105,9 @@ export function Dashboard() {
                   className="project-pdf"
                   onClick={() => {
                     const fullProject = getFallbackProject(project.projectId);
-                    if (fullProject) openPrintableReport([fullProject]);
+                    if (fullProject) openPrintableReport([fullProject], undefined, 'internal');
                   }}
-                  aria-label={`Descargar PDF de ${project.clientName || project.code}`}
+                  aria-label={`PDF interno de ${project.clientName || project.code}`}
                 >
                   <DocumentArrowDownIcon className="icon" />
                 </button>
@@ -115,6 +121,22 @@ export function Dashboard() {
                 >
                   <TrashIcon className="icon" />
                 </button>
+              </div>
+              <div className="project-report-actions">
+                <span>PDF</span>
+                {reportProfiles.map(item => (
+                  <button
+                    key={item.profile}
+                    type="button"
+                    className={`report-pill ${item.profile}`}
+                    onClick={() => {
+                      const fullProject = getFallbackProject(project.projectId);
+                      if (fullProject) openPrintableReport([fullProject], undefined, item.profile);
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
               </div>
             </article>
           );
