@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import { PageHeader } from '../components/PageHeader';
 import { DEFAULT_CATALOG, db } from '../db';
-import { openPrintableReport } from '../lib/exporters';
+import { openPrintableReport, type PdfReportProfile } from '../lib/exporters';
 import { quoteArea, quoteTotal, solutionArea } from '../lib/metrics';
 import type { TechnicalCatalog, TechnicalProject, TechnicalSolution } from '../types';
 import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
@@ -21,13 +21,29 @@ export function ProjectDetail() {
 
   const windows = project.spaces.reduce((sum, space) => sum + space.windows.length, 0);
   const solutions = project.spaces.reduce((sum, space) => sum + space.windows.reduce((wSum, win) => wSum + win.solutions.length, 0), 0);
+  const reportProfiles: Array<{ profile: PdfReportProfile; label: string }> = [
+    { profile: 'client', label: 'PDF cliente' },
+    { profile: 'supplier', label: 'PDF proveedor' },
+    { profile: 'installer', label: 'PDF instalador' },
+    { profile: 'internal', label: 'PDF interno' },
+  ];
 
   return (
     <div className="page detail-page">
       <PageHeader title={project.clientName || 'Proyecto sin cliente'} subtitle={project.code} backTo="/" />
-      <button className="secondary detail-pdf-button" type="button" onClick={() => openPrintableReport([project], catalog)}>
-        <DocumentArrowDownIcon className="icon" /> Descargar PDF
-      </button>
+      <section className="panel report-profile-panel">
+        <div>
+          <h2>Reportes PDF</h2>
+          <p className="muted">Cliente no incluye medidas internas; proveedor recibe variables tecnicas y campos personalizados.</p>
+        </div>
+        <div className="report-profile-actions">
+          {reportProfiles.map(item => (
+            <button key={item.profile} className="secondary" type="button" onClick={() => openPrintableReport([project], catalog, item.profile)}>
+              <DocumentArrowDownIcon className="icon" /> {item.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
       <section className="panel detail-cover">
         <div className="detail-cover-grid">

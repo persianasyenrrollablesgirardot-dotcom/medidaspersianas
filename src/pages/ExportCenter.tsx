@@ -1,16 +1,12 @@
 import { useRef } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
 import toast from 'react-hot-toast';
-import { db } from '../db';
 import { buildBackup, csvRows, downloadText, openPrintableReport, technicalSummary, type BackupPayload } from '../lib/exporters';
 import { ArrowDownTrayIcon, ArrowUpTrayIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { addFallbackProject, useFallbackActiveProjects } from '../lib/localFallbackStore';
 
 export function ExportCenter() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const projects = useLiveQuery(async () => {
-    const all = await db.projects.toArray();
-    return all.filter(project => (project.deletedAt || 0) === 0);
-  }) || [];
+  const projects = useFallbackActiveProjects();
 
   const exportJson = () => {
     downloadText(`backup_app_tecnica_campo_juno_${Date.now()}.json`, JSON.stringify(buildBackup(projects), null, 2), 'application/json');
@@ -36,12 +32,9 @@ export function ExportCenter() {
       toast.error('Backup no compatible');
       return;
     }
-    await db.transaction('rw', db.projects, async () => {
-      for (const project of payload.projects) {
-        const copy = { ...project, id: undefined, synced: false, updatedAt: Date.now() };
-        await db.projects.add(copy);
-      }
-    });
+    for (const project of payload.projects) {
+      addFallbackProject({ ...project, id: undefined, synced: false, updatedAt: Date.now() });
+    }
     toast.success(`${payload.projects.length} proyectos importados`);
   };
 
@@ -56,7 +49,10 @@ export function ExportCenter() {
         <button className="export-action" onClick={exportJson}><ArrowDownTrayIcon className="icon" /><strong>Backup JSON</strong><span>Respaldo completo offline.</span></button>
         <button className="export-action" onClick={exportCsv}><DocumentTextIcon className="icon" /><strong>CSV tecnico</strong><span>Una fila por solucion.</span></button>
         <button className="export-action" onClick={exportText}><DocumentTextIcon className="icon" /><strong>Resumen tecnico</strong><span>Texto para revisar o compartir.</span></button>
-        <button className="export-action" onClick={() => openPrintableReport(projects)}><DocumentTextIcon className="icon" /><strong>PDF tecnico</strong><span>Abre reporte imprimible para guardar como PDF.</span></button>
+        <button className="export-action" onClick={() => openPrintableReport(projects, undefined, 'client')}><DocumentTextIcon className="icon" /><strong>PDF cliente</strong><span>Sin medidas internas; solo m2 por item.</span></button>
+        <button className="export-action" onClick={() => openPrintableReport(projects, undefined, 'supplier')}><DocumentTextIcon className="icon" /><strong>PDF proveedor</strong><span>Variables tecnicas y campos personalizados.</span></button>
+        <button className="export-action" onClick={() => openPrintableReport(projects, undefined, 'installer')}><DocumentTextIcon className="icon" /><strong>PDF instalador</strong><span>Montaje, sitio, alertas y fotos tecnicas.</span></button>
+        <button className="export-action" onClick={() => openPrintableReport(projects, undefined, 'internal')}><DocumentTextIcon className="icon" /><strong>PDF interno</strong><span>Expediente completo de trabajo.</span></button>
         <button className="export-action" onClick={() => inputRef.current?.click()}><ArrowUpTrayIcon className="icon" /><strong>Importar JSON</strong><span>Recuperar proyectos guardados.</span></button>
         <input ref={inputRef} type="file" accept="application/json,.json" hidden onChange={e => importJson(e.target.files?.[0])} />
       </section>

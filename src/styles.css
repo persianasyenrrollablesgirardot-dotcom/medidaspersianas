@@ -277,6 +277,10 @@ button { cursor: pointer; }
 .export-action span { color: #858585; font-size: 12px; }
 .detail-page { display: grid; gap: 12px; }
 .detail-pdf-button { width: fit-content; justify-self: end; }
+.report-profile-panel { grid-template-columns: 1fr; }
+.report-profile-panel h2 { margin: 0 0 4px; }
+.report-profile-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.report-profile-actions .secondary { width: 100%; }
 .detail-cover { background: #090d12; border-color: #202b35; }
 .detail-cover-grid, .detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .detail-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -552,7 +556,7 @@ body { color: var(--text); }
   .project-open { min-height: 108px; padding: 14px; }
   .project-card-actions { left: 12px; right: auto; top: 10px; grid-template-columns: repeat(4, 34px); gap: 7px; }
   .project-delete, .project-detail, .project-pdf, .project-quote { width: 34px; min-height: 34px; }
-  .quick-quote-hero, .quick-line-total { display: grid; }
+  .quick-quote-hero, .quick-line-total, .report-profile-actions { display: grid; grid-template-columns: 1fr; }
   .detail-window-head { display: grid; }
   .detail-plan { grid-template-columns: 1fr; }
   .detail-plan img { width: 100%; }

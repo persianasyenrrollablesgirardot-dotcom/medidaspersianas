@@ -91,6 +91,20 @@ export function useFallbackSummaries() {
     .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)), [projects]);
 }
 
+export function useFallbackActiveProjects() {
+  const [projects, setProjects] = useState(() => getFallbackProjects());
+
+  useEffect(() => {
+    const refresh = () => setProjects(getFallbackProjects());
+    window.addEventListener(CHANGE_EVENT, refresh);
+    return () => window.removeEventListener(CHANGE_EVENT, refresh);
+  }, []);
+
+  return useMemo(() => projects
+    .filter(project => (project.deletedAt || 0) === 0)
+    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)), [projects]);
+}
+
 function projectToSummary(project: TechnicalProject): ProjectSummary {
   const windowsCount = project.spaces.reduce((sum, space) => sum + space.windows.length, 0);
   const solutionsCount = project.spaces.reduce((sum, space) => sum + space.windows.reduce((winSum, window) => winSum + window.solutions.length, 0), 0);
