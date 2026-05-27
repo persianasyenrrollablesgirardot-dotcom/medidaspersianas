@@ -130,6 +130,13 @@ export function Dashboard() {
                 </button>
               </div>
               <div className="project-report-actions">
+                <button
+                  type="button"
+                  className="project-data-pill"
+                  onClick={() => navigate(`/project/${project.projectId}`)}
+                >
+                  <IdentificationIcon className="icon" /> Datos basicos
+                </button>
                 <span>PDF</span>
                 {reportProfiles.map(item => (
                   <button
