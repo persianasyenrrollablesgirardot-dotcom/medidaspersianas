@@ -15,7 +15,7 @@ import { quoteArea, quoteTotal, solutionArea } from '../lib/metrics';
 import { uid } from '../lib/ids';
 import type { DivisionPart, EvidenceKind, MountPlanTemplate, QuickWindowMode, TechnicalProject, TechnicalSolution } from '../types';
 import type { TechnicalCatalog } from '../types';
-import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
+import { isFallbackId, saveFallbackCatalog, useFallbackCatalog, useFallbackProject } from '../lib/localFallbackStore';
 
 type Tab = 'quick' | 'evidence';
 
@@ -33,10 +33,14 @@ const PLAN_TEMPLATES: MountPlanTemplate[] = [
 export function WindowWorkspace() {
   const { id, spaceId, windowId } = useParams();
   const [tab, setTab] = useState<Tab>('quick');
+  const numericProjectId = Number(id);
+  const fallbackMode = isFallbackId(numericProjectId);
   const fallbackProject = useFallbackProject(id);
-  const dbProject = useLiveQuery<TechnicalProject | undefined>(() => isFallbackId(Number(id)) ? Promise.resolve(undefined) : db.projects.get(Number(id)), [id]);
+  const fallbackCatalog = useFallbackCatalog();
+  const dbProject = useLiveQuery<TechnicalProject | undefined>(() => fallbackMode ? Promise.resolve(undefined) : db.projects.get(numericProjectId), [fallbackMode, numericProjectId]);
   const project = fallbackProject || dbProject;
-  const catalog = useLiveQuery<TechnicalCatalog | undefined>(() => isFallbackId(Number(id)) ? Promise.resolve(DEFAULT_CATALOG) : db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), [id]) || DEFAULT_CATALOG;
+  const dbCatalog = useLiveQuery<TechnicalCatalog | undefined>(() => fallbackMode ? Promise.resolve(undefined) : db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), [fallbackMode]);
+  const catalog = fallbackMode ? fallbackCatalog : (dbCatalog || DEFAULT_CATALOG);
   const space = project?.spaces.find(s => s.id === spaceId);
   const win = space?.windows.find(w => w.id === windowId);
   const firstSolutionId = win?.solutions[0]?.id;
@@ -54,7 +58,18 @@ export function WindowWorkspace() {
   const patchWindow = (patch: Partial<typeof win>) => updateWindow(project, space.id, win.id, current => ({ ...current, ...patch }));
   const patchSolution = (solutionId: string, patch: Partial<TechnicalSolution>) => updateSolution(project, space.id, win.id, solutionId, patch);
 
-  const updateCatalog = (patch: Partial<TechnicalCatalog>) => db.catalog.update(catalog.id!, { ...patch, lastUpdatedAt: Date.now() });
+  const updateCatalog = async (patch: Partial<TechnicalCatalog>) => {
+    if (fallbackMode) {
+      saveFallbackCatalog(patch);
+      return;
+    }
+    const current = catalog.id ? catalog : await db.catalog.toCollection().first();
+    if (current?.id) {
+      await db.catalog.update(current.id, { ...patch, lastUpdatedAt: Date.now() });
+      return;
+    }
+    await db.catalog.add({ ...DEFAULT_CATALOG, ...patch, lastUpdatedAt: Date.now() });
+  };
   const addCatalogOption = (field: 'openingTypes' | 'shapes', value: string) => {
     const current = catalog[field] || [];
     if (!current.includes(value)) updateCatalog({ [field]: [...current, value] } as Partial<TechnicalCatalog>);

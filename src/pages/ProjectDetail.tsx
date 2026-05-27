@@ -6,14 +6,18 @@ import { DEFAULT_CATALOG, db } from '../db';
 import { openPrintableReport, type PdfReportProfile } from '../lib/exporters';
 import { quoteArea, quoteTotal, solutionArea } from '../lib/metrics';
 import type { TechnicalCatalog, TechnicalProject, TechnicalSolution } from '../types';
-import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
+import { isFallbackId, useFallbackCatalog, useFallbackProject } from '../lib/localFallbackStore';
 
 export function ProjectDetail() {
   const { id } = useParams();
+  const numericProjectId = Number(id);
+  const fallbackMode = isFallbackId(numericProjectId);
   const fallbackProject = useFallbackProject(id);
-  const dbProject = useLiveQuery<TechnicalProject | undefined>(() => isFallbackId(Number(id)) ? Promise.resolve(undefined) : db.projects.get(Number(id)), [id]);
+  const fallbackCatalog = useFallbackCatalog();
+  const dbProject = useLiveQuery<TechnicalProject | undefined>(() => fallbackMode ? Promise.resolve(undefined) : db.projects.get(numericProjectId), [fallbackMode, numericProjectId]);
   const project = fallbackProject || dbProject;
-  const catalog = useLiveQuery<TechnicalCatalog | undefined>(() => isFallbackId(Number(id)) ? Promise.resolve(DEFAULT_CATALOG) : db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), [id]) || DEFAULT_CATALOG;
+  const dbCatalog = useLiveQuery<TechnicalCatalog | undefined>(() => fallbackMode ? Promise.resolve(undefined) : db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), [fallbackMode]);
+  const catalog = fallbackMode ? fallbackCatalog : (dbCatalog || DEFAULT_CATALOG);
 
   if (!project) {
     return <div className="page"><div className="empty">Cargando detalle del proyecto...</div></div>;

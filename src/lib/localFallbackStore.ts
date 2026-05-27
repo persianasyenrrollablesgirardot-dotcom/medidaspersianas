@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { ProjectSummary, TechnicalProject } from '../types';
+import { DEFAULT_CATALOG } from '../db';
+import type { ProjectSummary, TechnicalCatalog, TechnicalProject } from '../types';
 
 const PROJECTS_KEY = 'juno_fallback_projects_v1';
+const CATALOG_KEY = 'juno_fallback_catalog_v1';
 const CHANGE_EVENT = 'juno-fallback-storage-change';
+const CATALOG_CHANGE_EVENT = 'juno-fallback-catalog-change';
 
 export function isFallbackId(id?: number) {
   return typeof id === 'number' && id < 0;
@@ -105,6 +108,38 @@ export function useFallbackActiveProjects() {
     .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)), [projects]);
 }
 
+export function getFallbackCatalog(): TechnicalCatalog {
+  try {
+    const raw = window.localStorage.getItem(CATALOG_KEY) || window.sessionStorage.getItem(CATALOG_KEY);
+    return normalizeFallbackCatalog(raw ? JSON.parse(raw) as TechnicalCatalog : DEFAULT_CATALOG);
+  } catch {
+    return normalizeFallbackCatalog(DEFAULT_CATALOG);
+  }
+}
+
+export function saveFallbackCatalog(patch: Partial<TechnicalCatalog>) {
+  const next = normalizeFallbackCatalog({ ...getFallbackCatalog(), ...patch, lastUpdatedAt: Date.now() });
+  const payload = JSON.stringify(next);
+  try {
+    window.localStorage.setItem(CATALOG_KEY, payload);
+  } catch {
+    window.sessionStorage.setItem(CATALOG_KEY, payload);
+  }
+  window.dispatchEvent(new CustomEvent(CATALOG_CHANGE_EVENT));
+}
+
+export function useFallbackCatalog() {
+  const [catalog, setCatalog] = useState<TechnicalCatalog>(() => getFallbackCatalog());
+
+  useEffect(() => {
+    const refresh = () => setCatalog(getFallbackCatalog());
+    window.addEventListener(CATALOG_CHANGE_EVENT, refresh);
+    return () => window.removeEventListener(CATALOG_CHANGE_EVENT, refresh);
+  }, []);
+
+  return catalog;
+}
+
 function projectToSummary(project: TechnicalProject): ProjectSummary {
   const windowsCount = project.spaces.reduce((sum, space) => sum + space.windows.length, 0);
   const solutionsCount = project.spaces.reduce((sum, space) => sum + space.windows.reduce((winSum, window) => winSum + window.solutions.length, 0), 0);
@@ -132,4 +167,21 @@ function writeFallbackProjects(projects: TechnicalProject[]) {
     window.sessionStorage.setItem(PROJECTS_KEY, payload);
   }
   window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
+}
+
+function normalizeFallbackCatalog(catalog: TechnicalCatalog): TechnicalCatalog {
+  return {
+    ...DEFAULT_CATALOG,
+    ...catalog,
+    systems: catalog.systems?.length ? catalog.systems : DEFAULT_CATALOG.systems,
+    fabrics: catalog.fabrics?.length ? catalog.fabrics : DEFAULT_CATALOG.fabrics,
+    colors: catalog.colors?.length ? catalog.colors : DEFAULT_CATALOG.colors,
+    mounts: catalog.mounts?.length ? catalog.mounts : DEFAULT_CATALOG.mounts,
+    surfaces: catalog.surfaces?.length ? catalog.surfaces : DEFAULT_CATALOG.surfaces,
+    openingTypes: catalog.openingTypes?.length ? catalog.openingTypes : DEFAULT_CATALOG.openingTypes,
+    shapes: catalog.shapes?.length ? catalog.shapes : DEFAULT_CATALOG.shapes,
+    customWindowFields: catalog.customWindowFields?.length ? catalog.customWindowFields : DEFAULT_CATALOG.customWindowFields,
+    siteConditions: catalog.siteConditions?.length ? catalog.siteConditions : DEFAULT_CATALOG.siteConditions,
+    lastUpdatedAt: catalog.lastUpdatedAt || Date.now(),
+  };
 }
