@@ -99,7 +99,8 @@ export function openPrintableReport(projects: TechnicalProject[], catalog?: Tech
   <meta charset="utf-8" />
   <title>${escapeHtml(PROFILE_LABELS[profile])}</title>
   <style>
-    body { font-family: Arial, sans-serif; color: #111; margin: 28px; }
+    @page { size: A4 portrait; margin: 14mm; }
+    body { font-family: Arial, sans-serif; color: #111; margin: 0; }
     h1 { font-size: 24px; margin: 0 0 6px; }
     h2 { font-size: 18px; margin: 24px 0 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
     h3 { font-size: 15px; margin: 16px 0 6px; }
@@ -119,7 +120,19 @@ export function openPrintableReport(projects: TechnicalProject[], catalog?: Tech
     .plan img { width: 120px; background: #fff; }
     .photos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 8px 0; }
     .photos img { width: 100%; height: 92px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; }
-    .window, .solution { break-inside: avoid; }
+    .window, .solution-card { break-inside: avoid; }
+    .solution-card { border: 1px solid #d9d9d9; border-radius: 6px; padding: 9px; margin: 9px 0 12px; background: #fff; }
+    .solution-head { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 6px; margin-bottom: 8px; }
+    .solution-head h4 { font-size: 13px; margin: 0; }
+    .solution-head p { margin: 2px 0 0; }
+    .solution-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    .solution-field { border: 1px solid #e5e5e5; border-radius: 4px; padding: 6px; background: #fafafa; }
+    .solution-field span { display: block; color: #666; font-size: 9px; text-transform: uppercase; font-weight: bold; }
+    .solution-field strong { display: block; font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; }
+    .solution-block { margin-top: 8px; }
+    .solution-block-title { font-size: 10px; text-transform: uppercase; font-weight: bold; color: #444; margin: 0 0 4px; }
+    .solution-list { margin: 0; padding-left: 16px; }
+    .solution-list li { margin: 2px 0; }
   </style>
 </head>
 <body>
@@ -173,7 +186,7 @@ function renderWindowReport(win: TechnicalProject['spaces'][number]['windows'][n
     ${showConditions && win.siteConditions.length ? `<p><strong>Condiciones:</strong> ${win.siteConditions.map(c => `<span class="badge">${escapeHtml(c.label)} | ${escapeHtml(c.severity)}</span>`).join('')}</p>` : ''}
     ${win.notes && profile === 'internal' ? `<p class="note"><strong>Nota ventana:</strong> ${escapeHtml(win.notes)}</p>` : ''}
     ${showPhotos ? `<div class="photos">${win.evidence.map(ev => `<div><img src="${escapeHtml(ev.dataUrl)}" alt="${escapeHtml(ev.label)}"><p class="muted">${escapeHtml(ev.kind)}</p></div>`).join('')}</div>` : ''}
-    ${renderTechnicalTable(win, profile)}
+    ${renderTechnicalSolutions(win, profile)}
   `;
 }
 
@@ -203,44 +216,96 @@ function renderClientWindow(win: TechnicalProject['spaces'][number]['windows'][n
   `;
 }
 
-function renderTechnicalTable(win: TechnicalProject['spaces'][number]['windows'][number], profile: PdfReportProfile) {
+function renderTechnicalSolutions(win: TechnicalProject['spaces'][number]['windows'][number], profile: PdfReportProfile) {
   const includePrice = profile === 'internal';
   const includeAlerts = profile === 'installer' || profile === 'internal';
+  const includeProduction = profile === 'supplier' || profile === 'internal';
   return `
-    <table>
-      <thead><tr><th>Solucion</th><th>Plano</th><th>Sistema</th><th>Montaje</th><th>Tela</th><th>Fabricacion</th><th>Divisiones</th>${includePrice ? '<th>Valores</th>' : ''}${includeAlerts ? '<th>Alertas / notas</th>' : ''}</tr></thead>
-      <tbody>
-        ${win.solutions.map(sol => `
-          <tr>
-            <td>${escapeHtml(sol.name)}</td>
-            <td>${escapeHtml((sol.planTemplate || win.planTemplate)?.label || '-')}</td>
-            <td>${escapeHtml(sol.system)}</td>
-            <td>${escapeHtml(sol.layer)}</td>
-            <td>${escapeHtml([sol.fabric, sol.color].filter(Boolean).join(' / ') || '-')}</td>
-            <td>${formatRaw(sol.assembly.fabricationWidth || sol.quickQuote?.width)} x ${formatRaw(sol.assembly.fabricationHeight || sol.quickQuote?.height)}<br>Area tecnica: ${solutionArea(sol).toFixed(2)} m2${renderAssemblyDetails(sol)}</td>
-            <td>${sol.divisions.length ? sol.divisions.map(d => `${escapeHtml(d.label)} ${formatRaw(d.width)}x${formatRaw(d.height)}${d.notes ? `<br>${escapeHtml(d.notes)}` : ''}`).join('<br>') : '-'}</td>
-            ${includePrice ? `<td>${sol.quickQuote ? `${quoteArea(sol.quickQuote).toFixed(2)} m2<br>${quoteTotal(sol.quickQuote).toLocaleString('es-CO')} COP` : '-'}</td>` : ''}
-            ${includeAlerts ? `<td>${[...sol.alerts.map(a => a.message), sol.notes].filter(Boolean).map(item => escapeHtml(String(item))).join('<br>') || '-'}</td>` : ''}
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
+    ${win.solutions.map((sol, index) => {
+      const plan = sol.planTemplate || win.planTemplate;
+      return `
+        <article class="solution-card">
+          <div class="solution-head">
+            <div>
+              <h4>${escapeHtml(sol.name || `Persiana ${index + 1}`)}</h4>
+              <p class="muted">${escapeHtml(sol.layer)} - ${escapeHtml(sol.status)}</p>
+            </div>
+            <div><span class="badge">${escapeHtml(sol.system || 'Sistema pendiente')}</span></div>
+          </div>
+          <div class="solution-grid">
+            ${renderSolutionField('Plano', plan?.label || '-')}
+            ${renderSolutionField('Sistema', sol.system || '-')}
+            ${renderSolutionField('Montaje', sol.layer || '-')}
+            ${renderSolutionField('Tela / color', [sol.fabric, sol.color].filter(Boolean).join(' / ') || '-')}
+            ${renderSolutionField('Fabricacion', `${formatRaw(sol.assembly.fabricationWidth || sol.quickQuote?.width)} x ${formatRaw(sol.assembly.fabricationHeight || sol.quickQuote?.height)}`)}
+            ${renderSolutionField('Area tecnica', `${solutionArea(sol).toFixed(2)} m2`)}
+            ${renderSolutionField('Operacion', sol.drive || '-')}
+            ${renderSolutionField('Cantidad cotizada', String(sol.quickQuote?.quantity || 1))}
+          </div>
+          ${includeProduction ? renderAssemblyDetailsBlock(sol) : ''}
+          ${includeProduction ? renderDivisionsBlock(sol) : ''}
+          ${includePrice ? renderPriceBlock(sol) : ''}
+          ${includeAlerts ? renderAlertsBlock(sol) : ''}
+        </article>
+      `;
+    }).join('')}
   `;
 }
 
-function renderAssemblyDetails(sol: TechnicalProject['spaces'][number]['windows'][number]['solutions'][number]) {
+function renderSolutionField(label: string, value: unknown) {
+  return `<div class="solution-field"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value || '-')}</strong></div>`;
+}
+
+function renderAssemblyDetailsBlock(sol: TechnicalProject['spaces'][number]['windows'][number]['solutions'][number]) {
   const details = [
-    sol.assembly.profileColor && `Color perfil: ${sol.assembly.profileColor}`,
-    sol.assembly.tubeProfileRail && `Tubo/perfil/riel: ${sol.assembly.tubeProfileRail}`,
-    sol.assembly.bracketType && `Soporte: ${sol.assembly.bracketType}`,
-    sol.assembly.valance && `Cenefa: ${sol.assembly.valance}`,
-    sol.assembly.chainColor && `Cadena: ${sol.assembly.chainColor}`,
-    sol.assembly.bottomProfile && `Perfil inferior: ${sol.assembly.bottomProfile}`,
-    sol.assembly.deductionNotes && `Descuentos/notas: ${sol.assembly.deductionNotes}`,
-    sol.drive === 'motor' && sol.motor && `Motor: ${sol.motor.powerPoint} ${sol.motor.motorSide || ''} ${sol.motor.voltage || ''}`,
-    sol.accessories.length ? `Accesorios: ${sol.accessories.map(a => `${a.name} x${a.qty}`).join(', ')}` : '',
-  ].filter(Boolean);
-  return details.length ? `<br>${details.map(item => escapeHtml(String(item))).join('<br>')}` : '';
+    ['Color perfil', sol.assembly.profileColor],
+    ['Tubo / perfil / riel', sol.assembly.tubeProfileRail],
+    ['Soporte', sol.assembly.bracketType],
+    ['Cenefa', sol.assembly.valance],
+    ['Cadena', sol.assembly.chainColor],
+    ['Perfil inferior', sol.assembly.bottomProfile],
+    ['Descuentos / notas', sol.assembly.deductionNotes],
+    ['Motor', sol.drive === 'motor' && sol.motor ? `${sol.motor.powerPoint || '-'} ${sol.motor.motorSide || ''} ${sol.motor.voltage || ''}` : ''],
+    ['Accesorios', sol.accessories.length ? sol.accessories.map(a => `${a.name} x${a.qty}`).join(', ') : ''],
+  ].filter(([, value]) => Boolean(value));
+  return details.length
+    ? `<div class="solution-block"><p class="solution-block-title">Parametros de fabricacion</p><div class="solution-grid">${details.map(([label, value]) => renderSolutionField(String(label), value)).join('')}</div></div>`
+    : '';
+}
+
+function renderDivisionsBlock(sol: TechnicalProject['spaces'][number]['windows'][number]['solutions'][number]) {
+  if (!sol.divisions.length) return '';
+  return `
+    <div class="solution-block">
+      <p class="solution-block-title">Divisiones</p>
+      <ul class="solution-list">
+        ${sol.divisions.map(d => `<li><strong>${escapeHtml(d.label)}</strong>: ${formatRaw(d.width)} x ${formatRaw(d.height)}${d.notes ? ` - ${escapeHtml(d.notes)}` : ''}</li>`).join('')}
+      </ul>
+    </div>
+  `;
+}
+
+function renderPriceBlock(sol: TechnicalProject['spaces'][number]['windows'][number]['solutions'][number]) {
+  return `
+    <div class="solution-block">
+      <p class="solution-block-title">Valores internos</p>
+      <div class="solution-grid">
+        ${renderSolutionField('Area cotizada', sol.quickQuote ? `${quoteArea(sol.quickQuote).toFixed(2)} m2` : '-')}
+        ${renderSolutionField('Total estimado', sol.quickQuote ? `${quoteTotal(sol.quickQuote).toLocaleString('es-CO')} COP` : '-')}
+      </div>
+    </div>
+  `;
+}
+
+function renderAlertsBlock(sol: TechnicalProject['spaces'][number]['windows'][number]['solutions'][number]) {
+  const items = [...sol.alerts.map(a => a.message), sol.notes].filter(Boolean);
+  if (!items.length) return '';
+  return `
+    <div class="solution-block">
+      <p class="solution-block-title">Alertas / notas</p>
+      <ul class="solution-list">${items.map(item => `<li>${escapeHtml(String(item))}</li>`).join('')}</ul>
+    </div>
+  `;
 }
 
 function renderPlan(plan: NonNullable<TechnicalProject['spaces'][number]['windows'][number]['planTemplate']>) {
