@@ -62,9 +62,9 @@ export async function extractInvoiceData(file: File): Promise<any> {
     const cleanedText = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
     
     return JSON.parse(cleanedText);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error extracting data via Gemini:", error);
-    throw new Error("No se pudo extraer la información del PDF.");
+    throw new Error(error.message || "No se pudo extraer la información del PDF.");
   }
 }
 
@@ -113,9 +113,9 @@ export async function extractInvoiceDataFromText(text: string): Promise<any> {
     const cleanedText = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
     
     return JSON.parse(cleanedText);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error extracting data from text via Gemini:", error);
-    throw new Error("No se pudo extraer la información del texto.");
+    throw new Error(error.message || "No se pudo extraer la información del texto.");
   }
 }
 

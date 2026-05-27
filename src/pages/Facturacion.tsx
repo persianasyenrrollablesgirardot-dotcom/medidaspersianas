@@ -69,8 +69,8 @@ export function Facturacion() {
         
         setFormData(extractedData)
         loadRegistry()
-      } catch (error) {
-        alert("Hubo un error al analizar el PDF. Asegúrate de que es válido.")
+      } catch (error: any) {
+        alert("Hubo un error leyendo el PDF: " + (error.message || error))
         console.error(error)
       } finally {
         setIsProcessing(false)
@@ -99,8 +99,8 @@ export function Facturacion() {
         
         setFormData(extractedData)
         loadRegistry()
-      } catch (error) {
-        alert("Hubo un error al analizar el texto. Asegúrate de que es entendible.")
+      } catch (error: any) {
+        alert("Hubo un error de IA: " + (error.message || error))
         console.error(error)
       } finally {
         setIsProcessing(false)
