@@ -6,10 +6,11 @@ import { DEFAULT_CATALOG, db } from '../db';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { generateReportHtml, technicalSummary, type PdfReportProfile } from '../lib/exporters';
+import { isFallbackId, useFallbackCatalog, useFallbackProject } from '../lib/localFallbackStore';
+import { saveProject } from '../lib/projectStore';
 import { PdfPreviewModal } from '../components/PdfPreviewModal';
 import { quoteArea, quoteTotal, solutionArea } from '../lib/metrics';
 import type { TechnicalCatalog, TechnicalProject, TechnicalSolution } from '../types';
-import { isFallbackId, useFallbackCatalog, useFallbackProject, saveFallbackProject } from '../lib/localFallbackStore';
 
 export function ProjectDetail() {
   const { id } = useParams();
@@ -38,8 +39,7 @@ export function ProjectDetail() {
   const toggleSpaceExclusion = async (spaceId: string, current: boolean) => {
     if (!project) return;
     const p = { ...project, spaces: project.spaces.map(s => s.id === spaceId ? { ...s, isExcluded: !current } : s) };
-    if (fallbackMode) saveFallbackProject(p);
-    else await db.projects.put(p as TechnicalProject);
+    await saveProject(p as TechnicalProject);
   };
 
   const toggleWindowExclusion = async (spaceId: string, windowId: string, current: boolean) => {
@@ -51,8 +51,7 @@ export function ProjectDetail() {
         windows: s.windows.map(w => w.id === windowId ? { ...w, isExcluded: !current } : w)
       } : s)
     };
-    if (fallbackMode) saveFallbackProject(p);
-    else await db.projects.put(p as TechnicalProject);
+    await saveProject(p as TechnicalProject);
   };
 
   if (!project) {
