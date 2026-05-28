@@ -44,6 +44,7 @@ export interface SpaceRecord {
   id: string;
   name: string;
   notes?: string;
+  isExcluded?: boolean;
   windows: WindowRecord[];
 }
 
@@ -60,6 +61,7 @@ export interface WindowRecord {
   evidence: EvidenceItem[];
   solutions: TechnicalSolution[];
   notes?: string;
+  isExcluded?: boolean;
 }
 
 export interface WindowGeometry {

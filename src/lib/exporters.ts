@@ -42,7 +42,12 @@ export function technicalSummary(project: TechnicalProject): string {
   if (project.address) lines.push(`Direccion: ${project.address}`);
   lines.push('');
 
-  for (const space of project.spaces) {
+  const activeSpaces = project.spaces.filter(s => !s.isExcluded).map(s => ({
+    ...s,
+    windows: s.windows.filter(w => !w.isExcluded)
+  }));
+
+  for (const space of activeSpaces) {
     lines.push(`== ${space.name.toUpperCase()} ==`);
     for (const win of space.windows) {
       lines.push(`- ${win.label} | ${win.openingType || 'tipo pendiente'} | ${win.shape || 'forma pendiente'}`);
@@ -66,7 +71,11 @@ export function csvRows(projects: TechnicalProject[]): string {
   const headers = ['proyecto', 'espacio', 'ventana', 'solucion', 'plano', 'capa', 'sistema', 'tela', 'ancho', 'alto', 'area_tecnica', 'divisiones', 'estado'];
   const rows = [headers];
   for (const project of projects) {
-    for (const space of project.spaces) {
+    const activeSpaces = project.spaces.filter(s => !s.isExcluded).map(s => ({
+      ...s,
+      windows: s.windows.filter(w => !w.isExcluded)
+    }));
+    for (const space of activeSpaces) {
       for (const win of space.windows) {
         for (const sol of win.solutions) {
           const plan = sol.planTemplate || win.planTemplate;
@@ -144,6 +153,11 @@ export function generateReportHtml(projects: TechnicalProject[], catalog?: Techn
 function renderProjectReport(project: TechnicalProject, catalog: TechnicalCatalog | undefined, profile: PdfReportProfile) {
   const showContact = profile !== 'supplier';
   const showClientId = profile === 'internal';
+  const activeSpaces = project.spaces.filter(s => !s.isExcluded).map(s => ({
+    ...s,
+    windows: s.windows.filter(w => !w.isExcluded)
+  }));
+  
   return `
     <section class="project">
       <h1>${escapeHtml(PROFILE_LABELS[profile])}</h1>
@@ -153,11 +167,11 @@ function renderProjectReport(project: TechnicalProject, catalog: TechnicalCatalo
       ${showContact ? `<p><strong>Telefono:</strong> ${escapeHtml(project.contactPhone || '')}</p>` : ''}
       <p><strong>Lugar:</strong> ${escapeHtml(project.siteName || '')} ${escapeHtml(project.address || '')}</p>
       <div class="grid">
-        <div class="box"><span>Espacios</span><strong>${project.spaces.length}</strong></div>
-        <div class="box"><span>Ventanas</span><strong>${project.spaces.reduce((sum, space) => sum + space.windows.length, 0)}</strong></div>
-        <div class="box"><span>Persianas</span><strong>${project.spaces.reduce((sum, space) => sum + space.windows.reduce((wSum, win) => wSum + win.solutions.length, 0), 0)}</strong></div>
+        <div class="box"><span>Espacios</span><strong>${activeSpaces.length}</strong></div>
+        <div class="box"><span>Ventanas</span><strong>${activeSpaces.reduce((sum, space) => sum + space.windows.length, 0)}</strong></div>
+        <div class="box"><span>Persianas</span><strong>${activeSpaces.reduce((sum, space) => sum + space.windows.reduce((wSum, win) => wSum + win.solutions.length, 0), 0)}</strong></div>
       </div>
-      ${project.spaces.map(space => `
+      ${activeSpaces.map(space => `
         <h2>${escapeHtml(space.name)}</h2>
         ${space.notes && profile === 'internal' ? `<p class="note"><strong>Nota de espacio:</strong> ${escapeHtml(space.notes)}</p>` : ''}
         ${space.windows.map(win => renderWindowReport(win, catalog, profile)).join('')}

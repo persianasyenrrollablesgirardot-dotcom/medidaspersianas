@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useParams } from 'react-router-dom';
-import { DocumentArrowDownIcon, IdentificationIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { DocumentArrowDownIcon, IdentificationIcon, SparklesIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { PageHeader } from '../components/PageHeader';
 import { DEFAULT_CATALOG, db } from '../db';
 import { useState } from 'react';
@@ -9,7 +9,7 @@ import { generateReportHtml, technicalSummary, type PdfReportProfile } from '../
 import { PdfPreviewModal } from '../components/PdfPreviewModal';
 import { quoteArea, quoteTotal, solutionArea } from '../lib/metrics';
 import type { TechnicalCatalog, TechnicalProject, TechnicalSolution } from '../types';
-import { isFallbackId, useFallbackCatalog, useFallbackProject } from '../lib/localFallbackStore';
+import { isFallbackId, useFallbackCatalog, useFallbackProject, saveFallbackProject } from '../lib/localFallbackStore';
 
 export function ProjectDetail() {
   const { id } = useParams();
@@ -35,12 +35,36 @@ export function ProjectDetail() {
     }
   };
 
+  const toggleSpaceExclusion = async (spaceId: string, current: boolean) => {
+    if (!project) return;
+    const p = { ...project, spaces: project.spaces.map(s => s.id === spaceId ? { ...s, isExcluded: !current } : s) };
+    if (fallbackMode) saveFallbackProject(p);
+    else await db.projects.put(p as TechnicalProject);
+  };
+
+  const toggleWindowExclusion = async (spaceId: string, windowId: string, current: boolean) => {
+    if (!project) return;
+    const p = {
+      ...project,
+      spaces: project.spaces.map(s => s.id === spaceId ? {
+        ...s,
+        windows: s.windows.map(w => w.id === windowId ? { ...w, isExcluded: !current } : w)
+      } : s)
+    };
+    if (fallbackMode) saveFallbackProject(p);
+    else await db.projects.put(p as TechnicalProject);
+  };
+
   if (!project) {
     return <div className="page"><div className="empty">Cargando detalle del proyecto...</div></div>;
   }
 
-  const windows = project.spaces.reduce((sum, space) => sum + space.windows.length, 0);
-  const solutions = project.spaces.reduce((sum, space) => sum + space.windows.reduce((wSum, win) => wSum + win.solutions.length, 0), 0);
+  const activeSpaces = project.spaces.filter(s => !s.isExcluded).map(s => ({
+    ...s,
+    windows: s.windows.filter(w => !w.isExcluded)
+  }));
+  const windows = activeSpaces.reduce((sum, space) => sum + space.windows.length, 0);
+  const solutions = activeSpaces.reduce((sum, space) => sum + space.windows.reduce((wSum, win) => wSum + win.solutions.length, 0), 0);
   const reportProfiles: Array<{ profile: PdfReportProfile; label: string }> = [
     { profile: 'client', label: 'PDF cliente' },
     { profile: 'supplier', label: 'PDF proveedor' },
@@ -89,7 +113,7 @@ export function ProjectDetail() {
           <DetailValue label="Direccion" value={project.address || 'Sin definir'} />
         </div>
         <div className="detail-kpis">
-          <DetailValue label="Espacios" value={project.spaces.length} />
+          <DetailValue label="Espacios" value={activeSpaces.length} />
           <DetailValue label="Ventanas" value={windows} />
           <DetailValue label="Persianas" value={solutions} />
         </div>
@@ -97,19 +121,39 @@ export function ProjectDetail() {
 
       <section className="detail-space-list">
         {project.spaces.map((space, spaceIndex) => (
-          <article key={space.id} className="detail-space">
-            <div className="detail-section-title">
-              <span>Espacio {spaceIndex + 1}</span>
-              <h2>{space.name}</h2>
-              {space.notes && <p>{space.notes}</p>}
+          <article key={space.id} className="detail-space" style={{ opacity: space.isExcluded ? 0.4 : 1, transition: 'opacity 0.2s' }}>
+            <div className="detail-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span>Espacio {spaceIndex + 1}</span>
+                <h2>{space.name}</h2>
+                {space.notes && <p>{space.notes}</p>}
+              </div>
+              <button 
+                type="button" 
+                className="ghost" 
+                onClick={() => toggleSpaceExclusion(space.id, !!space.isExcluded)}
+                title={space.isExcluded ? 'Incluir espacio' : 'Excluir espacio temporalmente'}
+              >
+                {space.isExcluded ? <EyeSlashIcon className="icon" style={{ width: '24px' }} /> : <EyeIcon className="icon" style={{ width: '24px' }} />}
+              </button>
             </div>
 
             {space.windows.map((win, windowIndex) => (
-              <div key={win.id} className="detail-window">
+              <div key={win.id} className="detail-window" style={{ opacity: win.isExcluded ? 0.4 : 1, transition: 'opacity 0.2s' }}>
                 <div className="detail-window-head">
-                  <div>
-                    <span>Ventana {windowIndex + 1}</span>
-                    <h3>{win.label}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div>
+                      <span>Ventana {windowIndex + 1}</span>
+                      <h3>{win.label}</h3>
+                    </div>
+                    <button 
+                      type="button" 
+                      className="ghost" 
+                      onClick={() => toggleWindowExclusion(space.id, win.id, !!win.isExcluded)}
+                      title={win.isExcluded ? 'Incluir ventana' : 'Excluir ventana temporalmente'}
+                    >
+                      {win.isExcluded ? <EyeSlashIcon className="icon" style={{ width: '20px' }} /> : <EyeIcon className="icon" style={{ width: '20px' }} />}
+                    </button>
                   </div>
                   <div className="detail-tags">
                     <em>{win.openingType || 'Tipo pendiente'}</em>
