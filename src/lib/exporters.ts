@@ -116,8 +116,8 @@ export function openPrintableReport(projects: TechnicalProject[], catalog?: Tech
     .note { border: 1px solid #ddd; background: #fafafa; padding: 7px; border-radius: 4px; margin: 6px 0; }
     .plan { display: grid; grid-template-columns: 120px 1fr; gap: 8px; align-items: center; border: 1px solid #ddd; padding: 6px; margin: 8px 0; }
     .plan img { width: 120px; background: #fff; }
-    .photos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 8px 0; }
-    .photos img { width: 100%; height: 92px; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; }
+    .photos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 8px 0; break-inside: avoid; }
+    .photos img { width: 100%; height: 120px; object-fit: contain; background: #fafafa; border: 1px solid #ddd; border-radius: 4px; }
     .window, .solution-card { break-inside: avoid; }
     .solution-card { border: 1px solid #d9d9d9; border-radius: 6px; padding: 9px; margin: 9px 0 12px; background: #fff; }
     .solution-head { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid #eee; padding-bottom: 6px; margin-bottom: 8px; }
