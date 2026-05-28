@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { resetLocalAppData } from '../db';
 import { newProject } from '../lib/projectFactory';
-import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, IdentificationIcon, PlusIcon, TrashIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, IdentificationIcon, PlusIcon, TrashIcon, SparklesIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { openPrintableReport, technicalSummary, type PdfReportProfile } from '../lib/exporters';
 import { addFallbackProject, getFallbackProject, trashFallbackProject, useFallbackSummaries } from '../lib/localFallbackStore';
 
@@ -33,6 +33,24 @@ export function Dashboard() {
     }
   };
 
+  const checkUpdate = async () => {
+    try {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let reg of registrations) {
+          await reg.update();
+        }
+      }
+      toast.success('Descargando la nueva versión, la app se recargará...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al actualizar la aplicación');
+    }
+  };
+
   return (
     <div className="page">
       <header className="hero">
@@ -44,6 +62,9 @@ export function Dashboard() {
           </button>
           <button className="secondary" onClick={() => navigate('/papelera')}>
             <TrashIcon className="icon" /> Papelera
+          </button>
+          <button className="secondary" onClick={checkUpdate}>
+            <ArrowPathIcon className="icon" /> Refrescar / Actualizar App
           </button>
           <button
             className="secondary danger-outline"
