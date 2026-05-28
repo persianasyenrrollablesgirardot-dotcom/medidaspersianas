@@ -33,7 +33,7 @@ export function EditableSelect({
     <div className="editable-select">
       <Field label={label}>
         <SelectInput value={value || ''} onChange={e => onChange(e.target.value)}>
-          <option value="">Pendiente</option>
+          <option value="">Seleccionar...</option>
           {options.map(option => <option key={option}>{option}</option>)}
         </SelectInput>
       </Field>
