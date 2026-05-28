@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { ArrowDownTrayIcon, HomeIcon, TrashIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { ArrowDownTrayIcon, HomeIcon, TrashIcon, DocumentTextIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { AutosaveStatus } from './AutosaveStatus';
 
 export function Shell({ children }: { children: ReactNode }) {
@@ -13,6 +13,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <NavItem to="/exports" label="Exportar" icon={<ArrowDownTrayIcon />} />
         <NavItem to="/facturacion" label="Facturas" icon={<DocumentTextIcon />} />
         <NavItem to="/papelera" label="Papelera" icon={<TrashIcon />} />
+        <NavItem to="/settings" label="Ajustes" icon={<Cog6ToothIcon />} />
       </nav>
     </div>
   );

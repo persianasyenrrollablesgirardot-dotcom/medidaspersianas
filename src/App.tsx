@@ -11,6 +11,7 @@ import { ProjectTrash } from './pages/ProjectTrash';
 import { ProjectDetail } from './pages/ProjectDetail';
 import { QuickQuoteModule } from './pages/QuickQuoteModule';
 import { Facturacion } from './pages/Facturacion';
+import { Settings } from './pages/Settings';
 
 export default function App() {
   return (
@@ -28,7 +29,7 @@ export default function App() {
           <Route path="/exports" element={<ExportCenter />} />
           <Route path="/facturacion" element={<Facturacion />} />
           <Route path="/papelera" element={<ProjectTrash />} />
-          <Route path="/trash" element={<ProjectTrash />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Shell>
