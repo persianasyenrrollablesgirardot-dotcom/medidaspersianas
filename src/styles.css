@@ -36,7 +36,7 @@ button { cursor: pointer; }
 
 .bottom-nav {
   position: fixed; left: 0; right: 0; bottom: 0; height: 74px;
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-template-columns: repeat(5, 1fr);
   background: rgba(17, 24, 39, 0.7);
   border-top: 1px solid var(--line-soft);
   backdrop-filter: blur(20px);
