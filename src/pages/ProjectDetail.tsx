@@ -36,19 +36,19 @@ export function ProjectDetail() {
     }
   };
 
-  const toggleSpaceExclusion = async (spaceId: string, current: boolean) => {
+  const toggleSpaceExclusion = async (spaceIndex: number, current: boolean) => {
     if (!project) return;
-    const p = { ...project, spaces: project.spaces.map(s => s.id === spaceId ? { ...s, isExcluded: !current } : s) };
+    const p = { ...project, spaces: project.spaces.map((s, i) => i === spaceIndex ? { ...s, isExcluded: !current } : s) };
     await saveProject(p as TechnicalProject);
   };
 
-  const toggleWindowExclusion = async (spaceId: string, windowId: string, current: boolean) => {
+  const toggleWindowExclusion = async (spaceIndex: number, windowIndex: number, current: boolean) => {
     if (!project) return;
     const p = {
       ...project,
-      spaces: project.spaces.map(s => s.id === spaceId ? {
+      spaces: project.spaces.map((s, sIdx) => sIdx === spaceIndex ? {
         ...s,
-        windows: s.windows.map(w => w.id === windowId ? { ...w, isExcluded: !current } : w)
+        windows: s.windows.map((w, wIdx) => wIdx === windowIndex ? { ...w, isExcluded: !current } : w)
       } : s)
     };
     await saveProject(p as TechnicalProject);
@@ -130,7 +130,7 @@ export function ProjectDetail() {
               <button 
                 type="button" 
                 className="ghost" 
-                onClick={() => toggleSpaceExclusion(space.id, !!space.isExcluded)}
+                onClick={() => toggleSpaceExclusion(spaceIndex, !!space.isExcluded)}
                 title={space.isExcluded ? 'Incluir espacio' : 'Excluir espacio temporalmente'}
               >
                 {space.isExcluded ? <EyeSlashIcon className="icon" style={{ width: '24px' }} /> : <EyeIcon className="icon" style={{ width: '24px' }} />}
@@ -148,7 +148,7 @@ export function ProjectDetail() {
                     <button 
                       type="button" 
                       className="ghost" 
-                      onClick={() => toggleWindowExclusion(space.id, win.id, !!win.isExcluded)}
+                      onClick={() => toggleWindowExclusion(spaceIndex, windowIndex, !!win.isExcluded)}
                       title={win.isExcluded ? 'Incluir ventana' : 'Excluir ventana temporalmente'}
                     >
                       {win.isExcluded ? <EyeSlashIcon className="icon" style={{ width: '20px' }} /> : <EyeIcon className="icon" style={{ width: '20px' }} />}
