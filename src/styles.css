@@ -92,7 +92,7 @@ button { cursor: pointer; }
 .list-title { margin-top: 4px; }
 .list-title h2 { margin: 0; font-size: 16px; letter-spacing: 0; text-transform: none; color: var(--text); }
 .list-title p { margin: 3px 0 0; }
-.project-card { position: relative; width: 100%; color: inherit; padding: 0; padding-right: 236px; text-align: left; display: grid; gap: 12px; overflow: hidden; }
+.project-card { position: relative; width: 100%; color: inherit; padding: 0; padding-right: 280px; text-align: left; display: grid; gap: 12px; overflow: hidden; }
 .project-open { width: 100%; min-height: 116px; border: 0; background: transparent; color: inherit; padding: 16px; text-align: left; display: grid; gap: 14px; align-content: center; }
 .project-card strong { display: block; font-size: 17px; line-height: 1.2; overflow-wrap: anywhere; }
 .project-card span { color: var(--muted); font-size: 12px; }
@@ -114,7 +114,7 @@ button { cursor: pointer; }
 .report-pill.supplier { border-color: #cbdff0; background: #f0f7ff; color: #235c8f; }
 .report-pill.installer { border-color: #efd89d; background: #fff8e5; color: #8a610f; }
 .report-pill.internal { border-color: #d8c9ee; background: #fbf8ff; color: #5f3d9b; }
-.project-card-actions { position: absolute; right: 12px; top: 12px; display: grid; grid-template-columns: repeat(5, 36px); gap: 8px; }
+.project-card-actions { position: absolute; right: 12px; top: 12px; display: grid; grid-template-columns: repeat(6, 36px); gap: 8px; }
 .project-delete, .project-detail, .project-pdf, .project-quote, .project-setup, .project-duplicate, .project-trash {
   width: 36px; min-height: 36px;
   border-radius: 8px; display: grid; place-items: center;
@@ -588,7 +588,7 @@ body { color: var(--text); background: var(--bg); }
   .project-card { padding-right: 12px; padding-top: 56px; }
   .project-open { min-height: 108px; padding: 14px; }
   .project-report-actions { padding: 0 14px 14px; }
-  .project-card-actions { left: 12px; right: auto; top: 10px; grid-template-columns: repeat(5, 34px); gap: 7px; }
+  .project-card-actions { left: 12px; right: auto; top: 10px; grid-template-columns: repeat(6, 34px); gap: 7px; }
   .project-delete, .project-detail, .project-pdf, .project-quote, .project-setup, .project-duplicate, .project-trash { width: 34px; min-height: 34px; }
   .quick-quote-hero, .quick-line-total, .report-profile-actions { display: grid; grid-template-columns: 1fr; }
   .detail-window-head { display: grid; }
