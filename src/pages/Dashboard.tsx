@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { resetLocalAppData } from '../db';
 import { newProject } from '../lib/projectFactory';
 import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, IdentificationIcon, PlusIcon, TrashIcon, SparklesIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import { createReportPdfUrl, technicalSummary, type PdfReportProfile } from '../lib/exporters';
+import { generateReportHtml, technicalSummary, type PdfReportProfile } from '../lib/exporters';
 import { addFallbackProject, getFallbackProject, trashFallbackProject, useFallbackSummaries } from '../lib/localFallbackStore';
 import { PdfPreviewModal } from '../components/PdfPreviewModal';
 
@@ -12,8 +12,7 @@ export function Dashboard() {
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const visibleProjects = useFallbackSummaries();
-  const [generating, setGenerating] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   
   const reportProfiles: Array<{ profile: PdfReportProfile; label: string }> = [
     { profile: 'client', label: 'Cliente' },
@@ -39,16 +38,11 @@ export function Dashboard() {
 
   const generateReport = async (project: any, profile: PdfReportProfile) => {
     try {
-      setGenerating(true);
-      toast.loading('Generando PDF...', { id: 'pdf' });
-      const url = await createReportPdfUrl([project], undefined, profile);
-      setPreviewUrl(url);
-      toast.dismiss('pdf');
+      const html = generateReportHtml([project], undefined, profile);
+      setPreviewHtml(html);
     } catch (e) {
       console.error(e);
-      toast.error('Error al generar PDF', { id: 'pdf' });
-    } finally {
-      setGenerating(false);
+      toast.error('Error al generar vista preliminar', { id: 'pdf' });
     }
   };
 
@@ -155,7 +149,6 @@ export function Dashboard() {
                     const fullProject = getFallbackProject(project.projectId);
                     if (fullProject) generateReport(fullProject, 'internal');
                   }}
-                  disabled={generating}
                   aria-label={`PDF interno de ${project.clientName || project.code}`}
                 >
                   <DocumentArrowDownIcon className="icon" />
@@ -190,7 +183,6 @@ export function Dashboard() {
                       const fullProject = getFallbackProject(project.projectId);
                       if (fullProject) generateReport(fullProject, item.profile);
                     }}
-                    disabled={generating}
                   >
                     {item.label}
                   </button>
@@ -217,7 +209,7 @@ export function Dashboard() {
         {visibleProjects.length === 0 && <div className="empty">Todavia no hay proyectos tecnicos.</div>}
       </section>
 
-      <PdfPreviewModal pdfUrl={previewUrl} onClose={() => setPreviewUrl(null)} />
+      <PdfPreviewModal htmlContent={previewHtml} onClose={() => setPreviewHtml(null)} />
     </div>
   );
 }

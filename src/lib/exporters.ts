@@ -141,23 +141,6 @@ export function generateReportHtml(projects: TechnicalProject[], catalog?: Techn
 </html>`;
 }
 
-export async function createReportPdfUrl(projects: TechnicalProject[], catalog?: TechnicalCatalog, profile: PdfReportProfile = 'internal'): Promise<string> {
-  const html = generateReportHtml(projects, catalog, profile);
-  const container = document.createElement('div');
-  container.innerHTML = html;
-  
-  const opt = {
-    margin: 10,
-    filename: `reporte_${profile}_${Date.now()}.pdf`,
-    image: { type: 'jpeg' as const, quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
-  };
-  
-  const pdfBlob = await html2pdf().set(opt).from(container).output('blob');
-  return URL.createObjectURL(pdfBlob);
-}
-
 function renderProjectReport(project: TechnicalProject, catalog: TechnicalCatalog | undefined, profile: PdfReportProfile) {
   const showContact = profile !== 'supplier';
   const showClientId = profile === 'internal';

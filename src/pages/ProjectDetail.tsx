@@ -5,7 +5,7 @@ import { PageHeader } from '../components/PageHeader';
 import { DEFAULT_CATALOG, db } from '../db';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { createReportPdfUrl, technicalSummary, type PdfReportProfile } from '../lib/exporters';
+import { generateReportHtml, technicalSummary, type PdfReportProfile } from '../lib/exporters';
 import { PdfPreviewModal } from '../components/PdfPreviewModal';
 import { quoteArea, quoteTotal, solutionArea } from '../lib/metrics';
 import type { TechnicalCatalog, TechnicalProject, TechnicalSolution } from '../types';
@@ -22,22 +22,16 @@ export function ProjectDetail() {
   const project = fallbackProject || dbProject;
   const dbCatalog = useLiveQuery<TechnicalCatalog | undefined>(() => fallbackMode ? Promise.resolve(undefined) : db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), [fallbackMode]);
   const catalog = fallbackMode ? fallbackCatalog : (dbCatalog || DEFAULT_CATALOG);
-  const [generating, setGenerating] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
 
   const generateReport = async (profile: PdfReportProfile) => {
     if (!project) return;
     try {
-      setGenerating(true);
-      toast.loading('Generando PDF...', { id: 'pdf' });
-      const url = await createReportPdfUrl([project], catalog || DEFAULT_CATALOG, profile);
-      setPreviewUrl(url);
-      toast.dismiss('pdf');
+      const html = generateReportHtml([project], catalog || DEFAULT_CATALOG, profile);
+      setPreviewHtml(html);
     } catch (e) {
       console.error(e);
-      toast.error('Error al generar el PDF', { id: 'pdf' });
-    } finally {
-      setGenerating(false);
+      toast.error('Error al generar la vista preliminar', { id: 'pdf' });
     }
   };
 
@@ -64,7 +58,7 @@ export function ProjectDetail() {
         </div>
         <div className="report-profile-actions">
           {reportProfiles.map(item => (
-            <button key={item.profile} className="secondary" type="button" onClick={() => generateReport(item.profile)} disabled={generating}>
+            <button key={item.profile} className="secondary" type="button" onClick={() => generateReport(item.profile)}>
               <DocumentArrowDownIcon className="icon" /> {item.label}
             </button>
           ))}
@@ -175,7 +169,7 @@ export function ProjectDetail() {
         ))}
       </section>
 
-      <PdfPreviewModal pdfUrl={previewUrl} onClose={() => setPreviewUrl(null)} />
+      <PdfPreviewModal htmlContent={previewHtml} onClose={() => setPreviewHtml(null)} />
     </div>
   );
 }
