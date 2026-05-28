@@ -153,11 +153,21 @@ export function generateReportHtml(projects: TechnicalProject[], catalog?: Techn
 function renderProjectReport(project: TechnicalProject, catalog: TechnicalCatalog | undefined, profile: PdfReportProfile) {
   const showContact = profile !== 'supplier';
   const showClientId = profile === 'internal';
+  const showPrice = profile === 'client' || profile === 'internal';
+  
   const activeSpaces = project.spaces.filter(s => !s.isExcluded).map(s => ({
     ...s,
     windows: s.windows.filter(w => !w.isExcluded)
   }));
   
+  const totalEstimate = activeSpaces.reduce((sum, space) => 
+    sum + space.windows.reduce((wSum, win) => 
+      wSum + win.solutions.reduce((sSum, sol) => 
+        sSum + (sol.quickQuote ? quoteTotal(sol.quickQuote) : 0)
+      , 0)
+    , 0)
+  , 0);
+
   return `
     <section class="project">
       <h1>${escapeHtml(PROFILE_LABELS[profile])}</h1>
@@ -176,6 +186,11 @@ function renderProjectReport(project: TechnicalProject, catalog: TechnicalCatalo
         ${space.notes && profile === 'internal' ? `<p class="note"><strong>Nota de espacio:</strong> ${escapeHtml(space.notes)}</p>` : ''}
         ${space.windows.map(win => renderWindowReport(win, catalog, profile)).join('')}
       `).join('')}
+      ${showPrice ? `
+        <div style="margin-top: 30px; text-align: right; border-top: 2px solid #ccc; padding-top: 15px;">
+          <h2 style="margin: 0; color: #333; font-size: 18px;">Total Proyecto: ${totalEstimate.toLocaleString('es-CO')} COP</h2>
+        </div>
+        ` : ''}
     </section>
   `;
 }
