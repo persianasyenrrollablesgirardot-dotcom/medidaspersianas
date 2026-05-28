@@ -64,6 +64,15 @@ export function ProjectDetail() {
   }));
   const windows = activeSpaces.reduce((sum, space) => sum + space.windows.length, 0);
   const solutions = activeSpaces.reduce((sum, space) => sum + space.windows.reduce((wSum, win) => wSum + win.solutions.length, 0), 0);
+  
+  const totalEstimate = activeSpaces.reduce((sum, space) => 
+    sum + space.windows.reduce((wSum, win) => 
+      wSum + win.solutions.reduce((sSum, sol) => 
+        sSum + (sol.quickQuote ? quoteTotal(sol.quickQuote) : 0)
+      , 0)
+    , 0)
+  , 0);
+
   const reportProfiles: Array<{ profile: PdfReportProfile; label: string }> = [
     { profile: 'client', label: 'PDF cliente' },
     { profile: 'supplier', label: 'PDF proveedor' },
@@ -115,6 +124,7 @@ export function ProjectDetail() {
           <DetailValue label="Espacios" value={activeSpaces.length} />
           <DetailValue label="Ventanas" value={windows} />
           <DetailValue label="Persianas" value={solutions} />
+          <DetailValue label="Total Proyecto" value={`$ ${totalEstimate.toLocaleString('es-CO')}`} />
         </div>
       </section>
 
