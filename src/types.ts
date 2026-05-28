@@ -17,6 +17,7 @@ export interface TechnicalProject {
   address?: string;
   contactPhone?: string;
   status: ProjectStatus;
+  isClone?: boolean;
   spaces: SpaceRecord[];
   createdAt: number;
   updatedAt: number;
@@ -32,6 +33,7 @@ export interface ProjectSummary {
   siteName?: string;
   address?: string;
   status: ProjectStatus;
+  isClone?: boolean;
   spacesCount: number;
   windowsCount: number;
   solutionsCount: number;

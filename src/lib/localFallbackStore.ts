@@ -18,6 +18,28 @@ export function addFallbackProject(project: TechnicalProject): number {
   return id;
 }
 
+export function duplicateFallbackProject(projectId: number): number | undefined {
+  const p = getFallbackProject(projectId);
+  if (!p) return undefined;
+  
+  const id = -Date.now() - Math.floor(Math.random() * 1000);
+  const code = p.code + '-COPIA'; // Modificamos el código o lo dejamos, pero añadirle algo ayuda a la visibilidad temporal.
+  
+  const clone: TechnicalProject = {
+    ...p,
+    id,
+    code,
+    clientName: `${p.clientName || 'Proyecto'} (Copia)`,
+    isClone: true,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    synced: false,
+  };
+  
+  writeFallbackProjects([clone, ...getFallbackProjects()]);
+  return id;
+}
+
 export function getFallbackProjects(): TechnicalProject[] {
   try {
     const raw = window.localStorage.getItem(PROJECTS_KEY) || window.sessionStorage.getItem(PROJECTS_KEY);
@@ -163,6 +185,7 @@ function projectToSummary(project: TechnicalProject): ProjectSummary {
     siteName: project.siteName,
     address: project.address,
     status: project.status,
+    isClone: project.isClone,
     spacesCount: activeSpaces.length,
     windowsCount,
     solutionsCount,

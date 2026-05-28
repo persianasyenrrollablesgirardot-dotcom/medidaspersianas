@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { resetLocalAppData } from '../db';
 import { newProject } from '../lib/projectFactory';
-import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, IdentificationIcon, PlusIcon, TrashIcon, SparklesIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, IdentificationIcon, PlusIcon, TrashIcon, SparklesIcon, ArrowPathIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline';
 import { generateReportHtml, technicalSummary, type PdfReportProfile } from '../lib/exporters';
-import { addFallbackProject, getFallbackProject, trashFallbackProject, useFallbackSummaries } from '../lib/localFallbackStore';
+import { addFallbackProject, duplicateFallbackProject, getFallbackProject, trashFallbackProject, useFallbackSummaries } from '../lib/localFallbackStore';
 import { PdfPreviewModal } from '../components/PdfPreviewModal';
 
 export function Dashboard() {
@@ -20,6 +20,13 @@ export function Dashboard() {
     { profile: 'installer', label: 'Instalador' },
     { profile: 'internal', label: 'Interno' },
   ];
+
+  const duplicateProject = (projectId: number) => {
+    if (confirm('¿Deseas duplicar este proyecto? Se creará una copia exacta para que puedas editarla sin afectar la original.')) {
+      duplicateFallbackProject(projectId);
+      toast.success('Proyecto duplicado con éxito');
+    }
+  };
 
   const create = async () => {
     if (creating) return;
@@ -108,7 +115,7 @@ export function Dashboard() {
       <section className="list">
         {visibleProjects.map(project => {
           return (
-            <article key={project.projectId} className="project-card">
+            <article key={project.projectId} className={`project-card ${project.isClone ? 'is-clone' : ''}`}>
               <button className="project-open" onClick={() => navigate(`/project/${project.projectId}/spaces`)}>
                 <div>
                   <strong>{project.clientName || 'Proyecto sin cliente'}</strong>
@@ -148,11 +155,19 @@ export function Dashboard() {
                   onClick={(e) => {
                     e.stopPropagation();
                     const fullProject = getFallbackProject(project.projectId);
-                    if (fullProject) generateReport(fullProject, 'internal');
+                    if (fullProject) generateReportHtml([fullProject], undefined, 'internal');
                   }}
                   aria-label={`PDF interno de ${project.clientName || project.code}`}
                 >
                   <DocumentArrowDownIcon className="icon" />
+                </button>
+                <button
+                  className="project-duplicate"
+                  onClick={() => duplicateProject(project.projectId)}
+                  aria-label={`Duplicar ${project.clientName || project.code}`}
+                  title="Duplicar proyecto"
+                >
+                  <DocumentDuplicateIcon className="icon" />
                 </button>
                 <button
                   className="project-delete"
@@ -161,6 +176,7 @@ export function Dashboard() {
                     toast.success('Proyecto movido a papelera');
                   }}
                   aria-label={`Mover ${project.clientName || project.code} a papelera`}
+                  title="Mover a papelera"
                 >
                   <TrashIcon className="icon" />
                 </button>

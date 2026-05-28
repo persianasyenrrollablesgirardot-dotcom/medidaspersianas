@@ -115,7 +115,7 @@ button { cursor: pointer; }
 .report-pill.installer { border-color: #efd89d; background: #fff8e5; color: #8a610f; }
 .report-pill.internal { border-color: #d8c9ee; background: #fbf8ff; color: #5f3d9b; }
 .project-card-actions { position: absolute; right: 12px; top: 12px; display: grid; grid-template-columns: repeat(5, 36px); gap: 8px; }
-.project-delete, .project-detail, .project-pdf, .project-quote, .project-setup {
+.project-delete, .project-detail, .project-pdf, .project-quote, .project-setup, .project-duplicate, .project-trash {
   width: 36px; min-height: 36px;
   border-radius: 8px; display: grid; place-items: center;
 }
@@ -126,6 +126,14 @@ button { cursor: pointer; }
 .project-setup { border: 1px solid #48346d; background: #fbf8ff; color: #5f3d9b; }
 .project-pdf { border: 1px solid #1d3a27; background: #08170e; color: #8ef0a3; }
 .project-quote { border: 1px solid #5e4420; background: #1b1306; color: #ffd58a; }
+.project-duplicate { border: 1px solid #6b7280; background: #f3f4f6; color: #4b5563; }
+  
+.project-card.is-clone {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+.project-card.is-clone span { color: #b45309; }
+.project-card.is-clone .card-meta span { border-color: #fcd34d; background: #fffbeb; color: #b45309; }
 .card-meta { display: flex; flex-wrap: wrap; gap: 8px; }
 .card-meta span, .chip { border: 1px solid #2d3339; border-radius: 999px; padding: 6px 9px; color: #c1c8d0; background: #11161b; font-size: 11px; font-weight: 800; }
 .empty { color: var(--muted); border: 1px dashed #30363d; border-radius: 8px; padding: 28px; text-align: center; background: #0b0d0f; }
@@ -581,7 +589,7 @@ body { color: var(--text); background: var(--bg); }
   .project-open { min-height: 108px; padding: 14px; }
   .project-report-actions { padding: 0 14px 14px; }
   .project-card-actions { left: 12px; right: auto; top: 10px; grid-template-columns: repeat(5, 34px); gap: 7px; }
-  .project-delete, .project-detail, .project-pdf, .project-quote, .project-setup { width: 34px; min-height: 34px; }
+  .project-delete, .project-detail, .project-pdf, .project-quote, .project-setup, .project-duplicate, .project-trash { width: 34px; min-height: 34px; }
   .quick-quote-hero, .quick-line-total, .report-profile-actions { display: grid; grid-template-columns: 1fr; }
   .detail-window-head { display: grid; }
   .detail-plan { grid-template-columns: 1fr; }

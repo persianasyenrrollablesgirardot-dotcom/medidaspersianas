@@ -66,6 +66,7 @@ export function buildProjectSummary(project: TechnicalProject): ProjectSummary |
     siteName: project.siteName,
     address: project.address,
     status: project.status,
+    isClone: project.isClone,
     spacesCount: activeSpaces.length,
     windowsCount,
     solutionsCount,
@@ -84,14 +85,18 @@ export async function upsertProjectSummary(project: TechnicalProject) {
 }
 
 export async function rebuildMissingProjectSummaries() {
-  const indexed = new Set((await db.projectSummaries.toArray()).map(summary => summary.projectId));
+  const summaries = await db.projectSummaries.toArray();
+  const validIndexed = new Set(
+    summaries.filter(s => s.totalEstimate !== undefined).map(summary => summary.projectId)
+  );
+  
   const keys = await db.projects.orderBy('updatedAt').reverse().primaryKeys();
   for (const key of keys) {
     const projectId = Number(key);
-    if (indexed.has(projectId)) continue;
+    if (validIndexed.has(projectId)) continue;
     const project = await db.projects.get(projectId);
     if (project) await upsertProjectSummary(project);
-    await new Promise(resolve => window.setTimeout(resolve, 120));
+    await new Promise(resolve => window.setTimeout(resolve, 50));
   }
 }
 
