@@ -150,10 +150,12 @@ export function Dashboard() {
                 </button>
                 <button
                   className="project-pdf"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     const fullProject = getFallbackProject(project.projectId);
-                    if (fullProject) openPrintableReport([fullProject], undefined, 'internal');
+                    if (fullProject) generateReport(fullProject, 'internal');
                   }}
+                  disabled={generating}
                   aria-label={`PDF interno de ${project.clientName || project.code}`}
                 >
                   <DocumentArrowDownIcon className="icon" />
