@@ -4,13 +4,17 @@ import toast from 'react-hot-toast';
 import { resetLocalAppData } from '../db';
 import { newProject } from '../lib/projectFactory';
 import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, IdentificationIcon, PlusIcon, TrashIcon, SparklesIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
-import { openPrintableReport, technicalSummary, type PdfReportProfile } from '../lib/exporters';
+import { createReportPdfUrl, technicalSummary, type PdfReportProfile } from '../lib/exporters';
 import { addFallbackProject, getFallbackProject, trashFallbackProject, useFallbackSummaries } from '../lib/localFallbackStore';
+import { PdfPreviewModal } from '../components/PdfPreviewModal';
 
 export function Dashboard() {
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const visibleProjects = useFallbackSummaries();
+  const [generating, setGenerating] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  
   const reportProfiles: Array<{ profile: PdfReportProfile; label: string }> = [
     { profile: 'client', label: 'Cliente' },
     { profile: 'supplier', label: 'Proveedor' },
@@ -30,6 +34,21 @@ export function Dashboard() {
       toast.error('No se pudo guardar en este dispositivo. Revisa espacio disponible o reinstala la app.');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const generateReport = async (project: any, profile: PdfReportProfile) => {
+    try {
+      setGenerating(true);
+      toast.loading('Generando PDF...', { id: 'pdf' });
+      const url = await createReportPdfUrl([project], undefined, profile);
+      setPreviewUrl(url);
+      toast.dismiss('pdf');
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al generar PDF', { id: 'pdf' });
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -163,11 +182,13 @@ export function Dashboard() {
                   <button
                     key={item.profile}
                     type="button"
-                    className={`report-pill ${item.profile}`}
-                    onClick={() => {
+                    className="report-pill"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       const fullProject = getFallbackProject(project.projectId);
-                      if (fullProject) openPrintableReport([fullProject], undefined, item.profile);
+                      if (fullProject) generateReport(fullProject, item.profile);
                     }}
+                    disabled={generating}
                   >
                     {item.label}
                   </button>
@@ -193,6 +214,8 @@ export function Dashboard() {
         })}
         {visibleProjects.length === 0 && <div className="empty">Todavia no hay proyectos tecnicos.</div>}
       </section>
+
+      <PdfPreviewModal pdfUrl={previewUrl} onClose={() => setPreviewUrl(null)} />
     </div>
   );
 }

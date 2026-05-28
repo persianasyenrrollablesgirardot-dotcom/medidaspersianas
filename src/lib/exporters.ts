@@ -1,5 +1,7 @@
 import type { TechnicalCatalog, TechnicalProject } from '../types';
 import { quoteArea, quoteTotal, solutionArea } from './metrics';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 
 export type PdfReportProfile = 'client' | 'supplier' | 'installer' | 'internal';
 
@@ -90,8 +92,8 @@ export function csvRows(projects: TechnicalProject[]): string {
   return rows.map(row => row.map(cell => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\n');
 }
 
-export function openPrintableReport(projects: TechnicalProject[], catalog?: TechnicalCatalog, profile: PdfReportProfile = 'internal') {
-  const html = `<!doctype html>
+export function generateReportHtml(projects: TechnicalProject[], catalog?: TechnicalCatalog, profile: PdfReportProfile = 'internal'): string {
+  return `<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
@@ -132,17 +134,28 @@ export function openPrintableReport(projects: TechnicalProject[], catalog?: Tech
     .solution-list { margin: 0; padding-left: 16px; }
     .solution-list li { margin: 2px 0; }
   </style>
-</head>
-<body>
-  ${projects.map(project => renderProjectReport(project, catalog, profile)).join('')}
-  <script>window.onload = () => setTimeout(() => window.print(), 250)</script>
-</body>
+  </head>
+  <body>
+    ${projects.map(project => renderProjectReport(project, catalog, profile)).join('')}
+  </body>
 </html>`;
-  const w = window.open('', '_blank');
-  if (!w) return false;
-  w.document.write(html);
-  w.document.close();
-  return true;
+}
+
+export async function createReportPdfUrl(projects: TechnicalProject[], catalog?: TechnicalCatalog, profile: PdfReportProfile = 'internal'): Promise<string> {
+  const html = generateReportHtml(projects, catalog, profile);
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  
+  const opt = {
+    margin: 10,
+    filename: `reporte_${profile}_${Date.now()}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  
+  const pdfBlob = await html2pdf().set(opt).from(container).output('blob');
+  return URL.createObjectURL(pdfBlob);
 }
 
 function renderProjectReport(project: TechnicalProject, catalog: TechnicalCatalog | undefined, profile: PdfReportProfile) {

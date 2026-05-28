@@ -3,7 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { DocumentArrowDownIcon, IdentificationIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import { PageHeader } from '../components/PageHeader';
 import { DEFAULT_CATALOG, db } from '../db';
-import { openPrintableReport, technicalSummary, type PdfReportProfile } from '../lib/exporters';
+import { generateReportHtml, createReportPdfUrl, technicalSummary, type PdfReportProfile } from '../lib/exporters';
+import { PdfPreviewModal } from '../components/PdfPreviewModal';
 import { quoteArea, quoteTotal, solutionArea } from '../lib/metrics';
 import type { TechnicalCatalog, TechnicalProject, TechnicalSolution } from '../types';
 import { isFallbackId, useFallbackCatalog, useFallbackProject } from '../lib/localFallbackStore';
@@ -19,6 +20,24 @@ export function ProjectDetail() {
   const project = fallbackProject || dbProject;
   const dbCatalog = useLiveQuery<TechnicalCatalog | undefined>(() => fallbackMode ? Promise.resolve(undefined) : db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), [fallbackMode]);
   const catalog = fallbackMode ? fallbackCatalog : (dbCatalog || DEFAULT_CATALOG);
+  const [generating, setGenerating] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const generateReport = async (profile: PdfReportProfile) => {
+    if (!project) return;
+    try {
+      setGenerating(true);
+      toast.loading('Generando PDF...', { id: 'pdf' });
+      const url = await createReportPdfUrl([project], catalog || DEFAULT_CATALOG, profile);
+      setPreviewUrl(url);
+      toast.dismiss('pdf');
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al generar el PDF', { id: 'pdf' });
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   if (!project) {
     return <div className="page"><div className="empty">Cargando detalle del proyecto...</div></div>;
@@ -43,7 +62,7 @@ export function ProjectDetail() {
         </div>
         <div className="report-profile-actions">
           {reportProfiles.map(item => (
-            <button key={item.profile} className="secondary" type="button" onClick={() => openPrintableReport([project], catalog, item.profile)}>
+            <button key={item.profile} className="secondary" type="button" onClick={() => generateReport(item.profile)} disabled={generating}>
               <DocumentArrowDownIcon className="icon" /> {item.label}
             </button>
           ))}
@@ -153,6 +172,8 @@ export function ProjectDetail() {
           </article>
         ))}
       </section>
+
+      <PdfPreviewModal pdfUrl={previewUrl} onClose={() => setPreviewUrl(null)} />
     </div>
   );
 }
