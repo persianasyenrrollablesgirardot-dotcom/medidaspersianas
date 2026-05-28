@@ -350,7 +350,7 @@ function CustomWindowFields({
     if (!label) return;
     const id = `campo_${Date.now().toString(36)}`;
     onCatalogChange({
-      customWindowFields: [...(catalog.customWindowFields || []), { id, label, options: ['Pendiente'] }],
+      customWindowFields: [...(catalog.customWindowFields || []), { id, label, options: [] }],
     });
     setFieldName('');
     setAddingField(false);
@@ -394,7 +394,12 @@ function CustomWindowFields({
               onAddOption={value => {
                 if (!field.options.includes(value)) updateFieldOptions(field.id, [...field.options, value]);
               }}
-              onDeleteOption={value => updateFieldOptions(field.id, field.options.filter(option => option !== value))}
+              onDeleteOption={value => {
+                updateFieldOptions(field.id, field.options.filter(option => option !== value));
+                if (values[field.id] === value) {
+                  onChange(field.id, '');
+                }
+              }}
             />
             <button className="mini-danger" type="button" onClick={() => deleteField(field.id)}>
               <TrashIcon className="icon" />
