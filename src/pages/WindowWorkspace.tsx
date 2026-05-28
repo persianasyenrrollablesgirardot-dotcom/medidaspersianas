@@ -535,7 +535,7 @@ function DivisionsForm({ solution, onChange }: { solution: TechnicalSolution; on
 }
 
 function EvidenceForm({ win, onAdd, onDelete }: any) {
-  const [viewingImage, setViewingImage] = React.useState<any>(null);
+  const [viewingImage, setViewingImage] = useState<any>(null);
 
   const handleShare = async (ev: any) => {
     try {
