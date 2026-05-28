@@ -6,6 +6,7 @@ import { PageHeader } from '../components/PageHeader';
 import { saveProject } from '../lib/projectStore';
 import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
 import type { TechnicalProject } from '../types';
+import { ChatBubbleOvalLeftIcon } from '@heroicons/react/24/outline';
 
 export function ProjectSetup() {
   const { id } = useParams();
@@ -30,9 +31,27 @@ export function ProjectSetup() {
           <Field label="Cedula / NIT">
             <TextInput value={project.clientDocument || ''} onChange={e => update({ clientDocument: e.target.value })} placeholder="Documento del cliente" inputMode="numeric" />
           </Field>
-          <Field label="Telefono">
-            <TextInput value={project.contactPhone || ''} onChange={e => update({ contactPhone: e.target.value })} placeholder="WhatsApp o telefono" inputMode="tel" />
-          </Field>
+            <Field label="Telefono">
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <TextInput value={project.contactPhone || ''} onChange={e => update({ contactPhone: e.target.value })} placeholder="WhatsApp o telefono" inputMode="tel" />
+                {project.contactPhone && (
+                  <button 
+                    className="secondary" 
+                    onClick={() => {
+                      const cleaned = project.contactPhone!.replace(/\D/g, '');
+                      if (cleaned) {
+                        const phoneStr = cleaned.length === 10 ? `57${cleaned}` : cleaned;
+                        window.open(`https://wa.me/${phoneStr}`, '_blank');
+                      }
+                    }}
+                    title="Enviar mensaje por WhatsApp"
+                    style={{ padding: '0 12px', borderColor: '#25D366', color: '#25D366' }}
+                  >
+                    <ChatBubbleOvalLeftIcon className="icon" />
+                  </button>
+                )}
+              </div>
+            </Field>
         </div>
         <Field label="Lugar / conjunto">
           <TextInput value={project.siteName || ''} onChange={e => update({ siteName: e.target.value })} placeholder="Ej: Condominio, apartamento, local" />
