@@ -118,6 +118,7 @@ export function Dashboard() {
                   <span>{project.spacesCount} espacios</span>
                   <span>{project.windowsCount} ventanas</span>
                   <span>{project.solutionsCount} soluciones</span>
+                  {project.totalEstimate ? <span style={{ color: 'var(--green)', fontWeight: 'bold' }}>$ {project.totalEstimate.toLocaleString('es-CO')}</span> : null}
                 </div>
               </button>
               <div className="project-card-actions">

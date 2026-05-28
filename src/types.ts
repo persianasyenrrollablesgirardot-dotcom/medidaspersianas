@@ -35,6 +35,7 @@ export interface ProjectSummary {
   spacesCount: number;
   windowsCount: number;
   solutionsCount: number;
+  totalEstimate?: number;
   deletedAt?: number;
   updatedAt: number;
   synced: boolean;

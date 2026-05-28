@@ -43,8 +43,22 @@ export async function saveProject(project: TechnicalProject) {
 
 export function buildProjectSummary(project: TechnicalProject): ProjectSummary | undefined {
   if (!project.id) return undefined;
-  const windowsCount = project.spaces.reduce((sum, space) => sum + space.windows.length, 0);
-  const solutionsCount = project.spaces.reduce((sum, space) => sum + space.windows.reduce((winSum, window) => winSum + window.solutions.length, 0), 0);
+  
+  const activeSpaces = project.spaces.filter(s => !s.isExcluded).map(s => ({
+    ...s,
+    windows: s.windows.filter(w => !w.isExcluded)
+  }));
+  
+  const windowsCount = activeSpaces.reduce((sum, space) => sum + space.windows.length, 0);
+  const solutionsCount = activeSpaces.reduce((sum, space) => sum + space.windows.reduce((winSum, window) => winSum + window.solutions.length, 0), 0);
+  const totalEstimate = activeSpaces.reduce((sum, space) => 
+    sum + space.windows.reduce((wSum, win) => 
+      wSum + win.solutions.reduce((sSum, sol) => 
+        sSum + (sol.quickQuote ? quoteTotal(sol.quickQuote) : 0)
+      , 0)
+    , 0)
+  , 0);
+
   return {
     projectId: project.id,
     code: project.code,
@@ -52,9 +66,10 @@ export function buildProjectSummary(project: TechnicalProject): ProjectSummary |
     siteName: project.siteName,
     address: project.address,
     status: project.status,
-    spacesCount: project.spaces.length,
+    spacesCount: activeSpaces.length,
     windowsCount,
     solutionsCount,
+    totalEstimate,
     deletedAt: project.deletedAt || 0,
     updatedAt: project.updatedAt,
     synced: project.synced,
