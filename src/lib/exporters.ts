@@ -189,6 +189,7 @@ function renderWindowReport(win: TechnicalProject['spaces'][number]['windows'][n
 }
 
 function renderClientWindow(win: TechnicalProject['spaces'][number]['windows'][number]) {
+  const showPhotos = win.evidence.length > 0;
   return `
     <h3>${escapeHtml(win.label)}</h3>
     <table>
@@ -211,6 +212,7 @@ function renderClientWindow(win: TechnicalProject['spaces'][number]['windows'][n
         }).join('')}
       </tbody>
     </table>
+    ${showPhotos ? `<div class="photos">${win.evidence.map(ev => `<div><img src="${escapeHtml(ev.dataUrl)}" alt="${escapeHtml(ev.label)}"><p class="muted">${escapeHtml(ev.kind)}</p></div>`).join('')}</div>` : ''}
   `;
 }
 

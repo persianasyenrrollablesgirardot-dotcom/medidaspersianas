@@ -535,6 +535,26 @@ function DivisionsForm({ solution, onChange }: { solution: TechnicalSolution; on
 }
 
 function EvidenceForm({ win, onAdd, onDelete }: any) {
+  const [viewingImage, setViewingImage] = React.useState<any>(null);
+
+  const handleShare = async (ev: any) => {
+    try {
+      const res = await fetch(ev.dataUrl);
+      const blob = await res.blob();
+      const file = new File([blob], `evidencia_${ev.id}.jpg`, { type: 'image/jpeg' });
+      if (navigator.share) {
+        await navigator.share({
+          title: `Evidencia: ${evidenceLabel(ev.kind)}`,
+          files: [file]
+        });
+      } else {
+        alert("Tu dispositivo no soporta compartir imágenes directamente.");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const kinds: EvidenceKind[] = ['general', 'measurement', 'obstacle', 'electric', 'level', 'detail'];
   return (
     <>
@@ -553,14 +573,32 @@ function EvidenceForm({ win, onAdd, onDelete }: any) {
       </div>
       <div className="thumb-row wrap">
         {win.evidence.map((ev: any) => (
-          <div key={ev.id} className="thumb">
+          <div key={ev.id} className="thumb" onClick={() => setViewingImage(ev)} style={{ cursor: 'pointer' }}>
             <img src={ev.dataUrl} alt={ev.label} />
-            <button onClick={() => onDelete(ev.id)}>x</button>
+            <button onClick={(e) => { e.stopPropagation(); onDelete(ev.id); }}>x</button>
             <span>{evidenceLabel(ev.kind)}</span>
           </div>
         ))}
       </div>
       {win.evidence.length === 0 && <div className="empty">Agrega fotos de medida, obstaculos, punto electrico o detalles.</div>}
+
+      {viewingImage && (
+        <div className="modal-backdrop" onClick={() => setViewingImage(null)}>
+          <div className="modal-content image-viewer" onClick={e => e.stopPropagation()} style={{ background: '#000', padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.8)' }}>
+              <h3 style={{ margin: 0, color: 'white' }}>{evidenceLabel(viewingImage.kind)}</h3>
+              <button className="ghost" onClick={() => setViewingImage(null)} style={{ color: 'white', fontSize: '1.5rem', width: 'auto', padding: '0 0.5rem' }}>✕</button>
+            </div>
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto', padding: '1rem' }}>
+              <img src={viewingImage.dataUrl} alt={viewingImage.label} style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }} />
+            </div>
+            <div style={{ padding: '1rem', display: 'flex', gap: '1rem', background: 'rgba(0,0,0,0.8)' }}>
+              <a href={viewingImage.dataUrl} download={`evidencia_${viewingImage.id}.jpg`} className="primary" style={{ flex: 1, textAlign: 'center', textDecoration: 'none' }}>⬇️ Descargar</a>
+              <button className="primary" onClick={() => handleShare(viewingImage)} style={{ flex: 1, background: '#10b981', borderColor: '#10b981' }}>📲 Compartir</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
