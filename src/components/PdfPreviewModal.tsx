@@ -1,20 +1,71 @@
-
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 
 interface PdfPreviewModalProps {
-  pdfUrl: string | null;
+  htmlContent: string | null;
   onClose: () => void;
   filename?: string;
 }
 
-export function PdfPreviewModal({ pdfUrl, onClose, filename = 'reporte.pdf' }: PdfPreviewModalProps) {
-  if (!pdfUrl) return null;
+export function PdfPreviewModal({ htmlContent, onClose, filename = 'reporte.pdf' }: PdfPreviewModalProps) {
+  const [generating, setGenerating] = useState(false);
+  const [htmlUrl, setHtmlUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (htmlContent) {
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      setHtmlUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setHtmlUrl(null);
+    }
+  }, [htmlContent]);
+
+  if (!htmlContent) return null;
+
+  const getPdfBlob = async (): Promise<Blob> => {
+    const container = document.createElement('div');
+    container.innerHTML = htmlContent;
+    const opt = {
+      margin: 10,
+      filename: filename,
+      image: { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
+    };
+    return await html2pdf().set(opt).from(container).output('blob');
+  };
+
+  const handleDownload = async () => {
+    try {
+      setGenerating(true);
+      toast.loading('Generando PDF...', { id: 'pdf-gen' });
+      const blob = await getPdfBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.dismiss('pdf-gen');
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al descargar.', { id: 'pdf-gen' });
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const handleShare = async () => {
     try {
-      const res = await fetch(pdfUrl);
-      const blob = await res.blob();
+      setGenerating(true);
+      toast.loading('Generando PDF para compartir...', { id: 'pdf-gen' });
+      const blob = await getPdfBlob();
       const file = new File([blob], filename, { type: 'application/pdf' });
+      toast.dismiss('pdf-gen');
       if (navigator.share) {
         await navigator.share({
           title: 'Reporte Técnico',
@@ -25,7 +76,9 @@ export function PdfPreviewModal({ pdfUrl, onClose, filename = 'reporte.pdf' }: P
       }
     } catch (e) {
       console.error(e);
-      toast.error('No se pudo compartir.');
+      toast.error('No se pudo compartir.', { id: 'pdf-gen' });
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -52,25 +105,28 @@ export function PdfPreviewModal({ pdfUrl, onClose, filename = 'reporte.pdf' }: P
         </div>
         
         <div style={{ flex: 1, backgroundColor: '#555' }}>
-          <iframe 
-            src={pdfUrl + '#toolbar=0'} 
-            style={{ width: '100%', height: '100%', border: 'none' }}
-            title="PDF Preview"
-          />
+          {htmlUrl && (
+            <iframe 
+              src={htmlUrl} 
+              style={{ width: '100%', height: '100%', border: 'none', background: 'white' }}
+              title="Vista Preliminar"
+            />
+          )}
         </div>
 
         <div style={{ padding: '1rem', display: 'flex', gap: '1rem', background: '#222' }}>
-          <a 
-            href={pdfUrl} 
-            download={filename} 
+          <button 
             className="primary" 
-            style={{ flex: 1, textAlign: 'center', textDecoration: 'none', background: '#3b82f6', borderColor: '#3b82f6' }}
+            onClick={handleDownload}
+            disabled={generating}
+            style={{ flex: 1, background: '#3b82f6', borderColor: '#3b82f6' }}
           >
             ⬇️ Descargar
-          </a>
+          </button>
           <button 
             className="primary" 
             onClick={handleShare} 
+            disabled={generating}
             style={{ flex: 1, background: '#10b981', borderColor: '#10b981' }}
           >
             📲 Compartir
