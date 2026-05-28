@@ -211,4 +211,5 @@ export interface InvoiceRecord {
   clientName: string;
   total: number;
   date: number; // timestamp
+  formData?: any; // Objeto JSON de la factura para regenerar el PDF
 }

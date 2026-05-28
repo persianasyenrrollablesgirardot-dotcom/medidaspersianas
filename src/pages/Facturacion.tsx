@@ -61,7 +61,8 @@ export function Facturacion() {
           documentNumber: seq,
           clientName: extractedData.clientName,
           total: extractedData.total,
-          date: Date.now()
+          date: Date.now(),
+          formData: extractedData
         });
         
         extractedData.type = documentMode;
@@ -91,7 +92,8 @@ export function Facturacion() {
           documentNumber: seq,
           clientName: extractedData.clientName,
           total: extractedData.total,
-          date: Date.now()
+          date: Date.now(),
+          formData: extractedData
         });
         
         extractedData.type = documentMode;
@@ -112,6 +114,29 @@ export function Facturacion() {
     setFormData(null)
     setDocumentMode(null)
     setRawText('')
+  }
+
+  const handleShare = async () => {
+    if (!pdfUrl || !formData) return;
+    
+    try {
+      const response = await fetch(pdfUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `Factura_${formData.documentNumber}.pdf`, { type: 'application/pdf' });
+      
+      if (navigator.share) {
+        await navigator.share({
+          title: `Documento ${formData.documentNumber}`,
+          text: `Adjunto ${formData.type} generada para ${formData.clientName}.`,
+          files: [file]
+        });
+      } else {
+        alert("Tu navegador o dispositivo no soporta la función de compartir directamente. Por favor usa el botón de descargar.");
+      }
+    } catch (error) {
+      console.error("Error al compartir:", error);
+      // El usuario puede cancelar, no es necesario lanzar una alerta agresiva
+    }
   }
 
   return (
@@ -149,6 +174,7 @@ export function Facturacion() {
                       <th style={{ padding: '8px 4px' }}>Consecutivo</th>
                       <th style={{ padding: '8px 4px' }}>Cliente</th>
                       <th style={{ padding: '8px 4px' }}>Fecha</th>
+                      <th style={{ padding: '8px 4px', textAlign: 'center' }}>Acción</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -157,6 +183,22 @@ export function Facturacion() {
                         <td style={{ padding: '10px 4px', fontWeight: 'bold', color: r.type === 'FACTURA' ? '#10b981' : 'var(--primary)' }}>{r.documentNumber}</td>
                         <td style={{ padding: '10px 4px' }}>{r.clientName}</td>
                         <td style={{ padding: '10px 4px', color: 'var(--text-muted)' }}>{new Date(r.date).toLocaleDateString()}</td>
+                        <td style={{ padding: '10px 4px', textAlign: 'center' }}>
+                          {r.formData ? (
+                            <button 
+                              onClick={() => {
+                                setDocumentMode(r.type);
+                                setFormData(r.formData);
+                              }} 
+                              className="secondary small" 
+                              style={{ padding: '4px 8px', fontSize: '12px' }}
+                            >
+                              👁️ Ver
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: '11px', color: 'gray' }}>Sin Doc</span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -234,13 +276,16 @@ export function Facturacion() {
                 <p><strong>Total Extraído:</strong> ${formData.total}</p>
                 <p><strong>Ítems:</strong> {formData.items.length}</p>
                 
-                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                  <button onClick={resetForm} className="secondary" style={{ flex: 1 }}>
-                    Subir otro
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+                  <button onClick={resetForm} className="secondary" style={{ flex: '1 1 100%' }}>
+                    Subir otro / Limpiar
                   </button>
-                  <a href={pdfUrl || '#'} download={`Factura_${formData.documentNumber}.pdf`} className="primary" style={{ flex: 2, textDecoration: 'none' }}>
-                    Descargar PDF Oficial
+                  <a href={pdfUrl || '#'} download={`Factura_${formData.documentNumber}.pdf`} className="primary" style={{ flex: 1, textDecoration: 'none', textAlign: 'center' }}>
+                    Descargar PDF
                   </a>
+                  <button onClick={handleShare} className="primary" style={{ flex: 1, background: '#10b981', color: 'white', border: 'none' }}>
+                    📲 Compartir
+                  </button>
                 </div>
              </div>
           </div>
