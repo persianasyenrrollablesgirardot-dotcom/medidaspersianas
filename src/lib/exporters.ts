@@ -215,8 +215,8 @@ function renderWindowReport(win: TechnicalProject['spaces'][number]['windows'][n
 
 function renderClientWindow(win: TechnicalProject['spaces'][number]['windows'][number]) {
   const showPhotos = win.evidence.length > 0;
-  const blinds = win.solutions.filter(s => s.itemType !== 'maintenance');
-  const maints = win.solutions.filter(s => s.itemType === 'maintenance');
+  const blinds = win.solutions.filter(s => s.itemType !== 'maintenance' && (s.quickQuote ? quoteTotal(s.quickQuote) > 0 : solutionTotal(s) > 0));
+  const maints = win.solutions.filter(s => s.itemType === 'maintenance' && s.maintenance?.tasks.some(t => t.selected));
 
   let html = `<h3>${escapeHtml(win.label)}</h3>`;
 
