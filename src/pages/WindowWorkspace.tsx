@@ -492,7 +492,7 @@ function MaintenanceForm({ solution, catalog, onChange }: { solution: TechnicalS
       <div className="grid-2">
         <Field label="Sistema a mantener">
           <SelectInput value={solution.system} onChange={e => onChange({ system: e.target.value })}>
-            {catalog.systems.map((s: string) => <option key={s} value={s}>{s}</option>)}
+            {(catalog.maintenanceCatalog || []).map((s: any) => <option key={s.systemName} value={s.systemName}>{s.systemName}</option>)}
           </SelectInput>
         </Field>
       </div>
