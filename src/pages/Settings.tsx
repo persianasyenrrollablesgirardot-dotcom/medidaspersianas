@@ -61,11 +61,11 @@ export function Settings() {
                 </button>
               ))}
             </div>
-            <div style={{ display: 'grid', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '8px' }}>
               {(catalog?.maintenanceCatalog || []).find(s => s.systemName === activeSystem)?.services.map((task: any) => (
-                <div key={task.id} style={{ display: 'flex', gap: '12px', alignItems: 'center', background: 'var(--bg-subtle)', padding: '12px', borderRadius: '8px' }}>
+                <div key={task.id} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'var(--bg-subtle)', padding: '8px 12px', borderRadius: '6px' }}>
                   <div style={{ flex: 1 }}><strong>{task.label}</strong></div>
-                  <div style={{ width: '150px' }}>
+                  <div style={{ width: '120px' }}>
                     <Field label="Precio Base">
                       <MeasureInput unit="COP" value={task.defaultPrice} onChange={(v: number | undefined) => {
                         const newCat = catalog!.maintenanceCatalog.map(sys => sys.systemName === activeSystem ? { ...sys, services: sys.services.map(t => t.id === task.id ? { ...t, defaultPrice: v || 0 } : t) } : sys);

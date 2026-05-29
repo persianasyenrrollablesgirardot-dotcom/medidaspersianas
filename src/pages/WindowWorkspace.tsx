@@ -497,18 +497,18 @@ function MaintenanceForm({ solution, catalog, onChange }: { solution: TechnicalS
         </Field>
       </div>
       <h3>Servicios solicitados</h3>
-      <div className="maintenance-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div className="maintenance-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '8px' }}>
         {(catalog.maintenanceCatalog || []).find((s: any) => s.systemName === solution.system)?.services.map((task: any) => {
           const selectedTask = maint.tasks.find(t => t.id === task.id);
           const isSelected = !!selectedTask?.selected;
           const currentPrice = selectedTask ? selectedTask.price : task.defaultPrice;
           
           return (
-            <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--bg-subtle)', padding: '12px', borderRadius: '8px' }}>
+            <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: isSelected ? 'var(--bg-deep)' : 'var(--bg-subtle)', border: isSelected ? '1px solid var(--primary)' : '1px solid transparent', padding: '8px 12px', borderRadius: '6px', transition: 'all 0.2s' }}>
               <input type="checkbox" checked={isSelected} onChange={() => toggleTask(task.id, task.defaultPrice, task.label)} style={{ width: '20px', height: '20px' }} />
               <div style={{ flex: 1, fontWeight: isSelected ? '600' : 'normal' }}>{task.label}</div>
               {isSelected && (
-                <div style={{ width: '120px' }}>
+                <div style={{ width: '100px' }}>
                   <Field label="Precio">
                     <MeasureInput unit="COP" value={currentPrice} onChange={v => updatePrice(task.id, v || 0)} />
                   </Field>
