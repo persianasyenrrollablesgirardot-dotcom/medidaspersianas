@@ -203,7 +203,7 @@ function renderProjectReport(project: TechnicalProject, catalog: TechnicalCatalo
 }
 
 function renderWindowReport(win: TechnicalProject['spaces'][number]['windows'][number], catalog: TechnicalCatalog | undefined, profile: PdfReportProfile) {
-  if (profile === 'client') return renderClientWindow(win);
+  if (profile === 'client') return renderClientWindow(win, catalog);
 
   const showConditions = profile === 'installer' || profile === 'internal';
   const showPhotos = (profile === 'installer' || profile === 'internal') && win.evidence.length > 0;
@@ -216,14 +216,23 @@ function renderWindowReport(win: TechnicalProject['spaces'][number]['windows'][n
     ${showConditions && win.siteConditions.length ? `<p><strong>Condiciones:</strong> ${win.siteConditions.map(c => `<span class="badge">${escapeHtml(c.label)} | ${escapeHtml(c.severity)}</span>`).join('')}</p>` : ''}
     ${win.notes && profile === 'internal' ? `<p class="note"><strong>Nota ventana:</strong> ${escapeHtml(win.notes)}</p>` : ''}
     ${showPhotos ? `<div class="photos">${win.evidence.map(ev => `<div><img src="${escapeHtml(ev.dataUrl)}" alt="${escapeHtml(ev.label)}"><p class="muted">${escapeHtml(ev.kind)}</p></div>`).join('')}</div>` : ''}
-    ${renderTechnicalSolutions(win, profile)}
+    ${renderTechnicalSolutions(win, catalog, profile)}
   `;
 }
 
-function renderClientWindow(win: TechnicalProject['spaces'][number]['windows'][number]) {
+function renderClientWindow(win: TechnicalProject['spaces'][number]['windows'][number], catalog: TechnicalCatalog | undefined) {
   const showPhotos = win.evidence.length > 0;
   const blinds = win.solutions.filter(s => s.itemType !== 'maintenance' && (s.quickQuote ? quoteTotal(s.quickQuote) > 0 : solutionTotal(s) > 0));
-  const maints = win.solutions.filter(s => s.itemType === 'maintenance' && s.maintenance?.tasks.some(t => t.selected));
+  const rawMaints = win.solutions.filter(s => s.itemType === 'maintenance' && s.maintenance?.tasks.some(t => t.selected));
+
+  // Classify maintenance vs addons based on catalog settings
+  const maints = [];
+  const addons = [];
+  for (const sol of rawMaints) {
+    const sysDef = catalog?.maintenanceCatalog?.find(c => c.systemName === sol.system);
+    if (sysDef?.displayAs === 'addon') addons.push(sol);
+    else maints.push(sol);
+  }
 
   let html = `<h3>${escapeHtml(win.label)}</h3>`;
 
@@ -271,63 +280,118 @@ function renderClientWindow(win: TechnicalProject['spaces'][number]['windows'][n
     </table>`;
   }
 
+  if (addons.length > 0) {
+    html += `
+    <table style="margin-top: 16px;">
+      <thead><tr><th>Servicio Adicional</th><th>Clasificación</th><th>Detalles</th><th>Precio Total</th></tr></thead>
+      <tbody>
+        ${addons.map((sol, index) => {
+          const tasksText = sol.maintenance?.tasks.filter(t => t.selected).map(t => t.label).join(', ') || 'Ninguno';
+          return `
+            <tr>
+              <td>${escapeHtml(`${win.label} - extra ${index + 1}`)}</td>
+              <td>${escapeHtml(sol.system)}</td>
+              <td>${escapeHtml(tasksText)}</td>
+              <td>${solutionTotal(sol).toLocaleString('es-CO')}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>`;
+  }
+
   html += showPhotos ? `<div class="photos">${win.evidence.map(ev => `<div><img src="${escapeHtml(ev.dataUrl)}" alt="${escapeHtml(ev.label)}"><p class="muted">${escapeHtml(ev.kind)}</p></div>`).join('')}</div>` : '';
   return html;
 }
 
-function renderTechnicalSolutions(win: TechnicalProject['spaces'][number]['windows'][number], profile: PdfReportProfile) {
+function renderTechnicalSolutions(win: TechnicalProject['spaces'][number]['windows'][number], catalog: TechnicalCatalog | undefined, profile: PdfReportProfile) {
   const includePrice = profile === 'internal';
   const includeAlerts = profile === 'installer' || profile === 'internal';
   const includeProduction = profile === 'supplier' || profile === 'internal';
-  return `
-    ${win.solutions.map((sol, index) => {
-      if (sol.itemType === 'maintenance') {
-        return `
-          <article class="solution-card">
-            <div class="solution-head">
-              <div>
-                <h4>${escapeHtml(sol.name || `Mantenimiento ${index + 1}`)}</h4>
-                <p class="muted">${escapeHtml(sol.status)}</p>
-              </div>
-              <div><span class="badge">${escapeHtml(sol.system)}</span></div>
-            </div>
-            <div class="solution-grid">
-              ${renderSolutionField('Sistema', sol.system || '-')}
-              ${renderSolutionField('Tareas seleccionadas', sol.maintenance?.tasks.filter(t => t.selected).map(t => t.label).join(', ') || 'Ninguna')}
-            </div>
-            ${sol.notes ? `<p style="margin-top: 12px"><strong>Nota:</strong> ${escapeHtml(sol.notes)}</p>` : ''}
-            ${includePrice ? renderPriceBlock(sol) : ''}
-          </article>
-        `;
-      }
-      const plan = sol.planTemplate || win.planTemplate;
-      return `
-        <article class="solution-card">
-          <div class="solution-head">
-            <div>
-              <h4>${escapeHtml(sol.name || `Persiana ${index + 1}`)}</h4>
-              <p class="muted">${escapeHtml(sol.layer)} - ${escapeHtml(sol.status)}</p>
-            </div>
-            <div><span class="badge">${escapeHtml(sol.system || 'Sistema pendiente')}</span></div>
+  
+  const rawMaints = win.solutions.filter(s => s.itemType === 'maintenance');
+  const blinds = win.solutions.filter(s => s.itemType !== 'maintenance');
+  
+  const maints = [];
+  const addons = [];
+  for (const sol of rawMaints) {
+    const sysDef = catalog?.maintenanceCatalog?.find(c => c.systemName === sol.system);
+    if (sysDef?.displayAs === 'addon') addons.push(sol);
+    else maints.push(sol);
+  }
+
+  let html = '';
+
+  html += maints.map((sol, index) => {
+    return `
+      <article class="solution-card">
+        <div class="solution-head">
+          <div>
+            <h4>${escapeHtml(sol.name || `Mantenimiento ${index + 1}`)}</h4>
+            <p class="muted">${escapeHtml(sol.status)}</p>
           </div>
-          <div class="solution-grid">
-            ${renderSolutionField('Plano', plan?.label || '-')}
-            ${renderSolutionField('Sistema', sol.system || '-')}
-            ${renderSolutionField('Montaje', sol.layer || '-')}
-            ${renderSolutionField('Tela / color', [sol.fabric, sol.color].filter(Boolean).join(' / ') || '-')}
-            ${renderSolutionField('Fabricacion', `${formatRaw(sol.assembly.fabricationWidth || sol.quickQuote?.width)} x ${formatRaw(sol.assembly.fabricationHeight || sol.quickQuote?.height)}`)}
-            ${renderSolutionField('Area tecnica', `${solutionArea(sol).toFixed(2)} m2`)}
-            ${renderSolutionField('Operacion', sol.drive || '-')}
-            ${renderSolutionField('Cantidad cotizada', String(sol.quickQuote?.quantity || 1))}
+          <div><span class="badge">${escapeHtml(sol.system)}</span></div>
+        </div>
+        <div class="solution-grid">
+          ${renderSolutionField('Sistema', sol.system || '-')}
+          ${renderSolutionField('Tareas seleccionadas', sol.maintenance?.tasks.filter(t => t.selected).map(t => t.label).join(', ') || 'Ninguna')}
+        </div>
+        ${sol.notes ? `<p style="margin-top: 12px"><strong>Nota:</strong> ${escapeHtml(sol.notes)}</p>` : ''}
+        ${includePrice ? renderPriceBlock(sol) : ''}
+      </article>
+    `;
+  }).join('');
+
+  html += addons.map((sol, index) => {
+    return `
+      <article class="solution-card">
+        <div class="solution-head">
+          <div>
+            <h4>${escapeHtml(sol.name || `Servicio Adicional ${index + 1}`)}</h4>
+            <p class="muted">${escapeHtml(sol.status)}</p>
           </div>
-          ${includeProduction ? renderAssemblyDetailsBlock(sol) : ''}
-          ${includeProduction ? renderDivisionsBlock(sol) : ''}
-          ${includePrice ? renderPriceBlock(sol) : ''}
-          ${includeAlerts ? renderAlertsBlock(sol) : ''}
-        </article>
-      `;
-    }).join('')}
-  `;
+          <div><span class="badge">${escapeHtml(sol.system)}</span></div>
+        </div>
+        <div class="solution-grid">
+          ${renderSolutionField('Sistema Adicional', sol.system || '-')}
+          ${renderSolutionField('Detalles', sol.maintenance?.tasks.filter(t => t.selected).map(t => t.label).join(', ') || 'Ninguna')}
+        </div>
+        ${sol.notes ? `<p style="margin-top: 12px"><strong>Nota:</strong> ${escapeHtml(sol.notes)}</p>` : ''}
+        ${includePrice ? renderPriceBlock(sol) : ''}
+      </article>
+    `;
+  }).join('');
+
+  html += blinds.map((sol, index) => {
+    const plan = sol.planTemplate || win.planTemplate;
+    return `
+      <article class="solution-card">
+        <div class="solution-head">
+          <div>
+            <h4>${escapeHtml(sol.name || `Persiana ${index + 1}`)}</h4>
+            <p class="muted">${escapeHtml(sol.layer)} - ${escapeHtml(sol.status)}</p>
+          </div>
+          <div><span class="badge">${escapeHtml(sol.system || 'Sistema pendiente')}</span></div>
+        </div>
+        <div class="solution-grid">
+          ${renderSolutionField('Plano', plan?.label || '-')}
+          ${renderSolutionField('Sistema', sol.system || '-')}
+          ${renderSolutionField('Montaje', sol.layer || '-')}
+          ${renderSolutionField('Tela / color', [sol.fabric, sol.color].filter(Boolean).join(' / ') || '-')}
+          ${renderSolutionField('Fabricacion', `${formatRaw(sol.assembly.fabricationWidth || sol.quickQuote?.width)} x ${formatRaw(sol.assembly.fabricationHeight || sol.quickQuote?.height)}`)}
+          ${renderSolutionField('Area tecnica', `${solutionArea(sol).toFixed(2)} m2`)}
+          ${renderSolutionField('Operacion', sol.drive || '-')}
+          ${renderSolutionField('Cantidad cotizada', String(sol.quickQuote?.quantity || 1))}
+        </div>
+        ${includeProduction ? renderAssemblyDetailsBlock(sol) : ''}
+        ${includeProduction ? renderDivisionsBlock(sol) : ''}
+        ${includePrice ? renderPriceBlock(sol) : ''}
+        ${includeAlerts ? renderAlertsBlock(sol) : ''}
+      </article>
+    `;
+  }).join('');
+
+  return html;
 }
 
 function renderSolutionField(label: string, value: unknown) {

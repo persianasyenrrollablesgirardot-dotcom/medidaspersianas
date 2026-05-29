@@ -5,7 +5,7 @@ import { DEFAULT_CATALOG, db, resetLocalAppData } from '../db';
 import { saveFallbackCatalog } from '../lib/localFallbackStore';
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { TechnicalCatalog } from '../types';
-import { Field } from '../components/Field';
+import { Field, SelectInput } from '../components/Field';
 import { MeasureInput } from '../components/MeasureInput';
 
 export function Settings() {
@@ -94,60 +94,85 @@ export function Settings() {
                   </button>
                 )}
               </div>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h4 style={{ margin: 0 }}>Servicios de {activeSystem}</h4>
-                <button 
-                  className="secondary small" 
-                  onClick={() => {
-                    const label = prompt('Nombre del nuevo servicio (ej: Limpieza general):');
-                    if (label && label.trim()) {
-                      const id = label.trim().toLowerCase().replace(/\s+/g, '-');
-                      const newCat = (catalog?.maintenanceCatalog || []).map(sys => 
-                        sys.systemName === activeSystem 
-                          ? { ...sys, services: [...sys.services, { id, label: label.trim(), defaultPrice: 0 }] } 
-                          : sys
-                      );
-                      saveCatalogTasks(newCat);
-                    }
-                  }}
-                >
-                  + Añadir Servicio
-                </button>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '8px' }}>
-                {(catalog?.maintenanceCatalog || []).find(s => s.systemName === activeSystem)?.services.map((task: any) => (
-                <div key={task.id} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'var(--bg-subtle)', padding: '8px 12px', borderRadius: '6px' }}>
-                  <div style={{ flex: 1 }}><strong>{task.label}</strong></div>
-                  <div style={{ width: '120px' }}>
-                      <Field label="Precio Base">
-                        <MeasureInput unit="COP" value={task.defaultPrice} onChange={(v: number | undefined) => {
-                          const newCat = catalog!.maintenanceCatalog.map(sys => sys.systemName === activeSystem ? { ...sys, services: sys.services.map(t => t.id === task.id ? { ...t, defaultPrice: v || 0 } : t) } : sys);
-                          saveCatalogTasks(newCat);
-                        }} />
-                      </Field>
+                     {activeSystem && (() => {
+                const activeSysData = (catalog?.maintenanceCatalog || []).find(s => s.systemName === activeSystem);
+                return (
+                  <div style={{ background: 'var(--bg-subtle)', padding: '16px', borderRadius: '8px', marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '24px', borderBottom: '1px solid var(--line)', paddingBottom: '16px' }}>
+                      <strong style={{ minWidth: '180px' }}>Clasificación en PDF:</strong>
+                      <div style={{ flex: 1, maxWidth: '300px' }}>
+                        <SelectInput 
+                          value={activeSysData?.displayAs || 'maintenance'} 
+                          onChange={e => {
+                            const newCat = (catalog?.maintenanceCatalog || []).map(sys => 
+                              sys.systemName === activeSystem 
+                                ? { ...sys, displayAs: e.target.value as 'maintenance' | 'addon' } 
+                                : sys
+                            );
+                            saveCatalogTasks(newCat);
+                          }}
+                        >
+                          <option value="maintenance">Mantenimiento</option>
+                          <option value="addon">Servicio Adicional</option>
+                        </SelectInput>
+                      </div>
                     </div>
-                    <button 
-                      className="danger icon-btn" 
-                      onClick={() => {
-                        if (confirm(`¿Eliminar el servicio ${task.label}?`)) {
-                          const newCat = (catalog?.maintenanceCatalog || []).map(sys => 
-                            sys.systemName === activeSystem 
-                              ? { ...sys, services: sys.services.filter(t => t.id !== task.id) } 
-                              : sys
-                          );
-                          saveCatalogTasks(newCat);
-                        }
-                      }}
-                      title="Eliminar servicio"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                    </button>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <h4 style={{ margin: 0 }}>Servicios de {activeSystem}</h4>
+                      <button 
+                        className="secondary small" 
+                        onClick={() => {
+                          const label = prompt('Nombre del nuevo servicio (ej: Limpieza general):');
+                          if (label && label.trim()) {
+                            const id = label.trim().toLowerCase().replace(/\s+/g, '-');
+                            const newCat = (catalog?.maintenanceCatalog || []).map(sys => 
+                              sys.systemName === activeSystem 
+                                ? { ...sys, services: [...sys.services, { id, label: label.trim(), defaultPrice: 0 }] } 
+                                : sys
+                            );
+                            saveCatalogTasks(newCat);
+                          }
+                        }}
+                      >
+                        + Añadir Servicio
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '8px' }}>
+                      {(activeSysData?.services || []).map((task: any) => (
+                        <div key={task.id} style={{ display: 'flex', gap: '8px', alignItems: 'center', background: 'var(--bg)', padding: '8px 12px', borderRadius: '6px' }}>
+                          <div style={{ flex: 1 }}><strong>{task.label}</strong></div>
+                          <div style={{ width: '120px' }}>
+                              <Field label="Precio Base">
+                                <MeasureInput unit="COP" value={task.defaultPrice} onChange={(v: number | undefined) => {
+                                  const newCat = catalog!.maintenanceCatalog.map(sys => sys.systemName === activeSystem ? { ...sys, services: sys.services.map(t => t.id === task.id ? { ...t, defaultPrice: v || 0 } : t) } : sys);
+                                  saveCatalogTasks(newCat);
+                                }} />
+                              </Field>
+                            </div>
+                            <button 
+                              className="danger icon-btn" 
+                              onClick={() => {
+                                if (confirm(`¿Eliminar el servicio ${task.label}?`)) {
+                                  const newCat = (catalog?.maintenanceCatalog || []).map(sys => 
+                                    sys.systemName === activeSystem 
+                                      ? { ...sys, services: sys.services.filter(t => t.id !== task.id) } 
+                                      : sys
+                                  );
+                                  saveCatalogTasks(newCat);
+                                }
+                              }}
+                              title="Eliminar servicio"
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                            </button>
+                          </div>
+                      ))}
+                    </div>
                   </div>
-              ))}
-            </div>
-          </div>
+                );
+              })()}          </div>
 
 
             <div style={{ borderTop: '1px solid var(--line)', paddingTop: 24 }}>
