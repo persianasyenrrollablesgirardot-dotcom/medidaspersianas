@@ -77,14 +77,6 @@ export function WindowWorkspace() {
     }
     await db.catalog.add({ ...DEFAULT_CATALOG, ...patch, lastUpdatedAt: Date.now() });
   };
-  const addCatalogOption = (field: 'openingTypes' | 'shapes', value: string) => {
-    const current = catalog[field] || [];
-    if (!current.includes(value)) updateCatalog({ [field]: [...current, value] } as Partial<TechnicalCatalog>);
-  };
-  const deleteCatalogOption = (field: 'openingTypes' | 'shapes', value: string) => {
-    updateCatalog({ [field]: (catalog[field] || []).filter(option => option !== value) } as Partial<TechnicalCatalog>);
-  };
-
   const addSol = (layer: TechnicalSolution['layer']) => {
     const sol = newSolution(layer === 'outside' ? 'Persiana externa' : 'Persiana interna', layer);
     updateWindow(project, space.id, win.id, current => ({ ...current, solutions: [...current.solutions, sol] }));
@@ -176,24 +168,6 @@ export function WindowWorkspace() {
         <Field label="Nombre de ventana">
           <TextInput value={win.label} onChange={e => patchWindow({ label: e.target.value })} />
         </Field>
-        <div className="grid-2">
-          <EditableSelect
-            label="Tipo"
-            value={win.openingType}
-            options={catalog.openingTypes}
-            onChange={openingType => patchWindow({ openingType })}
-            onAddOption={value => addCatalogOption('openingTypes', value)}
-            onDeleteOption={value => deleteCatalogOption('openingTypes', value)}
-          />
-          <EditableSelect
-            label="Forma"
-            value={win.shape}
-            options={catalog.shapes}
-            onChange={shape => patchWindow({ shape })}
-            onAddOption={value => addCatalogOption('shapes', value)}
-            onDeleteOption={value => deleteCatalogOption('shapes', value)}
-          />
-        </div>
         <CustomWindowFields
           catalog={catalog}
           values={win.customFields || {}}

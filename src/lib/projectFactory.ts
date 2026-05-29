@@ -23,8 +23,6 @@ export function newWindow(label = 'Ventana 1'): WindowRecord {
   return {
     id: uid('window'),
     label,
-    openingType: 'Corrediza',
-    shape: 'Rectangular',
     geometry: {},
     siteConditions: [],
     evidence: [],

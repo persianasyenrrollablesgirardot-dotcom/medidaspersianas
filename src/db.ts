@@ -12,10 +12,7 @@ export const DEFAULT_CATALOG: TechnicalCatalog = {
   surfaces: ['Concreto', 'Drywall', 'Madera', 'Aluminio', 'Baldosa', 'Desconocida'],
   openingTypes: ['Corrediza', 'Batiente', 'Fija', 'Puerta ventana', 'Esquinera', 'Panoramica'],
   shapes: ['Rectangular', 'Irregular', 'A 45 grados', 'Curva', 'Con arco', 'Descuadrada'],
-  customWindowFields: [
-    { id: 'marco', label: 'Tipo de marco', options: ['Aluminio', 'Madera', 'PVC', 'Sin marco definido'] },
-    { id: 'condicion_especial', label: 'Condicion especial', options: ['Ninguna', 'Esquinera', 'Muy alta', 'Dificil acceso', 'Requiere validacion'] },
-  ],
+  customWindowFields: [],
   siteConditions: [
     { label: 'Pared desnivelada', severity: 'medium' },
     { label: 'Humedad visible', severity: 'high' },

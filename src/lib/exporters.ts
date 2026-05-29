@@ -50,7 +50,7 @@ export function technicalSummary(project: TechnicalProject): string {
   for (const space of activeSpaces) {
     lines.push(`== ${space.name.toUpperCase()} ==`);
     for (const win of space.windows) {
-      lines.push(`- ${win.label} | ${win.openingType || 'tipo pendiente'} | ${win.shape || 'forma pendiente'}`);
+      lines.push(`- ${win.label}`);
       const validSolutions = win.solutions.filter(s => s.itemType === 'maintenance' ? s.maintenance?.tasks.some(t => t.selected) : (s.quickQuote ? quoteTotal(s.quickQuote) > 0 : solutionTotal(s) > 0));
       for (const sol of validSolutions) {
         if (sol.itemType === 'maintenance') {
@@ -209,7 +209,7 @@ function renderWindowReport(win: TechnicalProject['spaces'][number]['windows'][n
   const showPhotos = (profile === 'installer' || profile === 'internal') && win.evidence.length > 0;
 
   return `
-    <h3>${escapeHtml(win.label)} - ${escapeHtml(win.openingType || '')} - ${escapeHtml(win.shape || '')}</h3>
+    <h3>${escapeHtml(win.label)}</h3>
     <p><strong>Vano:</strong> ancho ${formatRaw(win.geometry.widthTop)} / ${formatRaw(win.geometry.widthMiddle)} / ${formatRaw(win.geometry.widthBottom)} - alto ${formatRaw(win.geometry.heightLeft)} / ${formatRaw(win.geometry.heightCenter)} / ${formatRaw(win.geometry.heightRight)} - profundidad ${formatRaw(win.geometry.depth)}</p>
     ${win.planTemplate ? renderPlan(win.planTemplate) : ''}
     ${catalog?.customWindowFields?.length ? `<div class="grid">${catalog.customWindowFields.map(field => `<div class="box"><span>${escapeHtml(field.label)}</span><strong>${escapeHtml(win.customFields?.[field.id] || 'Sin definir')}</strong></div>`).join('')}</div>` : ''}

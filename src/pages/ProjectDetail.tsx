@@ -185,8 +185,6 @@ export function ProjectDetail() {
                     </button>
                   </div>
                   <div className="detail-tags">
-                    <em>{win.openingType || 'Tipo pendiente'}</em>
-                    <em>{win.shape || 'Forma pendiente'}</em>
                     <em>{win.quickMode === 'angle45' ? 'Corte 45 grados' : 'Sencilla'}</em>
                   </div>
                 </div>

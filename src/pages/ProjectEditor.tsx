@@ -131,19 +131,11 @@ export function ProjectEditor() {
                 })}><TrashIcon className="icon" /></button>
               </div>
 
-              <div className="grid-3">
-                <Field label="Tipo"><SelectInput value={window.openingType || ''} onChange={e => save({
-                  ...project,
-                  spaces: project.spaces.map(s => s.id === space.id ? { ...s, windows: s.windows.map(w => w.id === window.id ? { ...w, openingType: e.target.value } : w) } : s),
-                })}>{catalog.openingTypes.map(o => <option key={o}>{o}</option>)}</SelectInput></Field>
-                <Field label="Forma"><SelectInput value={window.shape || ''} onChange={e => save({
-                  ...project,
-                  spaces: project.spaces.map(s => s.id === space.id ? { ...s, windows: s.windows.map(w => w.id === window.id ? { ...w, shape: e.target.value } : w) } : s),
-                })}>{catalog.shapes.map(o => <option key={o}>{o}</option>)}</SelectInput></Field>
-                <Field label="Profundidad vano"><NumberInput value={window.geometry.depth || ''} onChange={e => save({
-                  ...project,
-                  spaces: project.spaces.map(s => s.id === space.id ? { ...s, windows: s.windows.map(w => w.id === window.id ? { ...w, geometry: { ...w.geometry, depth: Number(e.target.value) } } : w) } : s),
-                })} /></Field>
+              <div className="grid-1">
+                  <Field label="Profundidad vano"><NumberInput value={window.geometry.depth || ''} onChange={e => save({
+                    ...project,
+                    spaces: project.spaces.map(s => s.id === space.id ? { ...s, windows: s.windows.map(w => w.id === window.id ? { ...w, geometry: { ...w.geometry, depth: Number(e.target.value) } } : w) } : s),
+                  })} /></Field>
               </div>
 
               <div className="measure-grid">
