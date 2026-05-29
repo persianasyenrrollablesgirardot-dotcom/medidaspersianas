@@ -98,7 +98,7 @@ export function ProjectDetail() {
             style={{ borderColor: '#10b981', color: '#10b981' }}
             type="button" 
             onClick={() => {
-              const summary = technicalSummary(project);
+              const summary = technicalSummary(project, catalog || DEFAULT_CATALOG);
               navigate('/facturacion', { state: { autoGenerateText: summary } });
             }}
           >

@@ -185,7 +185,7 @@ export function Dashboard() {
                     e.stopPropagation();
                     const fullProject = getFallbackProject(project.projectId);
                     if (fullProject) {
-                      const summary = technicalSummary(fullProject);
+                      const summary = technicalSummary(fullProject, catalog || DEFAULT_CATALOG);
                       navigate('/facturacion', { state: { autoGenerateText: summary } });
                     }
                   }}

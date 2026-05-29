@@ -33,7 +33,7 @@ export function downloadText(filename: string, content: string, mime = 'text/pla
   URL.revokeObjectURL(url);
 }
 
-export function technicalSummary(project: TechnicalProject): string {
+export function technicalSummary(project: TechnicalProject, catalog: TechnicalCatalog | undefined): string {
   const lines: string[] = [];
   lines.push('FICHA TECNICA CAMPO JUNO');
   lines.push(`Proyecto: ${project.clientName || 'Sin cliente'}`);
@@ -52,20 +52,39 @@ export function technicalSummary(project: TechnicalProject): string {
     for (const win of space.windows) {
       lines.push(`- ${win.label}`);
       const validSolutions = win.solutions.filter(s => s.itemType === 'maintenance' ? s.maintenance?.tasks.some(t => t.selected) : (s.quickQuote ? quoteTotal(s.quickQuote) > 0 : solutionTotal(s) > 0));
-      for (const sol of validSolutions) {
-        if (sol.itemType === 'maintenance') {
-          const tasksText = sol.maintenance?.tasks.filter(t => t.selected).map(t => t.label).join(', ') || 'Ninguno';
-          lines.push(`  > Mantenimiento: ${sol.system} - Tareas: ${tasksText}`);
-          lines.push(`    Cotizacion: 1 unidad - ${solutionTotal(sol).toLocaleString('es-CO')} COP estimado`);
-        } else {
-          lines.push(`  > ${sol.name} [${sol.layer}] ${sol.system} ${sol.fabric || ''}`);
-          if (sol.quickQuote) {
-            lines.push(`    Cotizacion: ${quoteArea(sol.quickQuote).toFixed(2)} m2 - ${quoteTotal(sol.quickQuote).toLocaleString('es-CO')} COP estimado`);
-          }
-          lines.push(`    Area: ${solutionArea(sol).toFixed(2)} m2`);
-          if (sol.divisions.length) lines.push(`    Divisiones: ${sol.divisions.map(d => `${d.label} ${d.width}x${d.height}`).join(' | ')}`);
-          if (sol.alerts.length) lines.push(`    Alertas: ${sol.alerts.map(a => a.message).join(' | ')}`);
+      const rawMaints = win.solutions.filter(s => s.itemType === 'maintenance' ? s.maintenance?.tasks.some(t => t.selected) : false);
+      const blinds = validSolutions.filter(s => s.itemType !== 'maintenance');
+      
+      const maints = [];
+      const addons = [];
+      for (const sol of rawMaints) {
+        const sysDef = catalog?.maintenanceCatalog?.find(c => c.systemName === sol.system);
+        if (sysDef?.displayAs === 'addon') addons.push(sol);
+        else maints.push(sol);
+      }
+
+      for (const sol of blinds) {
+        lines.push(`  > ${sol.name} [${sol.layer}] ${sol.system} ${sol.fabric || ''}`);
+        if (sol.quickQuote) {
+          lines.push(`    Cotizacion: ${quoteArea(sol.quickQuote).toFixed(2)} m2 - ${quoteTotal(sol.quickQuote).toLocaleString('es-CO')} COP estimado`);
         }
+        lines.push(`    Area: ${solutionArea(sol).toFixed(2)} m2`);
+        if (sol.divisions.length) lines.push(`    Divisiones: ${sol.divisions.map(d => `${d.label} ${d.width}x${d.height}`).join(' | ')}`);
+        if (sol.alerts.length) lines.push(`    Alertas: ${sol.alerts.map(a => a.message).join(' | ')}`);
+        if (sol.notes) lines.push(`    Notas: ${sol.notes}`);
+      }
+
+      for (const sol of maints) {
+        const tasksText = sol.maintenance?.tasks.filter(t => t.selected).map(t => t.label).join(', ') || 'Ninguno';
+        lines.push(`  > Mantenimiento: ${sol.system} - Tareas: ${tasksText}`);
+        lines.push(`    Cotizacion: 1 unidad - ${solutionTotal(sol).toLocaleString('es-CO')} COP estimado`);
+        if (sol.notes) lines.push(`    Notas: ${sol.notes}`);
+      }
+
+      for (const sol of addons) {
+        const tasksText = sol.maintenance?.tasks.filter(t => t.selected).map(t => t.label).join(', ') || 'Ninguno';
+        lines.push(`  > Servicio Adicional: ${sol.system} - Tareas: ${tasksText}`);
+        lines.push(`    Cotizacion: 1 unidad - ${solutionTotal(sol).toLocaleString('es-CO')} COP estimado`);
         if (sol.notes) lines.push(`    Notas: ${sol.notes}`);
       }
     }
@@ -343,11 +362,12 @@ function renderTechnicalSolutions(win: TechnicalProject['spaces'][number]['windo
   }).join('');
 
   html += addons.map((sol, index) => {
+    const title = sol.name === 'Servicio Mantenimiento' ? `Servicio Adicional ${index + 1}` : (sol.name || `Servicio Adicional ${index + 1}`);
     return `
       <article class="solution-card">
         <div class="solution-head">
           <div>
-            <h4>${escapeHtml(sol.name || `Servicio Adicional ${index + 1}`)}</h4>
+            <h4>${escapeHtml(title)}</h4>
             <p class="muted">${escapeHtml(sol.status)}</p>
           </div>
           <div><span class="badge">${escapeHtml(sol.system)}</span></div>

@@ -4,6 +4,7 @@ import { buildBackup, csvRows, downloadText, generateReportHtml, technicalSummar
 import { ArrowDownTrayIcon, ArrowUpTrayIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { addFallbackProject, useFallbackActiveProjects, useFallbackCatalog } from '../lib/localFallbackStore';
 import { PdfPreviewModal } from '../components/PdfPreviewModal';
+import { DEFAULT_CATALOG } from '../db';
 
 export function ExportCenter() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -32,7 +33,7 @@ export function ExportCenter() {
   };
 
   const exportText = () => {
-    const content = projects.map(technicalSummary).join('\n\n----------------------\n\n');
+    const content = projects.map(p => technicalSummary(p, catalog || DEFAULT_CATALOG)).join('\n\n----------------------\n\n');
     downloadText(`resumen_tecnico_${Date.now()}.txt`, content);
     toast.success('Resumen tecnico exportado');
   };
