@@ -17,7 +17,7 @@ import type { DivisionPart, EvidenceKind, MountPlanTemplate, QuickWindowMode, Te
 import type { TechnicalCatalog } from '../types';
 import { isFallbackId, saveFallbackCatalog, useFallbackCatalog, useFallbackProject } from '../lib/localFallbackStore';
 
-type Tab = 'quick' | 'evidence';
+type Tab = 'quick' | 'maintenance' | 'evidence';
 
 const PLAN_TEMPLATES: MountPlanTemplate[] = [
   { id: 'A', label: 'Plano A', imageUrl: '/planos/plano-a.jpeg', layout: 'L', rollDirection: 'front', solutionCount: 2, notes: 'Esquina en L, todas enrollando por el frente.' },
@@ -46,12 +46,19 @@ export function WindowWorkspace() {
   const firstSolutionId = win?.solutions[0]?.id;
   const [activeSolutionId, setActiveSolutionId] = useState<string | undefined>(firstSolutionId);
 
+  const activeSolutionsList = useMemo(() => {
+    if (!win) return [];
+    if (tab === 'maintenance') return win.solutions.filter(s => s.itemType === 'maintenance');
+    if (tab === 'quick') return win.solutions.filter(s => s.itemType !== 'maintenance');
+    return win.solutions;
+  }, [win, tab]);
+
   const activeSolution = useMemo(() => {
     if (!win) return undefined;
-    return win.solutions.find(s => s.id === activeSolutionId) || win.solutions[0];
-  }, [activeSolutionId, win]);
+    return activeSolutionsList.find(s => s.id === activeSolutionId) || activeSolutionsList[0];
+  }, [activeSolutionId, activeSolutionsList, win]);
 
-  if (!project || !catalog || !space || !win || !activeSolution) {
+  if (!project || !catalog || !space || !win) {
     return <div className="page"><div className="empty">Cargando ventana...</div></div>;
   }
 
@@ -199,39 +206,46 @@ export function WindowWorkspace() {
         value={tab}
         onChange={setTab}
         options={[
-          { value: 'quick', label: 'Rapida' },
+          { value: 'quick', label: 'Cotizar Nuevas' },
+          { value: 'maintenance', label: 'Mantenimiento' },
           { value: 'evidence', label: 'Fotos' },
         ]}
       />
 
-      {tab === 'quick' && (
+      {(tab === 'quick' || tab === 'maintenance') && (
         <section className="panel focus-panel">
-          <QuickModeSelector mode={win.quickMode || 'simple'} onChange={setQuickMode} />
-          {(win.quickMode || 'simple') === 'angle45' && (
+          {tab === 'quick' && <QuickModeSelector mode={win.quickMode || 'simple'} onChange={setQuickMode} />}
+          {tab === 'quick' && (win.quickMode || 'simple') === 'angle45' && (
             <PlanTemplatePicker selected={win.planTemplate} onSelect={applyPlanTemplate} onClear={clearPlanTemplate} />
           )}
-          {(win.quickMode || 'simple') === 'angle45' && win.planTemplate && win.solutions.length !== win.planTemplate.solutionCount && (
+          {tab === 'quick' && (win.quickMode || 'simple') === 'angle45' && win.planTemplate && win.solutions.length !== win.planTemplate.solutionCount && (
             <button className="secondary wide" type="button" onClick={repairAngleSolutions}>
               Reparar persianas del plano {win.planTemplate.label}
             </button>
           )}
-          {(win.quickMode || 'simple') === 'simple' || win.planTemplate ? (
+          {tab === 'maintenance' || (win.quickMode || 'simple') === 'simple' || win.planTemplate ? (
             <>
-              <SolutionPicker win={win} activeId={activeSolution.id} onPick={setActiveSolutionId} onAddInside={() => addSol('inside')} onAddOutside={() => addSol('outside')} onAddMaintenance={addMaint} onDeleteActive={deleteActiveSolution} />
+              <SolutionPicker tab={tab} solutions={activeSolutionsList} activeId={activeSolution?.id} onPick={setActiveSolutionId} onAddInside={() => addSol('inside')} onAddOutside={() => addSol('outside')} onAddMaintenance={addMaint} onDeleteActive={deleteActiveSolution} />
               
-              {activeSolution.itemType === 'maintenance' ? (
-                <MaintenanceForm solution={activeSolution} catalog={catalog} onChange={patch => patchSolution(activeSolution.id, patch)} />
+              {activeSolution ? (
+                activeSolution.itemType === 'maintenance' ? (
+                  <MaintenanceForm solution={activeSolution} catalog={catalog} onChange={patch => patchSolution(activeSolution.id, patch)} />
+                ) : (
+                  <>
+                    <QuickSolutionBasics
+                      solution={activeSolution}
+                      systems={catalog.systems}
+                      fabrics={catalog.fabrics}
+                      onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)}
+                    />
+                    <QuickForm solution={activeSolution} onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)} />
+                    <DivisionsForm solution={activeSolution} onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)} />
+                  </>
+                )
               ) : (
-                <>
-                  <QuickSolutionBasics
-                    solution={activeSolution}
-                    systems={catalog.systems}
-                    fabrics={catalog.fabrics}
-                    onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)}
-                  />
-                  <QuickForm solution={activeSolution} onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)} />
-                  <DivisionsForm solution={activeSolution} onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)} />
-                </>
+                <div className="empty" style={{ marginTop: '24px' }}>
+                  Aún no has agregado elementos. Utiliza los botones superiores para añadir {tab === 'maintenance' ? 'servicios de mantenimiento' : 'persianas'}.
+                </div>
               )}
             </>
           ) : (
@@ -424,23 +438,31 @@ function CustomWindowFields({
   );
 }
 
-function SolutionPicker({ win, activeId, onPick, onAddInside, onAddOutside, onAddMaintenance, onDeleteActive }: any) {
+function SolutionPicker({ tab, solutions, activeId, onPick, onAddInside, onAddOutside, onAddMaintenance, onDeleteActive }: any) {
   return (
     <div className="solution-picker">
       <div className="h-scroll">
-        {win.solutions.map((sol: TechnicalSolution) => (
+        {solutions.map((sol: TechnicalSolution) => (
           <button key={sol.id} className={`pill ${activeId === sol.id ? 'active' : ''}`} onClick={() => onPick(sol.id)}>
             {sol.name}
           </button>
         ))}
       </div>
       <div className="solution-actions compact" style={{ flexWrap: 'wrap' }}>
-        <button className="secondary" onClick={onAddInside}>+ Interna</button>
-        <button className="secondary purple" onClick={onAddOutside}>+ Externa</button>
-        <button className="secondary" style={{ borderColor: '#2196f3', color: '#2196f3' }} onClick={onAddMaintenance}>+ Mantenimiento</button>
-        <button className="secondary danger-outline" onClick={onDeleteActive}>
-          <TrashIcon className="icon" /> Borrar
-        </button>
+        {tab === 'quick' && (
+          <>
+            <button className="secondary" onClick={onAddInside}>+ Interna</button>
+            <button className="secondary purple" onClick={onAddOutside}>+ Externa</button>
+          </>
+        )}
+        {tab === 'maintenance' && (
+          <button className="secondary" style={{ borderColor: '#2196f3', color: '#2196f3' }} onClick={onAddMaintenance}>+ Añadir Mantenimiento</button>
+        )}
+        {solutions.length > 0 && (
+          <button className="secondary danger-outline" onClick={onDeleteActive}>
+            <TrashIcon className="icon" /> Borrar
+          </button>
+        )}
       </div>
     </div>
   );
