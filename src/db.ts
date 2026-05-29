@@ -1,10 +1,11 @@
 import Dexie, { type Table } from 'dexie';
 import type { ProjectSummary, TechnicalCatalog, TechnicalProject, SyncQueueItem, InvoiceRecord } from './types';
+import { DEFAULT_MAINTENANCE_TASKS } from './lib/defaultTasks';
 
 const DB_NAME = 'AppCampoJunoMobileV3DB';
 
 export const DEFAULT_CATALOG: TechnicalCatalog = {
-  systems: ['Enrollables', 'Blackout', 'Screen Solar', 'Sheer Elegance', 'Panel Japones', 'Romana', 'Vertical', 'Hannas', 'Toldo Romano', 'Riel'],
+  systems: ['Enrollables Blackout', 'Enrollables Screen', 'Sheer Elegance', 'Panel Japones', 'Vertical', 'Horizontal Aluminio', 'Madera', 'Peliculas Solares', 'Motorizacion y Domotica', 'Romana', 'Hannas', 'Toldo Romano', 'Riel'],
   fabrics: ['Blackout', 'Screen 1%', 'Screen 3%', 'Screen 5%', 'Decorativa', 'Sheer', 'Traslucida'],
   colors: ['Blanco', 'Negro', 'Gris', 'Marfil', 'Beige', 'Cafe'],
   mounts: ['Interna entre vano', 'Externa a pared', 'A techo', 'Sobre marco', 'Mixta'],
@@ -24,15 +25,7 @@ export const DEFAULT_CATALOG: TechnicalCatalog = {
     { label: 'Punto electrico pendiente', severity: 'high' },
     { label: 'Obra en curso o polvo', severity: 'medium' },
   ],
-  maintenanceTasks: [
-    { id: 'lavado', system: 'Enrollables', label: 'Lavado especializado', defaultPrice: 50000 },
-    { id: 'cambio_cadena', system: 'Enrollables', label: 'Cambio de cadena o cordón', defaultPrice: 15000 },
-    { id: 'cambio_mecanismo', system: 'Enrollables', label: 'Cambio de mecanismo completo', defaultPrice: 45000 },
-    { id: 'ajuste_motor', system: 'Enrollables', label: 'Re-programación / ajuste de motor', defaultPrice: 30000 },
-    { id: 'recorte', system: 'Enrollables', label: 'Recorte de medida', defaultPrice: 60000 },
-    { id: 'lavado_panel', system: 'Panel Japones', label: 'Lavado especializado', defaultPrice: 60000 },
-    { id: 'cambio_vias', system: 'Panel Japones', label: 'Cambio de vías', defaultPrice: 80000 },
-  ],
+  maintenanceTasks: DEFAULT_MAINTENANCE_TASKS,
   lastUpdatedAt: Date.now(),
 };
 
