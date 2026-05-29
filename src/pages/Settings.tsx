@@ -5,6 +5,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import type { TechnicalCatalog } from '../types';
 import { Field, SelectInput, TextInput } from '../components/Field';
 import { MeasureInput } from '../components/MeasureInput';
+import { DEFAULT_MAINTENANCE_TASKS } from '../lib/defaultTasks';
 
 export function Settings() {
   const catalog = useLiveQuery<TechnicalCatalog | undefined>(() => db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), []);
@@ -83,13 +84,22 @@ export function Settings() {
                   </button>
                 </div>
               ))}
-              <button className="secondary" onClick={() => {
-                const newId = 'maint_' + Date.now();
-                const newTasks = [...(catalog?.maintenanceTasks || []), { id: newId, system: catalog?.systems[0] || 'Enrollables', label: 'Nuevo servicio', defaultPrice: 0 }];
-                saveCatalogTasks(newTasks);
-              }}>
-                <PlusIcon className="icon" /> Añadir servicio
-              </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="secondary" onClick={() => {
+                    const newId = 'maint_' + Date.now();
+                    const newTasks = [...(catalog?.maintenanceTasks || []), { id: newId, system: catalog?.systems[0] || 'Enrollables', label: 'Nuevo servicio', defaultPrice: 0 }];
+                    saveCatalogTasks(newTasks);
+                  }}>
+                    <PlusIcon className="icon" /> Añadir servicio
+                  </button>
+                  <button className="secondary outline" onClick={() => {
+                    if(confirm('¿Sobrescribir tu lista actual con la Lista Maestra de más de 200 servicios (por defecto)? Perderás tus precios personalizados actuales.')) {
+                      saveCatalogTasks(DEFAULT_MAINTENANCE_TASKS);
+                    }
+                  }}>
+                    <ArrowPathIcon className="icon" /> Cargar Lista Maestra
+                  </button>
+                </div>
             </div>
           </div>
 
