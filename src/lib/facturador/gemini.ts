@@ -24,6 +24,7 @@ export async function extractInvoiceData(file: File): Promise<any> {
       2. Descuentos: Revisa minuciosamente si hay algún descuento aplicado al subtotal o a los ítems. Si hay un descuento total, ponlo en la propiedad "discount". Si no hay, pon 0.
       3. Descripciones Largas: Muchas facturas tienen descripciones que abarcan múltiples párrafos o viñetas debajo del título principal del ítem. DEBES extraer TODO el bloque de texto descriptivo completo y concatenarlo en el campo "description" usando saltos de línea (\n).
       4. OMITIR MEDIDAS: Bajo ninguna circunstancia debes incluir las medidas específicas (ancho, alto, ancho x alto) en la descripción del ítem. Al cliente final solo se le factura por metros cuadrados totales o unidades, nunca se le desglosan las medidas técnicas. Si ves medidas como "1.20 x 1.50", ignóralas por completo de la descripción.
+        5. MANTENIMIENTOS: Si hay tablas o secciones de "Mantenimiento", extráelas como ítems adicionales. Agrupa todos los servicios de una ventana en la descripción. La cantidad (quantity) para mantenimientos suele ser 1.
       
       Estructura obligatoria:
       {
@@ -82,6 +83,7 @@ export async function extractInvoiceDataFromText(text: string): Promise<any> {
       3. Descripciones Largas: Muchas veces el texto tiene descripciones que abarcan múltiples párrafos o viñetas. DEBES extraer TODO el bloque de texto descriptivo completo y concatenarlo en el campo "description".
       4. Tolerancia al desorden: El texto puede estar muy desordenado. Tu trabajo es identificar al cliente, los ítems y calcular el total.
       5. OMITIR MEDIDAS: Bajo ninguna circunstancia debes incluir las medidas específicas (ancho, alto, ancho x alto) en la descripción del ítem. Al cliente final solo se le factura por metros cuadrados totales o unidades, nunca se le desglosan las medidas de fabricación. Ignora cualquier medida específica en el texto y deja solo el área total.
+        6. MANTENIMIENTOS: Si hay secciones de "Mantenimiento", extráelas como ítems adicionales. Agrupa todos los servicios de una ventana en la descripción. La cantidad (quantity) para mantenimientos suele ser 1.
       
       Estructura obligatoria:
       {

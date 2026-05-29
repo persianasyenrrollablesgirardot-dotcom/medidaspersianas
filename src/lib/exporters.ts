@@ -163,7 +163,7 @@ function renderProjectReport(project: TechnicalProject, catalog: TechnicalCatalo
   const totalEstimate = activeSpaces.reduce((sum, space) => 
     sum + space.windows.reduce((wSum, win) => 
       wSum + win.solutions.reduce((sSum, sol) => 
-        sSum + (sol.quickQuote ? quoteTotal(sol.quickQuote) : 0)
+        sSum + solutionTotal(sol)
       , 0)
     , 0)
   , 0);

@@ -28,7 +28,7 @@ export function newWindow(label = 'Ventana 1'): WindowRecord {
     geometry: {},
     siteConditions: [],
     evidence: [],
-    solutions: [newSolution('Persiana interna', 'inside')],
+    solutions: [],
   };
 }
 
