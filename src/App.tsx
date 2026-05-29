@@ -2,7 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import { db, DEFAULT_CATALOG } from './db';
-import { DEFAULT_MAINTENANCE_TASKS } from './lib/defaultTasks';
+import { DEFAULT_MAINTENANCE_CATALOG } from './lib/defaultTasks';
 import { Shell } from './components/Shell';
 import { Dashboard } from './pages/Dashboard';
 import { ProjectSetup } from './pages/ProjectSetup';
@@ -20,9 +20,9 @@ export default function App() {
   useEffect(() => {
     db.catalog.toCollection().first().then(cat => {
       if (cat && cat.id) {
-        db.catalog.update(cat.id, { systems: DEFAULT_CATALOG.systems, maintenanceTasks: DEFAULT_MAINTENANCE_TASKS });
+        db.catalog.update(cat.id, { systems: DEFAULT_CATALOG.systems, maintenanceCatalog: DEFAULT_MAINTENANCE_CATALOG });
       } else {
-        db.catalog.add({ ...DEFAULT_CATALOG, maintenanceTasks: DEFAULT_MAINTENANCE_TASKS, lastUpdatedAt: Date.now() });
+        db.catalog.add({ ...DEFAULT_CATALOG, maintenanceCatalog: DEFAULT_MAINTENANCE_CATALOG, lastUpdatedAt: Date.now() });
       }
     });
   }, []);

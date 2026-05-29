@@ -1,6 +1,6 @@
 import Dexie, { type Table } from 'dexie';
 import type { ProjectSummary, TechnicalCatalog, TechnicalProject, SyncQueueItem, InvoiceRecord } from './types';
-import { DEFAULT_MAINTENANCE_TASKS } from './lib/defaultTasks';
+import { DEFAULT_MAINTENANCE_CATALOG } from './lib/defaultTasks';
 
 const DB_NAME = 'AppCampoJunoMobileV3DB';
 
@@ -25,7 +25,7 @@ export const DEFAULT_CATALOG: TechnicalCatalog = {
     { label: 'Punto electrico pendiente', severity: 'high' },
     { label: 'Obra en curso o polvo', severity: 'medium' },
   ],
-  maintenanceTasks: DEFAULT_MAINTENANCE_TASKS,
+  maintenanceCatalog: DEFAULT_MAINTENANCE_CATALOG,
   lastUpdatedAt: Date.now(),
 };
 
@@ -162,7 +162,7 @@ function normalizeCatalog(catalog: TechnicalCatalog): Partial<TechnicalCatalog> 
     shapes: catalog.shapes !== undefined ? catalog.shapes : DEFAULT_CATALOG.shapes,
     customWindowFields: catalog.customWindowFields !== undefined ? catalog.customWindowFields : DEFAULT_CATALOG.customWindowFields,
     siteConditions: catalog.siteConditions !== undefined ? catalog.siteConditions : DEFAULT_CATALOG.siteConditions,
-    maintenanceTasks: catalog.maintenanceTasks !== undefined ? catalog.maintenanceTasks.map(t => ({ ...t, system: t.system || 'Enrollables' })) : DEFAULT_CATALOG.maintenanceTasks,
+    maintenanceCatalog: catalog.maintenanceCatalog !== undefined ? catalog.maintenanceCatalog : DEFAULT_CATALOG.maintenanceCatalog,
     lastUpdatedAt: Date.now(),
   };
 }

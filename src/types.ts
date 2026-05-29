@@ -211,7 +211,10 @@ export interface TechnicalCatalog {
     options: string[];
   }>;
   siteConditions: Array<{ label: string; severity: 'low' | 'medium' | 'high' }>;
-  maintenanceTasks: Array<{ id: string; system: string; label: string; defaultPrice: number }>;
+  maintenanceCatalog: Array<{
+    systemName: string;
+    services: Array<{ id: string; label: string; defaultPrice: number }>;
+  }>;
   lastUpdatedAt: number;
 }
 

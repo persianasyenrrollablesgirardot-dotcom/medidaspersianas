@@ -468,7 +468,7 @@ function SolutionPicker({ tab, solutions, activeId, onPick, onAddInside, onAddOu
   );
 }
 
-function MaintenanceForm({ solution, catalog, onChange }: { solution: TechnicalSolution; catalog: TechnicalCatalog; onChange: (patch: Partial<TechnicalSolution>) => void }) {
+function MaintenanceForm({ solution, catalog, onChange }: { solution: TechnicalSolution; catalog: any; onChange: (patch: Partial<TechnicalSolution>) => void }) {
   const maint = solution.maintenance || { tasks: [] };
   
   const toggleTask = (taskId: string, defaultPrice: number, label: string) => {
@@ -492,13 +492,13 @@ function MaintenanceForm({ solution, catalog, onChange }: { solution: TechnicalS
       <div className="grid-2">
         <Field label="Sistema a mantener">
           <SelectInput value={solution.system} onChange={e => onChange({ system: e.target.value })}>
-            {catalog.systems.map(s => <option key={s} value={s}>{s}</option>)}
+            {catalog.systems.map((s: string) => <option key={s} value={s}>{s}</option>)}
           </SelectInput>
         </Field>
       </div>
       <h3>Servicios solicitados</h3>
       <div className="maintenance-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {catalog.maintenanceTasks?.filter(t => t.system === solution.system).map(task => {
+        {(catalog.maintenanceCatalog || []).find((s: any) => s.systemName === solution.system)?.services.map((task: any) => {
           const selectedTask = maint.tasks.find(t => t.id === task.id);
           const isSelected = !!selectedTask?.selected;
           const currentPrice = selectedTask ? selectedTask.price : task.defaultPrice;

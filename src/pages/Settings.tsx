@@ -1,23 +1,22 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowPathIcon, ExclamationTriangleIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { DEFAULT_CATALOG, db, resetLocalAppData } from '../db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { TechnicalCatalog } from '../types';
-import { Field, TextInput } from '../components/Field';
+import { Field } from '../components/Field';
 import { MeasureInput } from '../components/MeasureInput';
-import { DEFAULT_MAINTENANCE_TASKS } from '../lib/defaultTasks';
 
 export function Settings() {
   const catalog = useLiveQuery<TechnicalCatalog | undefined>(() => db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), []);
   const [activeSystem, setActiveSystem] = useState<string>('Enrollables Blackout');
 
-  const saveCatalogTasks = async (tasks: typeof DEFAULT_CATALOG.maintenanceTasks) => {
+  const saveCatalogTasks = async (tasks: typeof DEFAULT_CATALOG.maintenanceCatalog) => {
     try {
       if (catalog?.id) {
-        await db.catalog.update(catalog.id, { maintenanceTasks: tasks, lastUpdatedAt: Date.now() });
+        await db.catalog.update(catalog.id, { maintenanceCatalog: tasks, lastUpdatedAt: Date.now() });
       } else {
-        await db.catalog.add({ ...DEFAULT_CATALOG, maintenanceTasks: tasks, lastUpdatedAt: Date.now() });
+        await db.catalog.add({ ...DEFAULT_CATALOG, maintenanceCatalog: tasks, lastUpdatedAt: Date.now() });
       }
       toast.success('Catálogo guardado');
     } catch(e) {
@@ -54,70 +53,31 @@ export function Settings() {
         <div className="panel" style={{ padding: 24, display: 'grid', gap: 24 }}>
           <div>
             <h3 style={{ margin: '0 0 8px 0', fontSize: 18 }}>Catálogo de Mantenimientos</h3>
-            <p style={{ margin: '0 0 16px 0', color: 'var(--muted)', fontSize: 14 }}>
-              Configura los servicios de mantenimiento que ofreces y su precio sugerido.
-            </p>
-              <div className="h-scroll" style={{ marginBottom: '16px' }}>
-                {catalog?.systems.map(sys => (
-                  <button key={sys} className={`pill ${activeSystem === sys ? 'active' : ''}`} onClick={() => setActiveSystem(sys)}>
-                    {sys}
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ display: 'grid', gap: '12px' }}>
-                {(catalog?.maintenanceTasks || []).filter((t: any) => t.system === activeSystem).map((task: any) => (
-                  <div key={task.id} style={{ display: 'grid', gap: '8px', background: 'var(--bg-subtle)', padding: '12px', borderRadius: '8px' }}>
-                    <Field label="Servicio"><TextInput value={task.label} onChange={e => {
-                      const newTasks = catalog!.maintenanceTasks.map((t: any) => t.id === task.id ? { ...t, label: e.target.value } : t);
-                      saveCatalogTasks(newTasks);
-                    }} /></Field>
-                    
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-                      <div style={{ flex: 1 }}>
-                        <Field label="Precio Base"><MeasureInput unit="COP" value={task.defaultPrice} onChange={(v: number | undefined) => {
-                          const newTasks = catalog!.maintenanceTasks.map((t: any) => t.id === task.id ? { ...t, defaultPrice: v || 0 } : t);
-                          saveCatalogTasks(newTasks);
-                        }} /></Field>
-                      </div>
-                      <button className="secondary danger-outline" style={{ height: '40px', padding: '0 12px' }} onClick={() => {
-                        if(confirm('¿Borrar este servicio?')) {
-                          saveCatalogTasks(catalog!.maintenanceTasks.filter((t: any) => t.id !== task.id));
-                        }
-                      }}>
-                        <TrashIcon className="icon" />
-                      </button>
-                    </div>
+            <p style={{ margin: '0 0 16px 0', color: 'var(--muted)', fontSize: 14 }}>Configura los precios sugeridos para los servicios de mantenimiento. La lista de sistemas es estática.</p>
+            <div className="h-scroll" style={{ marginBottom: '16px' }}>
+              {(catalog?.maintenanceCatalog || []).map(sys => (
+                <button key={sys.systemName} className={`pill ${activeSystem === sys.systemName ? 'active' : ''}`} onClick={() => setActiveSystem(sys.systemName)}>
+                  {sys.systemName}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {(catalog?.maintenanceCatalog || []).find(s => s.systemName === activeSystem)?.services.map((task: any) => (
+                <div key={task.id} style={{ display: 'flex', gap: '12px', alignItems: 'center', background: 'var(--bg-subtle)', padding: '12px', borderRadius: '8px' }}>
+                  <div style={{ flex: 1 }}><strong>{task.label}</strong></div>
+                  <div style={{ width: '150px' }}>
+                    <Field label="Precio Base">
+                      <MeasureInput unit="COP" value={task.defaultPrice} onChange={(v: number | undefined) => {
+                        const newCat = catalog!.maintenanceCatalog.map(sys => sys.systemName === activeSystem ? { ...sys, services: sys.services.map(t => t.id === task.id ? { ...t, defaultPrice: v || 0 } : t) } : sys);
+                        saveCatalogTasks(newCat);
+                      }} />
+                    </Field>
                   </div>
-                ))}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button className="secondary" onClick={() => {
-                    const newId = 'maint_' + Date.now();
-                    const newTasks = [...(catalog?.maintenanceTasks || []), { id: newId, system: activeSystem, label: 'Nuevo servicio', defaultPrice: 0 }];
-                    saveCatalogTasks(newTasks);
-                  }}>
-                    <PlusIcon className="icon" /> Añadir servicio
-                  </button>
-                  <button className="secondary outline" onClick={async () => {
-                    if(confirm('¿Sobrescribir tu lista actual con la Lista Maestra de más de 200 servicios (por defecto)? Perderás tus precios personalizados actuales.')) {
-                      try {
-                        if (catalog?.id) {
-                          await db.catalog.update(catalog.id, { maintenanceTasks: DEFAULT_MAINTENANCE_TASKS, systems: DEFAULT_CATALOG.systems, lastUpdatedAt: Date.now() });
-                        } else {
-                          await db.catalog.add({ ...DEFAULT_CATALOG, maintenanceTasks: DEFAULT_MAINTENANCE_TASKS, lastUpdatedAt: Date.now() });
-                        }
-                        toast.success('Lista maestra cargada');
-                        setActiveSystem('Enrollables Blackout');
-                      } catch(e) {
-                        toast.error('Error al cargar lista');
-                      }
-                    }
-                  }}>
-                    <ArrowPathIcon className="icon" /> Cargar Lista Maestra
-                  </button>
                 </div>
+              ))}
             </div>
           </div>
+
 
             <div style={{ borderTop: '1px solid var(--line)', paddingTop: 24 }}>
               <h3 style={{ margin: '0 0 8px 0', fontSize: 18 }}>Actualización de la App</h3>
