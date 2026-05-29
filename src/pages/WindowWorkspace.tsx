@@ -147,13 +147,6 @@ export function WindowWorkspace() {
 
   const deleteActiveSolution = () => {
     if (!activeSolution) return;
-    if (win.solutions.length <= 1) {
-      if (!confirm('Esta es la ultima persiana de la ventana. Si la borras, se creara una persiana interna vacia para que la ventana no quede sin solucion.')) return;
-      const replacement = newSolution('Persiana interna', 'inside');
-      updateWindow(project, space.id, win.id, current => ({ ...current, solutions: [replacement] }));
-      setActiveSolutionId(replacement.id);
-      return;
-    }
     if (!confirm(`Borrar ${activeSolution.name}?`)) return;
     const remaining = win.solutions.filter(solution => solution.id !== activeSolution.id);
     updateWindow(project, space.id, win.id, current => ({ ...current, solutions: remaining }));
