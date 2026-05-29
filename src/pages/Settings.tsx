@@ -20,7 +20,6 @@ export function Settings() {
         await db.catalog.add({ ...DEFAULT_CATALOG, maintenanceCatalog: tasks, lastUpdatedAt: Date.now() });
       }
       saveFallbackCatalog({ maintenanceCatalog: tasks });
-      toast.success('Catálogo guardado');
     } catch(e) {
       toast.error('Error al guardar catálogo');
     }

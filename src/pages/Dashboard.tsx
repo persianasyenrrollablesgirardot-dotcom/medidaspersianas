@@ -4,13 +4,15 @@ import toast from 'react-hot-toast';
 import { newProject } from '../lib/projectFactory';
 import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, IdentificationIcon, PlusIcon, TrashIcon, SparklesIcon, DocumentDuplicateIcon } from '@heroicons/react/24/outline';
 import { generateReportHtml, technicalSummary, type PdfReportProfile } from '../lib/exporters';
-import { addFallbackProject, duplicateFallbackProject, getFallbackProject, trashFallbackProject, useFallbackSummaries } from '../lib/localFallbackStore';
+import { addFallbackProject, duplicateFallbackProject, getFallbackProject, trashFallbackProject, useFallbackSummaries, useFallbackCatalog } from '../lib/localFallbackStore';
 import { PdfPreviewModal } from '../components/PdfPreviewModal';
+import { DEFAULT_CATALOG } from '../db';
 
 export function Dashboard() {
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const visibleProjects = useFallbackSummaries();
+  const catalog = useFallbackCatalog();
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   
   const reportProfiles: Array<{ profile: PdfReportProfile; label: string }> = [
@@ -44,7 +46,7 @@ export function Dashboard() {
 
   const generateReport = async (project: any, profile: PdfReportProfile) => {
     try {
-      const html = generateReportHtml([project], undefined, profile);
+      const html = generateReportHtml([project], catalog || DEFAULT_CATALOG, profile);
       setPreviewHtml(html);
     } catch (e) {
       console.error(e);
@@ -123,7 +125,10 @@ export function Dashboard() {
                   onClick={(e) => {
                     e.stopPropagation();
                     const fullProject = getFallbackProject(project.projectId);
-                    if (fullProject) generateReportHtml([fullProject], undefined, 'internal');
+                    if (fullProject) {
+                      const html = generateReportHtml([fullProject], catalog || DEFAULT_CATALOG, 'internal');
+                      setPreviewHtml(html);
+                    }
                   }}
                   aria-label={`PDF interno de ${project.clientName || project.code}`}
                 >
