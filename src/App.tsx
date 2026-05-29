@@ -20,7 +20,9 @@ export default function App() {
   useEffect(() => {
     db.catalog.toCollection().first().then(cat => {
       if (cat && cat.id) {
-        db.catalog.update(cat.id, { systems: DEFAULT_CATALOG.systems, maintenanceCatalog: DEFAULT_MAINTENANCE_CATALOG });
+        if (!cat.maintenanceCatalog || cat.maintenanceCatalog.length === 0) {
+          db.catalog.update(cat.id, { maintenanceCatalog: DEFAULT_MAINTENANCE_CATALOG });
+        }
       } else {
         db.catalog.add({ ...DEFAULT_CATALOG, maintenanceCatalog: DEFAULT_MAINTENANCE_CATALOG, lastUpdatedAt: Date.now() });
       }
