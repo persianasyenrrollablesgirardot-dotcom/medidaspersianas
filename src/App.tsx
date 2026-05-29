@@ -1,5 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { useEffect } from 'react';
+import { db, DEFAULT_CATALOG } from './db';
+import { DEFAULT_MAINTENANCE_TASKS } from './lib/defaultTasks';
 import { Shell } from './components/Shell';
 import { Dashboard } from './pages/Dashboard';
 import { ProjectSetup } from './pages/ProjectSetup';
@@ -14,6 +17,16 @@ import { Facturacion } from './pages/Facturacion';
 import { Settings } from './pages/Settings';
 
 export default function App() {
+  useEffect(() => {
+    db.catalog.toCollection().first().then(cat => {
+      if (cat && cat.id) {
+        db.catalog.update(cat.id, { systems: DEFAULT_CATALOG.systems, maintenanceTasks: DEFAULT_MAINTENANCE_TASKS });
+      } else {
+        db.catalog.add({ ...DEFAULT_CATALOG, maintenanceTasks: DEFAULT_MAINTENANCE_TASKS, lastUpdatedAt: Date.now() });
+      }
+    });
+  }, []);
+
   return (
     <BrowserRouter>
       <Toaster position="top-center" toastOptions={{ style: { background: '#111', color: '#fff', border: '1px solid #2b2b2b' } }} />

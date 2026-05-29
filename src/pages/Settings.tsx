@@ -129,8 +129,8 @@ export function Settings() {
                   <ArrowPathIcon className="icon" /> Refrescar / Actualizar App
                 </button>
                 <button className="secondary outline" onClick={() => {
-                  if(confirm('¿Forzar actualización limpiando el caché del navegador? Esto es útil si tu teléfono se quedó atascado en una versión vieja.')) {
-                    import('../db').then(m => m.repairLocalAppStorage());
+                  if(confirm('¿Forzar actualización limpiando el caché del navegador? No perderás tus proyectos ni facturas guardadas.')) {
+                    import('../db').then(m => m.clearPwaCacheOnly());
                   }
                 }}>
                   <ArrowPathIcon className="icon" /> Limpiar Caché y Forzar Actualización

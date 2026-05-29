@@ -107,6 +107,18 @@ export async function repairLocalAppStorage() {
   window.location.replace(`/?reparado=${Date.now()}`);
 }
 
+export async function clearPwaCacheOnly() {
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map(registration => registration.unregister()));
+  }
+  if ('caches' in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(key => caches.delete(key)));
+  }
+  window.location.replace(`/?cacheCleared=${Date.now()}`);
+}
+
 db.on('blocked', () => {
   window.dispatchEvent(new CustomEvent('juno-storage-blocked'));
 });
