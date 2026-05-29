@@ -5,7 +5,7 @@ import { DEFAULT_MAINTENANCE_TASKS } from './lib/defaultTasks';
 const DB_NAME = 'AppCampoJunoMobileV3DB';
 
 export const DEFAULT_CATALOG: TechnicalCatalog = {
-  systems: ['Enrollables Blackout', 'Enrollables Screen', 'Sheer Elegance', 'Panel Japones', 'Vertical', 'Horizontal Aluminio', 'Madera', 'Peliculas Solares', 'Motorizacion y Domotica', 'Romana', 'Hannas', 'Toldo Romano', 'Riel'],
+  systems: ['Enrollables Blackout', 'Enrollables Screen', 'Sheer Elegance', 'Panel Japones', 'Vertical', 'Horizontal Aluminio', 'Madera'],
   fabrics: ['Blackout', 'Screen 1%', 'Screen 3%', 'Screen 5%', 'Decorativa', 'Sheer', 'Traslucida'],
   colors: ['Blanco', 'Negro', 'Gris', 'Marfil', 'Beige', 'Cafe'],
   mounts: ['Interna entre vano', 'Externa a pared', 'A techo', 'Sobre marco', 'Mixta'],

@@ -119,15 +119,24 @@ export function Settings() {
             </div>
           </div>
 
-          <div style={{ borderTop: '1px solid var(--line)', paddingTop: 24 }}>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: 18 }}>Actualización de la App</h3>
-            <p style={{ margin: '0 0 16px 0', color: 'var(--muted)', fontSize: 14 }}>
-              Busca e instala la última versión de la aplicación. Usa esta opción si sabes que hay cambios recientes y no los ves reflejados.
-            </p>
-            <button className="primary" onClick={checkUpdate}>
-              <ArrowPathIcon className="icon" /> Refrescar / Actualizar App
-            </button>
-          </div>
+            <div style={{ borderTop: '1px solid var(--line)', paddingTop: 24 }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: 18 }}>Actualización de la App</h3>
+              <p style={{ margin: '0 0 16px 0', color: 'var(--muted)', fontSize: 14 }}>
+                Busca e instala la última versión de la aplicación. Usa esta opción si sabes que hay cambios recientes y no los ves reflejados.
+              </p>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button className="primary" onClick={checkUpdate}>
+                  <ArrowPathIcon className="icon" /> Refrescar / Actualizar App
+                </button>
+                <button className="secondary outline" onClick={() => {
+                  if(confirm('¿Forzar actualización limpiando el caché del navegador? Esto es útil si tu teléfono se quedó atascado en una versión vieja.')) {
+                    import('../db').then(m => m.repairLocalAppStorage());
+                  }
+                }}>
+                  <ArrowPathIcon className="icon" /> Limpiar Caché y Forzar Actualización
+                </button>
+              </div>
+            </div>
 
           <div style={{ borderTop: '1px solid var(--line)', paddingTop: 24 }}>
             <h3 style={{ margin: '0 0 8px 0', fontSize: 18, color: 'var(--red)' }}>Opciones Avanzadas (Peligro)</h3>
