@@ -13,12 +13,15 @@ export function Settings() {
   const [activeSystem, setActiveSystem] = useState<string>('Enrollables Blackout');
 
   const saveCatalogTasks = async (tasks: typeof DEFAULT_CATALOG.maintenanceTasks) => {
-    if (!catalog?.id) return;
     try {
-      await db.catalog.update(catalog.id, { maintenanceTasks: tasks, lastUpdatedAt: Date.now() });
-      toast.success('Catalogo guardado');
+      if (catalog?.id) {
+        await db.catalog.update(catalog.id, { maintenanceTasks: tasks, lastUpdatedAt: Date.now() });
+      } else {
+        await db.catalog.add({ ...DEFAULT_CATALOG, maintenanceTasks: tasks, lastUpdatedAt: Date.now() });
+      }
+      toast.success('Catálogo guardado');
     } catch(e) {
-      toast.error('Error al guardar catalogo');
+      toast.error('Error al guardar catálogo');
     }
   };
 
