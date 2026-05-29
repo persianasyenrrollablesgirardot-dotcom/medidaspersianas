@@ -2,6 +2,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { DEFAULT_CATALOG, db, resetLocalAppData } from '../db';
+import { saveFallbackCatalog } from '../lib/localFallbackStore';
 import { useLiveQuery } from 'dexie-react-hooks';
 import type { TechnicalCatalog } from '../types';
 import { Field } from '../components/Field';
@@ -18,6 +19,7 @@ export function Settings() {
       } else {
         await db.catalog.add({ ...DEFAULT_CATALOG, maintenanceCatalog: tasks, lastUpdatedAt: Date.now() });
       }
+      saveFallbackCatalog({ maintenanceCatalog: tasks });
       toast.success('Catálogo guardado');
     } catch(e) {
       toast.error('Error al guardar catálogo');
