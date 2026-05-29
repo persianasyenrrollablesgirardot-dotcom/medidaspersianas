@@ -9,7 +9,7 @@ import { generateReportHtml, technicalSummary, type PdfReportProfile } from '../
 import { isFallbackId, useFallbackCatalog, useFallbackProject } from '../lib/localFallbackStore';
 import { saveProject } from '../lib/projectStore';
 import { PdfPreviewModal } from '../components/PdfPreviewModal';
-import { quoteArea, quoteTotal, solutionArea } from '../lib/metrics';
+import { quoteArea, solutionArea, solutionTotal } from '../lib/metrics';
 import type { TechnicalCatalog, TechnicalProject, TechnicalSolution } from '../types';
 
 export function ProjectDetail() {
@@ -66,10 +66,9 @@ export function ProjectDetail() {
   const solutions = activeSpaces.reduce((sum, space) => sum + space.windows.reduce((wSum, win) => wSum + win.solutions.length, 0), 0);
   
   const totalEstimate = activeSpaces.reduce((sum, space) => 
-    sum + space.windows.reduce((wSum, win) => 
-      wSum + win.solutions.reduce((sSum, sol) => 
-        sSum + (sol.quickQuote ? quoteTotal(sol.quickQuote) : 0)
-      , 0)
+    sum + space.windows.reduce((wSum, win) =>        wSum + win.solutions.reduce((sSum, sol) => 
+          sSum + solutionTotal(sol)
+        , 0)
     , 0)
   , 0);
 
@@ -249,6 +248,29 @@ export function ProjectDetail() {
 }
 
 function SolutionDetail({ solution, index }: { solution: TechnicalSolution; index: number }) {
+  if (solution.itemType === 'maintenance') {
+    return (
+      <article className="detail-solution">
+        <div className="detail-window-head">
+          <div>
+            <span>Mantenimiento {index + 1}</span>
+            <h3>{solution.name}</h3>
+          </div>
+          <div className="detail-tags">
+            <em>{solution.system}</em>
+            <em>{solution.status}</em>
+          </div>
+        </div>
+        <div className="detail-grid">
+          <DetailValue label="Sistema" value={solution.system} />
+          <DetailValue label="Tareas seleccionadas" value={solution.maintenance?.tasks.filter(t => t.selected).map(t => t.label).join(', ') || 'Ninguna'} />
+          <DetailValue label="Total estimado" value={`${solutionTotal(solution).toLocaleString('es-CO')} COP`} />
+        </div>
+        {solution.notes && <p className="detail-note">{solution.notes}</p>}
+      </article>
+    );
+  }
+
   const q = solution.quickQuote;
   return (
     <article className="detail-solution">
@@ -272,7 +294,7 @@ function SolutionDetail({ solution, index }: { solution: TechnicalSolution; inde
         <DetailValue label="Rapida ancho x alto" value={q ? `${formatMeasure(q.width)} x ${formatMeasure(q.height)}` : 'Sin definir'} />
         <DetailValue label="m2 rapida" value={q ? `${quoteArea(q).toFixed(2)} m2` : 'Sin definir'} />
         <DetailValue label="Precio m2" value={q?.pricePerM2 ? q.pricePerM2.toLocaleString('es-CO') : 'Sin definir'} />
-        <DetailValue label="Total estimado" value={q ? `${quoteTotal(q).toLocaleString('es-CO')} COP` : 'Sin definir'} />
+        <DetailValue label="Total estimado" value={`${solutionTotal(solution).toLocaleString('es-CO')} COP`} />
         <DetailValue label="Fabricacion" value={`${formatMeasure(solution.assembly.fabricationWidth)} x ${formatMeasure(solution.assembly.fabricationHeight)}`} />
         <DetailValue label="Area tecnica" value={`${solutionArea(solution).toFixed(2)} m2`} />
       </div>

@@ -8,7 +8,7 @@ import { PageHeader } from '../components/PageHeader';
 import { DEFAULT_CATALOG, db } from '../db';
 import { newSolution, newWindow } from '../lib/projectFactory';
 import { saveProject } from '../lib/projectStore';
-import { quoteArea, quoteTotal } from '../lib/metrics';
+import { quoteArea, solutionTotal } from '../lib/metrics';
 import type { SpaceRecord, TechnicalCatalog, TechnicalProject, TechnicalSolution, WindowRecord } from '../types';
 import { isFallbackId, useFallbackCatalog, useFallbackProject } from '../lib/localFallbackStore';
 
@@ -38,11 +38,13 @@ export function QuickQuoteModule() {
     const groups = new Map<string, { system: string; count: number; area: number; total: number }>();
     for (const line of lines) {
       const q = line.solution.quickQuote;
-      const current = groups.get(line.solution.system) || { system: line.solution.system, count: 0, area: 0, total: 0 };
-      current.count += 1;
-      current.area += quoteArea(q);
-      current.total += quoteTotal(q);
-      groups.set(line.solution.system, current);
+      if (q) {
+        const current = groups.get(line.solution.system) || { system: line.solution.system, count: 0, area: 0, total: 0 };
+        current.count += 1;
+        current.area += quoteArea(q);
+        current.total += solutionTotal(line.solution);
+        groups.set(line.solution.system, current);
+      }
     }
     return Array.from(groups.values()).sort((a, b) => a.system.localeCompare(b.system));
   }, [lines]);
@@ -108,7 +110,7 @@ export function QuickQuoteModule() {
   });
 
   const grandArea = lines.reduce((sum, line) => sum + quoteArea(line.solution.quickQuote), 0);
-  const grandTotal = lines.reduce((sum, line) => sum + quoteTotal(line.solution.quickQuote), 0);
+  const grandTotal = lines.reduce((sum, line) => sum + solutionTotal(line.solution), 0);
 
   return (
     <div className="page quick-quote-page">
@@ -246,7 +248,7 @@ function QuoteLineEditor({
 
       <div className="quick-line-total">
         <span>{quoteArea(q).toFixed(2)} m2</span>
-        <strong>{quoteTotal(q).toLocaleString('es-CO')} COP</strong>
+        <strong>{solutionTotal(line.solution).toLocaleString('es-CO')} COP</strong>
       </div>
     </article>
   );

@@ -24,6 +24,15 @@ export const DEFAULT_CATALOG: TechnicalCatalog = {
     { label: 'Punto electrico pendiente', severity: 'high' },
     { label: 'Obra en curso o polvo', severity: 'medium' },
   ],
+  maintenanceTasks: [
+    { id: 'lavado', system: 'Enrollables', label: 'Lavado especializado', defaultPrice: 50000 },
+    { id: 'cambio_cadena', system: 'Enrollables', label: 'Cambio de cadena o cordón', defaultPrice: 15000 },
+    { id: 'cambio_mecanismo', system: 'Enrollables', label: 'Cambio de mecanismo completo', defaultPrice: 45000 },
+    { id: 'ajuste_motor', system: 'Enrollables', label: 'Re-programación / ajuste de motor', defaultPrice: 30000 },
+    { id: 'recorte', system: 'Enrollables', label: 'Recorte de medida', defaultPrice: 60000 },
+    { id: 'lavado_panel', system: 'Panel Japones', label: 'Lavado especializado', defaultPrice: 60000 },
+    { id: 'cambio_vias', system: 'Panel Japones', label: 'Cambio de vías', defaultPrice: 80000 },
+  ],
   lastUpdatedAt: Date.now(),
 };
 
@@ -148,6 +157,7 @@ function normalizeCatalog(catalog: TechnicalCatalog): Partial<TechnicalCatalog> 
     shapes: catalog.shapes !== undefined ? catalog.shapes : DEFAULT_CATALOG.shapes,
     customWindowFields: catalog.customWindowFields !== undefined ? catalog.customWindowFields : DEFAULT_CATALOG.customWindowFields,
     siteConditions: catalog.siteConditions !== undefined ? catalog.siteConditions : DEFAULT_CATALOG.siteConditions,
+    maintenanceTasks: catalog.maintenanceTasks !== undefined ? catalog.maintenanceTasks.map(t => ({ ...t, system: t.system || 'Enrollables' })) : DEFAULT_CATALOG.maintenanceTasks,
     lastUpdatedAt: Date.now(),
   };
 }

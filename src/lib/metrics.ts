@@ -15,6 +15,13 @@ export function quoteTotal(quote?: QuickQuote): number {
   return Math.round(base);
 }
 
+export function solutionTotal(solution: TechnicalSolution): number {
+  if (solution.itemType === 'maintenance' && solution.maintenance) {
+    return solution.maintenance.tasks.filter(t => t.selected).reduce((sum, t) => sum + (t.price || 0), 0);
+  }
+  return quoteTotal(solution.quickQuote);
+}
+
 export function averageWidth(g: WindowGeometry): number {
   const values = [g.widthTop, g.widthMiddle, g.widthBottom].filter((v): v is number => typeof v === 'number' && v > 0);
   return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;

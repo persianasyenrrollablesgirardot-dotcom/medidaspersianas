@@ -9,9 +9,9 @@ import { MeasureInput } from '../components/MeasureInput';
 import { PageHeader } from '../components/PageHeader';
 import { Segmented } from '../components/Segmented';
 import { addEvidence, updateSolution, updateWindow } from '../lib/projectStore';
-import { newSolution } from '../lib/projectFactory';
+import { newMaintenance, newSolution } from '../lib/projectFactory';
 import { evidenceLabel } from '../lib/labels';
-import { quoteArea, quoteTotal, solutionArea } from '../lib/metrics';
+import { quoteArea, solutionArea, solutionTotal } from '../lib/metrics';
 import { uid } from '../lib/ids';
 import type { DivisionPart, EvidenceKind, MountPlanTemplate, QuickWindowMode, TechnicalProject, TechnicalSolution } from '../types';
 import type { TechnicalCatalog } from '../types';
@@ -80,6 +80,12 @@ export function WindowWorkspace() {
 
   const addSol = (layer: TechnicalSolution['layer']) => {
     const sol = newSolution(layer === 'outside' ? 'Persiana externa' : 'Persiana interna', layer);
+    updateWindow(project, space.id, win.id, current => ({ ...current, solutions: [...current.solutions, sol] }));
+    setActiveSolutionId(sol.id);
+  };
+
+  const addMaint = () => {
+    const sol = newMaintenance(catalog.systems[0] || 'Enrollables');
     updateWindow(project, space.id, win.id, current => ({ ...current, solutions: [...current.solutions, sol] }));
     setActiveSolutionId(sol.id);
   };
@@ -211,15 +217,22 @@ export function WindowWorkspace() {
           )}
           {(win.quickMode || 'simple') === 'simple' || win.planTemplate ? (
             <>
-              <SolutionPicker win={win} activeId={activeSolution.id} onPick={setActiveSolutionId} onAddInside={() => addSol('inside')} onAddOutside={() => addSol('outside')} onDeleteActive={deleteActiveSolution} />
-              <QuickSolutionBasics
-                solution={activeSolution}
-                systems={catalog.systems}
-                fabrics={catalog.fabrics}
-                onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)}
-              />
-              <QuickForm solution={activeSolution} onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)} />
-              <DivisionsForm solution={activeSolution} onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)} />
+              <SolutionPicker win={win} activeId={activeSolution.id} onPick={setActiveSolutionId} onAddInside={() => addSol('inside')} onAddOutside={() => addSol('outside')} onAddMaintenance={addMaint} onDeleteActive={deleteActiveSolution} />
+              
+              {activeSolution.itemType === 'maintenance' ? (
+                <MaintenanceForm solution={activeSolution} catalog={catalog} onChange={patch => patchSolution(activeSolution.id, patch)} />
+              ) : (
+                <>
+                  <QuickSolutionBasics
+                    solution={activeSolution}
+                    systems={catalog.systems}
+                    fabrics={catalog.fabrics}
+                    onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)}
+                  />
+                  <QuickForm solution={activeSolution} onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)} />
+                  <DivisionsForm solution={activeSolution} onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)} />
+                </>
+              )}
             </>
           ) : (
             <div className="empty">Selecciona primero un plano de 45 grados para crear sus persianas independientes.</div>
@@ -411,7 +424,7 @@ function CustomWindowFields({
   );
 }
 
-function SolutionPicker({ win, activeId, onPick, onAddInside, onAddOutside, onDeleteActive }: any) {
+function SolutionPicker({ win, activeId, onPick, onAddInside, onAddOutside, onAddMaintenance, onDeleteActive }: any) {
   return (
     <div className="solution-picker">
       <div className="h-scroll">
@@ -421,14 +434,76 @@ function SolutionPicker({ win, activeId, onPick, onAddInside, onAddOutside, onDe
           </button>
         ))}
       </div>
-      <div className="solution-actions compact">
+      <div className="solution-actions compact" style={{ flexWrap: 'wrap' }}>
         <button className="secondary" onClick={onAddInside}>+ Interna</button>
         <button className="secondary purple" onClick={onAddOutside}>+ Externa</button>
+        <button className="secondary" style={{ borderColor: '#2196f3', color: '#2196f3' }} onClick={onAddMaintenance}>+ Mantenimiento</button>
         <button className="secondary danger-outline" onClick={onDeleteActive}>
           <TrashIcon className="icon" /> Borrar
         </button>
       </div>
     </div>
+  );
+}
+
+function MaintenanceForm({ solution, catalog, onChange }: { solution: TechnicalSolution; catalog: TechnicalCatalog; onChange: (patch: Partial<TechnicalSolution>) => void }) {
+  const maint = solution.maintenance || { tasks: [] };
+  
+  const toggleTask = (taskId: string, defaultPrice: number, label: string) => {
+    const existing = maint.tasks.find(t => t.id === taskId);
+    let nextTasks;
+    if (existing) {
+      nextTasks = maint.tasks.map(t => t.id === taskId ? { ...t, selected: !t.selected } : t);
+    } else {
+      nextTasks = [...maint.tasks, { id: taskId, label, price: defaultPrice, selected: true }];
+    }
+    onChange({ maintenance: { ...maint, tasks: nextTasks } });
+  };
+
+  const updatePrice = (taskId: string, price: number) => {
+    const nextTasks = maint.tasks.map(t => t.id === taskId ? { ...t, price } : t);
+    onChange({ maintenance: { ...maint, tasks: nextTasks } });
+  };
+
+  return (
+    <>
+      <div className="grid-2">
+        <Field label="Sistema a mantener">
+          <SelectInput value={solution.system} onChange={e => onChange({ system: e.target.value })}>
+            {catalog.systems.map(s => <option key={s} value={s}>{s}</option>)}
+          </SelectInput>
+        </Field>
+      </div>
+      <h3>Servicios solicitados</h3>
+      <div className="maintenance-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {catalog.maintenanceTasks?.filter(t => t.system === solution.system).map(task => {
+          const selectedTask = maint.tasks.find(t => t.id === task.id);
+          const isSelected = !!selectedTask?.selected;
+          const currentPrice = selectedTask ? selectedTask.price : task.defaultPrice;
+          
+          return (
+            <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--bg-subtle)', padding: '12px', borderRadius: '8px' }}>
+              <input type="checkbox" checked={isSelected} onChange={() => toggleTask(task.id, task.defaultPrice, task.label)} style={{ width: '20px', height: '20px' }} />
+              <div style={{ flex: 1, fontWeight: isSelected ? '600' : 'normal' }}>{task.label}</div>
+              {isSelected && (
+                <div style={{ width: '120px' }}>
+                  <Field label="Precio">
+                    <MeasureInput unit="COP" value={currentPrice} onChange={v => updatePrice(task.id, v || 0)} />
+                  </Field>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="big-total" style={{ marginTop: '24px' }}>
+        <span>Total Mantenimiento</span>
+        <strong>{solutionTotal(solution).toLocaleString('es-CO')} COP</strong>
+      </div>
+      <Field label="Nota / Detalles adicionales">
+        <TextArea value={solution.notes || ''} onChange={e => onChange({ notes: e.target.value })} placeholder="Ej: Manchas difíciles, cliente advierte motor ruidoso..." />
+      </Field>
+    </>
   );
 }
 
@@ -460,7 +535,7 @@ function QuickForm({ solution, onChange }: { solution: TechnicalSolution; onChan
       </div>
       <div className="big-total">
         <span>{quoteArea(q).toFixed(2)} m2 {q.manualArea ? 'ajustado' : 'automatico'}</span>
-        <strong>{quoteTotal(q).toLocaleString('es-CO')} COP</strong>
+        <strong>{solutionTotal(solution).toLocaleString('es-CO')} COP</strong>
       </div>
       <Field label="Nota rapida"><TextArea value={q.note || ''} onChange={e => updateQuick({ note: e.target.value })} placeholder="Valor preliminar, pendiente ficha tecnica..." /></Field>
     </>

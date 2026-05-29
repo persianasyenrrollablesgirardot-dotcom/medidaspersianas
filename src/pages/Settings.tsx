@@ -1,8 +1,23 @@
 import toast from 'react-hot-toast';
-import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import { resetLocalAppData } from '../db';
+import { ArrowPathIcon, ExclamationTriangleIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { DEFAULT_CATALOG, db, resetLocalAppData } from '../db';
+import { useLiveQuery } from 'dexie-react-hooks';
+import type { TechnicalCatalog } from '../types';
+import { Field, SelectInput, TextInput } from '../components/Field';
+import { MeasureInput } from '../components/MeasureInput';
 
 export function Settings() {
+  const catalog = useLiveQuery<TechnicalCatalog | undefined>(() => db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), []);
+
+  const saveCatalogTasks = async (tasks: typeof DEFAULT_CATALOG.maintenanceTasks) => {
+    if (!catalog?.id) return;
+    try {
+      await db.catalog.update(catalog.id, { maintenanceTasks: tasks, lastUpdatedAt: Date.now() });
+      toast.success('Catalogo guardado');
+    } catch(e) {
+      toast.error('Error al guardar catalogo');
+    }
+  };
 
   const checkUpdate = async () => {
     try {
@@ -32,6 +47,53 @@ export function Settings() {
       <section className="list">
         <div className="panel" style={{ padding: 24, display: 'grid', gap: 24 }}>
           <div>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: 18 }}>Catálogo de Mantenimientos</h3>
+            <p style={{ margin: '0 0 16px 0', color: 'var(--muted)', fontSize: 14 }}>
+              Configura los servicios de mantenimiento que ofreces y su precio sugerido.
+            </p>
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {catalog?.maintenanceTasks?.map((task: any) => (
+                <div key={task.id} style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', background: 'var(--bg-subtle)', padding: '12px', borderRadius: '8px' }}>
+                  <div style={{ flex: 1 }}>
+                    <Field label="Sistema"><SelectInput value={task.system} onChange={e => {
+                      const newTasks = catalog.maintenanceTasks.map((t: any) => t.id === task.id ? { ...t, system: e.target.value } : t);
+                      saveCatalogTasks(newTasks);
+                    }}>
+                      {catalog.systems.map(s => <option key={s} value={s}>{s}</option>)}
+                    </SelectInput></Field>
+                  </div>
+                  <div style={{ flex: 2 }}>
+                    <Field label="Servicio"><TextInput value={task.label} onChange={e => {
+                      const newTasks = catalog.maintenanceTasks.map((t: any) => t.id === task.id ? { ...t, label: e.target.value } : t);
+                      saveCatalogTasks(newTasks);
+                    }} /></Field>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <Field label="Precio Base"><MeasureInput unit="COP" value={task.defaultPrice} onChange={(v: number | undefined) => {
+                      const newTasks = catalog.maintenanceTasks.map((t: any) => t.id === task.id ? { ...t, defaultPrice: v || 0 } : t);
+                      saveCatalogTasks(newTasks);
+                    }} /></Field>
+                  </div>
+                  <button className="secondary danger-outline" style={{ height: '40px', padding: '0 12px' }} onClick={() => {
+                    if(confirm('¿Borrar este servicio?')) {
+                      saveCatalogTasks(catalog.maintenanceTasks.filter((t: any) => t.id !== task.id));
+                    }
+                  }}>
+                    <TrashIcon className="icon" />
+                  </button>
+                </div>
+              ))}
+              <button className="secondary" onClick={() => {
+                const newId = 'maint_' + Date.now();
+                const newTasks = [...(catalog?.maintenanceTasks || []), { id: newId, system: catalog?.systems[0] || 'Enrollables', label: 'Nuevo servicio', defaultPrice: 0 }];
+                saveCatalogTasks(newTasks);
+              }}>
+                <PlusIcon className="icon" /> Añadir servicio
+              </button>
+            </div>
+          </div>
+
+          <div style={{ borderTop: '1px solid var(--line)', paddingTop: 24 }}>
             <h3 style={{ margin: '0 0 8px 0', fontSize: 18 }}>Actualización de la App</h3>
             <p style={{ margin: '0 0 16px 0', color: 'var(--muted)', fontSize: 14 }}>
               Busca e instala la última versión de la aplicación. Usa esta opción si sabes que hay cambios recientes y no los ves reflejados.

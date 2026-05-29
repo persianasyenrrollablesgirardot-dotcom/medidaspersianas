@@ -96,6 +96,7 @@ export interface EvidenceItem {
 
 export interface TechnicalSolution {
   id: string;
+  itemType?: 'blind' | 'maintenance';
   name: string;
   layer: MountLayer;
   system: string;
@@ -111,9 +112,21 @@ export interface TechnicalSolution {
   divisions: DivisionPart[];
   accessories: AccessoryItem[];
   motor?: MotorParams;
+  maintenance?: MaintenanceParams;
   status: SolutionStatus;
   alerts: TechnicalAlert[];
   notes?: string;
+}
+
+export interface MaintenanceParams {
+  tasks: MaintenanceTask[];
+}
+
+export interface MaintenanceTask {
+  id: string;
+  label: string;
+  price: number;
+  selected: boolean;
 }
 
 export interface MountPlanTemplate {
@@ -198,6 +211,7 @@ export interface TechnicalCatalog {
     options: string[];
   }>;
   siteConditions: Array<{ label: string; severity: 'low' | 'medium' | 'high' }>;
+  maintenanceTasks: Array<{ id: string; system: string; label: string; defaultPrice: number }>;
   lastUpdatedAt: number;
 }
 

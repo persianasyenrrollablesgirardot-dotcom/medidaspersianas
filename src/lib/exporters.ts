@@ -1,5 +1,5 @@
 import type { TechnicalCatalog, TechnicalProject } from '../types';
-import { quoteArea, quoteTotal, solutionArea } from './metrics';
+import { quoteArea, quoteTotal, solutionArea, solutionTotal } from './metrics';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
 
@@ -215,12 +215,17 @@ function renderWindowReport(win: TechnicalProject['spaces'][number]['windows'][n
 
 function renderClientWindow(win: TechnicalProject['spaces'][number]['windows'][number]) {
   const showPhotos = win.evidence.length > 0;
-  return `
-    <h3>${escapeHtml(win.label)}</h3>
+  const blinds = win.solutions.filter(s => s.itemType !== 'maintenance');
+  const maints = win.solutions.filter(s => s.itemType === 'maintenance');
+
+  let html = `<h3>${escapeHtml(win.label)}</h3>`;
+
+  if (blinds.length > 0) {
+    html += `
     <table>
       <thead><tr><th>Item</th><th>Producto</th><th>Tela / color</th><th>Cant.</th><th>Total m2</th><th>Valor m2</th><th>Total</th></tr></thead>
       <tbody>
-        ${win.solutions.map((sol, index) => {
+        ${blinds.map((sol, index) => {
           const quantity = sol.quickQuote?.quantity || 1;
           const area = (quoteArea(sol.quickQuote) || solutionArea(sol)) * quantity;
           return `
@@ -231,14 +236,36 @@ function renderClientWindow(win: TechnicalProject['spaces'][number]['windows'][n
               <td>${quantity}</td>
               <td>${area.toFixed(2)} m2</td>
               <td>${sol.quickQuote?.pricePerM2 ? sol.quickQuote.pricePerM2.toLocaleString('es-CO') : '-'}</td>
-              <td>${sol.quickQuote ? quoteTotal(sol.quickQuote).toLocaleString('es-CO') : '-'}</td>
+              <td>${solutionTotal(sol).toLocaleString('es-CO')}</td>
             </tr>
           `;
         }).join('')}
       </tbody>
-    </table>
-    ${showPhotos ? `<div class="photos">${win.evidence.map(ev => `<div><img src="${escapeHtml(ev.dataUrl)}" alt="${escapeHtml(ev.label)}"><p class="muted">${escapeHtml(ev.kind)}</p></div>`).join('')}</div>` : ''}
-  `;
+    </table>`;
+  }
+
+  if (maints.length > 0) {
+    html += `
+    <table style="margin-top: 16px;">
+      <thead><tr><th>Mantenimiento</th><th>Sistema</th><th>Servicios</th><th>Total</th></tr></thead>
+      <tbody>
+        ${maints.map((sol, index) => {
+          const tasksText = sol.maintenance?.tasks.filter(t => t.selected).map(t => t.label).join(', ') || 'Ninguno';
+          return `
+            <tr>
+              <td>${escapeHtml(`${win.label} - serv ${index + 1}`)}</td>
+              <td>${escapeHtml(sol.system)}</td>
+              <td>${escapeHtml(tasksText)}</td>
+              <td>${solutionTotal(sol).toLocaleString('es-CO')}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  html += showPhotos ? `<div class="photos">${win.evidence.map(ev => `<div><img src="${escapeHtml(ev.dataUrl)}" alt="${escapeHtml(ev.label)}"><p class="muted">${escapeHtml(ev.kind)}</p></div>`).join('')}</div>` : '';
+  return html;
 }
 
 function renderTechnicalSolutions(win: TechnicalProject['spaces'][number]['windows'][number], profile: PdfReportProfile) {
@@ -247,6 +274,25 @@ function renderTechnicalSolutions(win: TechnicalProject['spaces'][number]['windo
   const includeProduction = profile === 'supplier' || profile === 'internal';
   return `
     ${win.solutions.map((sol, index) => {
+      if (sol.itemType === 'maintenance') {
+        return `
+          <article class="solution-card">
+            <div class="solution-head">
+              <div>
+                <h4>${escapeHtml(sol.name || `Mantenimiento ${index + 1}`)}</h4>
+                <p class="muted">${escapeHtml(sol.status)}</p>
+              </div>
+              <div><span class="badge">${escapeHtml(sol.system)}</span></div>
+            </div>
+            <div class="solution-grid">
+              ${renderSolutionField('Sistema', sol.system || '-')}
+              ${renderSolutionField('Tareas seleccionadas', sol.maintenance?.tasks.filter(t => t.selected).map(t => t.label).join(', ') || 'Ninguna')}
+            </div>
+            ${sol.notes ? `<p style="margin-top: 12px"><strong>Nota:</strong> ${escapeHtml(sol.notes)}</p>` : ''}
+            ${includePrice ? renderPriceBlock(sol) : ''}
+          </article>
+        `;
+      }
       const plan = sol.planTemplate || win.planTemplate;
       return `
         <article class="solution-card">
@@ -315,8 +361,8 @@ function renderPriceBlock(sol: TechnicalProject['spaces'][number]['windows'][num
     <div class="solution-block">
       <p class="solution-block-title">Valores internos</p>
       <div class="solution-grid">
-        ${renderSolutionField('Area cotizada', sol.quickQuote ? `${quoteArea(sol.quickQuote).toFixed(2)} m2` : '-')}
-        ${renderSolutionField('Total estimado', sol.quickQuote ? `${quoteTotal(sol.quickQuote).toLocaleString('es-CO')} COP` : '-')}
+        ${sol.itemType !== 'maintenance' ? renderSolutionField('Area cotizada', sol.quickQuote ? `${quoteArea(sol.quickQuote).toFixed(2)} m2` : '-') : ''}
+        ${renderSolutionField('Total estimado', `${solutionTotal(sol).toLocaleString('es-CO')} COP`)}
       </div>
     </div>
   `;

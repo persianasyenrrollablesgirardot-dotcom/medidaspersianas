@@ -5,7 +5,7 @@ import { Field, NumberInput, SelectInput, TextArea, TextInput } from '../compone
 import { Segmented } from '../components/Segmented';
 import { newSolution, newSpace, newWindow } from '../lib/projectFactory';
 import { evaluateSolution } from '../lib/rules';
-import { quoteArea, quoteTotal, solutionArea } from '../lib/metrics';
+import { quoteArea, solutionArea, solutionTotal } from '../lib/metrics';
 import { uid } from '../lib/ids';
 import type { DivisionPart, EvidenceKind, TechnicalProject, TechnicalSolution } from '../types';
 import { ArrowLeftIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -30,7 +30,7 @@ export function ProjectEditor() {
           solutions: window.solutions.map(solution => ({
             ...solution,
             alerts: evaluateSolution(window, solution),
-            quickQuote: solution.quickQuote ? { ...solution.quickQuote, estimatedTotal: quoteTotal(solution.quickQuote) } : undefined,
+            quickQuote: solution.quickQuote ? { ...solution.quickQuote, estimatedTotal: solutionTotal(solution) } : undefined,
           })),
         })),
       })),
@@ -65,7 +65,7 @@ export function ProjectEditor() {
       ...space,
       windows: space.windows.map(window => window.id !== windowId ? window : ({
         ...window,
-        solutions: window.solutions.map(solution => solution.id === solutionId ? { ...solution, ...patch } : solution),
+        solutions: space.windows.find(w => w.id === windowId)?.solutions.map(solution => solution.id === solutionId ? { ...solution, ...patch } : solution) || [],
       })),
     })),
   });
@@ -301,7 +301,7 @@ function SolutionEditor({ solution, catalog, onChange, onDelete }: {
           <Field label="m2 manual"><NumberInput value={q.manualArea || ''} onChange={e => onChange({ quickQuote: { ...q, manualArea: Number(e.target.value) } })} /></Field>
           <Field label="Precio m2"><NumberInput value={q.pricePerM2 || ''} onChange={e => onChange({ quickQuote: { ...q, pricePerM2: Number(e.target.value) } })} /></Field>
         </div>
-        <div className="totals">Area: {quoteArea(q).toFixed(2)} m2 · Estimado: {quoteTotal(q).toLocaleString('es-CO')} COP</div>
+        <div className="totals">Area: {quoteArea(q).toFixed(2)} m2 — Estimado: {solutionTotal(solution).toLocaleString('es-CO')} COP</div>
       </div>
 
       <div className="grid-3">

@@ -35,6 +35,7 @@ export function newWindow(label = 'Ventana 1'): WindowRecord {
 export function newSolution(name = 'Solucion tecnica', layer: TechnicalSolution['layer'] = 'inside'): TechnicalSolution {
   return {
     id: uid('solution'),
+    itemType: 'blind',
     name,
     layer,
     system: 'Enrollables',
@@ -45,5 +46,24 @@ export function newSolution(name = 'Solucion tecnica', layer: TechnicalSolution[
     accessories: [],
     status: 'quick',
     alerts: [],
+  };
+}
+
+export function newMaintenance(system = 'Enrollables'): TechnicalSolution {
+  return {
+    id: uid('solution'),
+    itemType: 'maintenance',
+    name: 'Servicio Mantenimiento',
+    layer: 'inside', // placeholder
+    system,
+    drive: 'none',
+    assembly: {},
+    divisions: [],
+    accessories: [],
+    status: 'quick',
+    alerts: [],
+    maintenance: {
+      tasks: [],
+    },
   };
 }
