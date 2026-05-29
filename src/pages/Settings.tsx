@@ -98,9 +98,19 @@ export function Settings() {
                   }}>
                     <PlusIcon className="icon" /> Añadir servicio
                   </button>
-                  <button className="secondary outline" onClick={() => {
+                  <button className="secondary outline" onClick={async () => {
                     if(confirm('¿Sobrescribir tu lista actual con la Lista Maestra de más de 200 servicios (por defecto)? Perderás tus precios personalizados actuales.')) {
-                      saveCatalogTasks(DEFAULT_MAINTENANCE_TASKS);
+                      try {
+                        if (catalog?.id) {
+                          await db.catalog.update(catalog.id, { maintenanceTasks: DEFAULT_MAINTENANCE_TASKS, systems: DEFAULT_CATALOG.systems, lastUpdatedAt: Date.now() });
+                        } else {
+                          await db.catalog.add({ ...DEFAULT_CATALOG, maintenanceTasks: DEFAULT_MAINTENANCE_TASKS, lastUpdatedAt: Date.now() });
+                        }
+                        toast.success('Lista maestra cargada');
+                        setActiveSystem('Enrollables Blackout');
+                      } catch(e) {
+                        toast.error('Error al cargar lista');
+                      }
                     }
                   }}>
                     <ArrowPathIcon className="icon" /> Cargar Lista Maestra
