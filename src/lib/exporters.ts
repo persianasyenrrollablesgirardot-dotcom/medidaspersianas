@@ -247,7 +247,7 @@ function renderClientWindow(win: TechnicalProject['spaces'][number]['windows'][n
   if (maints.length > 0) {
     html += `
     <table style="margin-top: 16px;">
-      <thead><tr><th>Mantenimiento</th><th>Sistema</th><th>Servicios</th><th>Total</th></tr></thead>
+      <thead><tr><th>Item de Mantenimiento</th><th>Sistema</th><th>Descripcion de Servicios</th><th>Precio Total</th></tr></thead>
       <tbody>
         ${maints.map((sol, index) => {
           const tasksText = sol.maintenance?.tasks.filter(t => t.selected).map(t => t.label).join(', ') || 'Ninguno';
