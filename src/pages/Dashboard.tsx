@@ -6,6 +6,8 @@ import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, Ide
 import { generateReportHtml, technicalSummary, type PdfReportProfile } from '../lib/exporters';
 import { addFallbackProject, duplicateFallbackProject, getFallbackProject, trashFallbackProject, useFallbackSummaries, useFallbackCatalog } from '../lib/localFallbackStore';
 import { PdfPreviewModal } from '../components/PdfPreviewModal';
+import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
+import type { TechnicalProject } from '../types';
 import { DEFAULT_CATALOG } from '../db';
 
 export function Dashboard() {
@@ -14,6 +16,8 @@ export function Dashboard() {
   const visibleProjects = useFallbackSummaries();
   const catalog = useFallbackCatalog();
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [activeProject, setActiveProject] = useState<TechnicalProject | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
   
   const reportProfiles: Array<{ profile: PdfReportProfile; label: string }> = [
     { profile: 'client', label: 'Cliente' },
@@ -192,6 +196,21 @@ export function Dashboard() {
                 >
                   <SparklesIcon className="icon" style={{width: 14, height: 14, display: 'inline', marginRight: 4}} /> IA
                 </button>
+                <button
+                  type="button"
+                  className="report-pill"
+                  style={{ color: '#3b82f6', borderColor: '#3b82f6', fontWeight: 'bold' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const fullProject = getFallbackProject(project.projectId);
+                    if (fullProject) {
+                      setActiveProject(fullProject);
+                      setShowReceiptModal(true);
+                    }
+                  }}
+                >
+                  Recibo
+                </button>
               </div>
             </article>
           );
@@ -200,6 +219,16 @@ export function Dashboard() {
       </section>
 
       <PdfPreviewModal htmlContent={previewHtml} onClose={() => setPreviewHtml(null)} />
+      {showReceiptModal && activeProject && (
+        <PaymentReceiptModal 
+          project={activeProject} 
+          total={visibleProjects.find(p => p.projectId === activeProject.id)?.totalEstimate || 0}
+          onClose={() => {
+            setShowReceiptModal(false);
+            setActiveProject(null);
+          }} 
+        />
+      )}
     </div>
   );
 }
