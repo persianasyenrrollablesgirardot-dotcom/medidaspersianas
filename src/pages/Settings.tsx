@@ -11,6 +11,17 @@ import { MeasureInput } from '../components/MeasureInput';
 export function Settings() {
   const catalog = useLiveQuery<TechnicalCatalog | undefined>(() => db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), []);
   const [activeSystem, setActiveSystem] = useState<string>('Enrollables Blackout');
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('CUSTOM_GEMINI_API_KEY') || '');
+
+  const saveApiKey = () => {
+    if (apiKey.trim()) {
+      localStorage.setItem('CUSTOM_GEMINI_API_KEY', apiKey.trim());
+      toast.success('Clave API guardada correctamente');
+    } else {
+      localStorage.removeItem('CUSTOM_GEMINI_API_KEY');
+      toast.success('Clave API restablecida al valor por defecto');
+    }
+  };
 
   const updateCatalogList = async (key: keyof TechnicalCatalog, newList: string[]) => {
     try {
@@ -256,6 +267,24 @@ export function Settings() {
                 );
               })()}          </div>
 
+            <div style={{ borderTop: '1px solid var(--line)', paddingTop: 24, paddingBottom: 24 }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: 18 }}>Inteligencia Artificial</h3>
+              <p style={{ margin: '0 0 16px 0', color: 'var(--muted)', fontSize: 14 }}>
+                Configura tu propia clave de la API de Google Gemini si la que viene por defecto falla o se agota.
+              </p>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <input 
+                  type="password" 
+                  value={apiKey} 
+                  onChange={e => setApiKey(e.target.value)} 
+                  placeholder="AIzaSy..." 
+                  style={{ flex: 1, minWidth: '200px' }}
+                />
+                <button className="primary" onClick={saveApiKey}>
+                  Guardar API Key
+                </button>
+              </div>
+            </div>
 
             <div style={{ borderTop: '1px solid var(--line)', paddingTop: 24 }}>
               <h3 style={{ margin: '0 0 8px 0', fontSize: 18 }}>Actualización de la App</h3>

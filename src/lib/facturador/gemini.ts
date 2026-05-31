@@ -1,10 +1,17 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(apiKey);
+function getGenAI() {
+  const customKey = localStorage.getItem('CUSTOM_GEMINI_API_KEY');
+  const apiKey = customKey || import.meta.env.VITE_GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("No hay una API Key configurada. Ve a Ajustes y añade tu Gemini API Key.");
+  }
+  return new GoogleGenerativeAI(apiKey);
+}
 
 export async function extractInvoiceData(file: File): Promise<any> {
   try {
+    const genAI = getGenAI();
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     // Convert file to base64
@@ -71,6 +78,7 @@ export async function extractInvoiceData(file: File): Promise<any> {
 
 export async function extractInvoiceDataFromText(text: string): Promise<any> {
   try {
+    const genAI = getGenAI();
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     const prompt = `
