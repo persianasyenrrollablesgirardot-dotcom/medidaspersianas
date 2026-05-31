@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, ExclamationTriangleIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { DEFAULT_CATALOG, db, resetLocalAppData } from '../db';
 import { saveFallbackCatalog } from '../lib/localFallbackStore';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -11,6 +11,18 @@ import { MeasureInput } from '../components/MeasureInput';
 export function Settings() {
   const catalog = useLiveQuery<TechnicalCatalog | undefined>(() => db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), []);
   const [activeSystem, setActiveSystem] = useState<string>('Enrollables Blackout');
+
+  const updateCatalogList = async (key: keyof TechnicalCatalog, newList: string[]) => {
+    try {
+      if (catalog?.id) {
+        await db.catalog.update(catalog.id, { [key]: newList, lastUpdatedAt: Date.now() });
+      } else {
+        await db.catalog.add({ ...DEFAULT_CATALOG, [key]: newList, lastUpdatedAt: Date.now() } as any);
+      }
+    } catch (e) {
+      toast.error('Error al actualizar catálogo');
+    }
+  };
 
   const saveCatalogTasks = async (tasks: typeof DEFAULT_CATALOG.maintenanceCatalog) => {
     try {
@@ -53,6 +65,76 @@ export function Settings() {
       <section className="list">
         <div className="panel" style={{ padding: 24, display: 'grid', gap: 24 }}>
             <div>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: 18 }}>Listas Desplegables</h3>
+              
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: 16 }}>Tipos de Persiana (Sistemas)</h4>
+                  <button className="secondary small" onClick={() => {
+                    const val = prompt('Nuevo tipo de persiana:');
+                    if (val && val.trim() && !catalog?.systems?.includes(val.trim())) updateCatalogList('systems', [...(catalog?.systems || []), val.trim()]);
+                  }}>+ Añadir</button>
+                </div>
+                <p style={{ margin: '0 0 12px 0', color: 'var(--muted)', fontSize: 13 }}>Opciones para el campo "Tipo de persiana".</p>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {(catalog?.systems || []).map(item => (
+                    <span key={item} className="pill" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {item}
+                      <button type="button" style={{ border: 'none', background: 'transparent', padding: '2px', cursor: 'pointer', color: 'var(--red)', borderRadius: '50%' }} onClick={() => confirm(`¿Eliminar ${item}?`) && updateCatalogList('systems', (catalog?.systems || []).filter(i => i !== item))}>
+                         <TrashIcon className="icon" style={{ width: '12px', height: '12px' }} />
+                      </button>
+                    </span>
+                  ))}
+                  {catalog?.systems?.length === 0 && <span className="muted">No hay opciones configuradas.</span>}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: 16 }}>Tipos de Instalación</h4>
+                  <button className="secondary small" onClick={() => {
+                    const val = prompt('Nuevo tipo de instalación:');
+                    if (val && val.trim() && !catalog?.mounts?.includes(val.trim())) updateCatalogList('mounts', [...(catalog?.mounts || []), val.trim()]);
+                  }}>+ Añadir</button>
+                </div>
+                <p style={{ margin: '0 0 12px 0', color: 'var(--muted)', fontSize: 13 }}>Opciones para el campo "Instalación de esta persiana".</p>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {(catalog?.mounts || []).map(item => (
+                    <span key={item} className="pill" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {item}
+                      <button type="button" style={{ border: 'none', background: 'transparent', padding: '2px', cursor: 'pointer', color: 'var(--red)', borderRadius: '50%' }} onClick={() => confirm(`¿Eliminar ${item}?`) && updateCatalogList('mounts', (catalog?.mounts || []).filter(i => i !== item))}>
+                         <TrashIcon className="icon" style={{ width: '12px', height: '12px' }} />
+                      </button>
+                    </span>
+                  ))}
+                  {catalog?.mounts?.length === 0 && <span className="muted">No hay opciones configuradas.</span>}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <h4 style={{ margin: 0, fontSize: 16 }}>Tipos de Tela</h4>
+                  <button className="secondary small" onClick={() => {
+                    const val = prompt('Nuevo tipo de tela:');
+                    if (val && val.trim() && !catalog?.fabrics?.includes(val.trim())) updateCatalogList('fabrics', [...(catalog?.fabrics || []), val.trim()]);
+                  }}>+ Añadir</button>
+                </div>
+                <p style={{ margin: '0 0 12px 0', color: 'var(--muted)', fontSize: 13 }}>Opciones para el campo "Tipo de tela".</p>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {(catalog?.fabrics || []).map(item => (
+                    <span key={item} className="pill" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {item}
+                      <button type="button" style={{ border: 'none', background: 'transparent', padding: '2px', cursor: 'pointer', color: 'var(--red)', borderRadius: '50%' }} onClick={() => confirm(`¿Eliminar ${item}?`) && updateCatalogList('fabrics', (catalog?.fabrics || []).filter(i => i !== item))}>
+                         <TrashIcon className="icon" style={{ width: '12px', height: '12px' }} />
+                      </button>
+                    </span>
+                  ))}
+                  {catalog?.fabrics?.length === 0 && <span className="muted">No hay opciones configuradas.</span>}
+                </div>
+              </div>
+
+              <hr style={{ borderColor: 'var(--line)', margin: '32px 0' }} />
+
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <h3 style={{ margin: 0, fontSize: 18 }}>Catálogo de Mantenimientos</h3>
                 <button 

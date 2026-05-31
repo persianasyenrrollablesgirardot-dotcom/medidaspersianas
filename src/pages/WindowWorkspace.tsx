@@ -299,45 +299,24 @@ function QuickSolutionBasics({
   return (
     <div className="quick-layer-row">
       <div className="grid-2">
-        <EditableSelect
-          label="Tipo de persiana"
-          value={solution.system}
-          options={catalog.systems || []}
-          onChange={value => onChange({ system: value })}
-          onAddOption={value => {
-            if (!catalog.systems.includes(value)) onCatalogChange({ systems: [...catalog.systems, value] });
-          }}
-          onDeleteOption={value => {
-            onCatalogChange({ systems: catalog.systems.filter(s => s !== value) });
-            if (solution.system === value) onChange({ system: '' });
-          }}
-        />
-        <EditableSelect
-          label="Instalacion de esta persiana"
-          value={solution.layer}
-          options={catalog.mounts || []}
-          onChange={value => onChange({ layer: value })}
-          onAddOption={value => {
-            if (!catalog.mounts.includes(value)) onCatalogChange({ mounts: [...catalog.mounts, value] });
-          }}
-          onDeleteOption={value => {
-            onCatalogChange({ mounts: catalog.mounts.filter(m => m !== value) });
-            if (solution.layer === value) onChange({ layer: '' });
-          }}
-        />
-        <EditableSelect
-          label="Tipo de tela"
-          value={solution.fabric || ''}
-          options={catalog.fabrics || []}
-          onChange={value => onChange({ fabric: value })}
-          onAddOption={value => {
-            if (!catalog.fabrics.includes(value)) onCatalogChange({ fabrics: [...catalog.fabrics, value] });
-          }}
-          onDeleteOption={value => {
-            onCatalogChange({ fabrics: catalog.fabrics.filter(f => f !== value) });
-            if (solution.fabric === value) onChange({ fabric: '' });
-          }}
-        />
+        <Field label="Tipo de persiana">
+          <SelectInput value={solution.system} onChange={e => onChange({ system: e.target.value })}>
+            <option value="">Seleccionar...</option>
+            {catalog.systems?.map(system => <option key={system}>{system}</option>)}
+          </SelectInput>
+        </Field>
+        <Field label="Instalacion de esta persiana">
+          <SelectInput value={solution.layer} onChange={e => onChange({ layer: e.target.value })}>
+            <option value="">Seleccionar...</option>
+            {catalog.mounts?.map(mount => <option key={mount}>{mount}</option>)}
+          </SelectInput>
+        </Field>
+        <Field label="Tipo de tela">
+          <SelectInput value={solution.fabric || ''} onChange={e => onChange({ fabric: e.target.value })}>
+            <option value="">Sin definir</option>
+            {catalog.fabrics?.map(fabric => <option key={fabric}>{fabric}</option>)}
+          </SelectInput>
+        </Field>
       </div>
     </div>
   );
