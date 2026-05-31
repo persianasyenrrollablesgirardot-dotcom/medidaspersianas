@@ -19,6 +19,7 @@ export function Settings() {
       } else {
         await db.catalog.add({ ...DEFAULT_CATALOG, [key]: newList, lastUpdatedAt: Date.now() } as any);
       }
+      saveFallbackCatalog({ [key]: newList });
     } catch (e) {
       toast.error('Error al actualizar catálogo');
     }
