@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { ProjectSummary, TechnicalCatalog, TechnicalProject, SyncQueueItem, InvoiceRecord } from './types';
+import type { ProjectSummary, TechnicalCatalog, TechnicalProject, SyncQueueItem, InvoiceRecord, ReceiptRecord } from './types';
 import { DEFAULT_MAINTENANCE_CATALOG } from './lib/defaultTasks';
 
 const DB_NAME = 'AppCampoJunoMobileV3DB';
@@ -32,6 +32,7 @@ class TechnicalFieldDB extends Dexie {
   catalog!: Table<TechnicalCatalog, number>;
   syncQueue!: Table<SyncQueueItem, number>;
   invoices!: Table<InvoiceRecord, number>;
+  receipts!: Table<ReceiptRecord, number>;
 
   constructor() {
     super(DB_NAME);
@@ -41,6 +42,14 @@ class TechnicalFieldDB extends Dexie {
       catalog: '++id',
       syncQueue: '++id, type, status, createdAt',
       invoices: '++id, type, documentNumber, clientName, date'
+    });
+    this.version(3).stores({
+      projects: '++id, code, clientName, status, createdAt, updatedAt, deletedAt, synced',
+      projectSummaries: '++id, &projectId, code, clientName, status, updatedAt, deletedAt, synced',
+      catalog: '++id',
+      syncQueue: '++id, type, status, createdAt',
+      invoices: '++id, type, documentNumber, clientName, date',
+      receipts: '++id, projectId, projectCode, clientName, date, status'
     });
   }
 }

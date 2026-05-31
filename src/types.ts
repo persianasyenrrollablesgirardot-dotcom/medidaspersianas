@@ -236,3 +236,15 @@ export interface InvoiceRecord {
   date: number; // timestamp
   formData?: any; // Objeto JSON de la factura para regenerar el PDF
 }
+
+export interface ReceiptRecord {
+  id?: number;
+  projectId: number;
+  projectCode: string;
+  clientName: string;
+  total: number;
+  abono: number;
+  saldo: number;
+  date: number; // timestamp
+  status: 'open' | 'closed';
+}

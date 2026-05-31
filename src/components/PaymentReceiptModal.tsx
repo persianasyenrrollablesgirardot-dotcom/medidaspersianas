@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { generateReceiptUrl } from '../lib/facturador/pdf-generator';
 import type { TechnicalProject } from '../types';
+import { db } from '../db';
 
 interface PaymentReceiptModalProps {
   project: TechnicalProject;
@@ -45,6 +46,23 @@ export function PaymentReceiptModal({ project, total, onClose }: PaymentReceiptM
       
       const url = await generateReceiptUrl(data);
       setPdfUrl(url);
+      
+      try {
+        await db.receipts.add({
+          projectId: project.id!,
+          projectCode: project.code,
+          clientName: project.clientName || 'Cliente sin nombre',
+          total: total,
+          abono: abonoNum,
+          saldo: saldo,
+          date: Date.now(),
+          status: saldo <= 0 ? 'closed' : 'open'
+        });
+      } catch (dbErr) {
+        console.error('Error guardando en BD local:', dbErr);
+        // Silently fail if db save fails but PDF works
+      }
+
       toast.dismiss('receipt-gen');
     } catch (e) {
       console.error(e);
