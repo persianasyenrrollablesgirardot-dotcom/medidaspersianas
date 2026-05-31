@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DEFAULT_CATALOG } from '../db';
 import type { ProjectSummary, TechnicalCatalog, TechnicalProject } from '../types';
-import { quoteTotal } from './metrics';
+import { quoteTotal, solutionTotal } from './metrics';
 
 const PROJECTS_KEY = 'juno_fallback_projects_v1';
 const CATALOG_KEY = 'juno_fallback_catalog_v1';
@@ -173,7 +173,7 @@ function projectToSummary(project: TechnicalProject): ProjectSummary {
   const totalEstimate = activeSpaces.reduce((sum, space) => 
     sum + space.windows.reduce((wSum, win) => 
       wSum + win.solutions.reduce((sSum, sol) => 
-        sSum + (sol.quickQuote ? quoteTotal(sol.quickQuote) : 0)
+        sSum + solutionTotal(sol)
       , 0)
     , 0)
   , 0);
