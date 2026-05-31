@@ -9,6 +9,7 @@ import { generateReportHtml, technicalSummary, type PdfReportProfile } from '../
 import { isFallbackId, useFallbackCatalog, useFallbackProject } from '../lib/localFallbackStore';
 import { saveProject } from '../lib/projectStore';
 import { PdfPreviewModal } from '../components/PdfPreviewModal';
+import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
 import { quoteArea, solutionArea, solutionTotal } from '../lib/metrics';
 import type { TechnicalCatalog, TechnicalProject, TechnicalSolution } from '../types';
 
@@ -24,6 +25,7 @@ export function ProjectDetail() {
   const dbCatalog = useLiveQuery<TechnicalCatalog | undefined>(() => db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), []);
   const catalog = dbCatalog || fallbackCatalog || DEFAULT_CATALOG;
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
 
   const generateReport = async (profile: PdfReportProfile) => {
     if (!project) return;
@@ -103,6 +105,14 @@ export function ProjectDetail() {
             }}
           >
             <SparklesIcon className="icon" /> Generar Factura / Cot. con IA
+          </button>
+          <button 
+            className="secondary" 
+            style={{ borderColor: '#3b82f6', color: '#3b82f6' }}
+            type="button" 
+            onClick={() => setShowReceiptModal(true)}
+          >
+            <IdentificationIcon className="icon" /> Generar Recibo de Pago
           </button>
         </div>
       </section>
@@ -241,6 +251,7 @@ export function ProjectDetail() {
       </section>
 
       <PdfPreviewModal htmlContent={previewHtml} onClose={() => setPreviewHtml(null)} />
+      {showReceiptModal && <PaymentReceiptModal project={project} total={totalEstimate} onClose={() => setShowReceiptModal(false)} />}
     </div>
   );
 }

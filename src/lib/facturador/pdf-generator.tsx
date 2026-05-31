@@ -1,6 +1,7 @@
 import { pdf } from '@react-pdf/renderer';
 import { PDFDocument } from 'pdf-lib';
 import { RigidDocument } from '../../components/facturador/RigidDocument';
+import { PaymentReceiptDocument, type ReceiptData } from '../../components/facturador/PaymentReceiptDocument';
 
 export async function generateFinalInvoiceUrl(data: any): Promise<string> {
   // 1. Generate the single page invoice using react-pdf
@@ -26,4 +27,9 @@ export async function generateFinalInvoiceUrl(data: any): Promise<string> {
   const finalBlob = new Blob([finalPdfBytes], { type: 'application/pdf' });
   
   return URL.createObjectURL(finalBlob);
+}
+
+export async function generateReceiptUrl(data: ReceiptData): Promise<string> {
+  const blob = await pdf(<PaymentReceiptDocument data={data} />).toBlob();
+  return URL.createObjectURL(blob);
 }
