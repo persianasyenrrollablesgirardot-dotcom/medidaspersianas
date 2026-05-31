@@ -26,8 +26,8 @@ export function QuickQuoteModule() {
   const fallbackCatalog = useFallbackCatalog();
   const dbProject = useLiveQuery<TechnicalProject | undefined>(() => fallbackMode ? Promise.resolve(undefined) : db.projects.get(numericProjectId), [fallbackMode, numericProjectId]);
   const project = fallbackProject || dbProject;
-  const dbCatalog = useLiveQuery<TechnicalCatalog | undefined>(() => fallbackMode ? Promise.resolve(undefined) : db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), [fallbackMode]);
-  const catalog = fallbackMode ? fallbackCatalog : (dbCatalog || DEFAULT_CATALOG);
+  const dbCatalog = useLiveQuery<TechnicalCatalog | undefined>(() => db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), []);
+  const catalog = dbCatalog || fallbackCatalog || DEFAULT_CATALOG;
 
   const lines = useMemo<QuoteLine[]>(() => {
     if (!project) return [];
