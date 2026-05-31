@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import toast from 'react-hot-toast';
-import { TrashIcon, CheckCircleIcon, DocumentArrowDownIcon, CalculatorIcon } from '@heroicons/react/24/outline';
+import { TrashIcon, CheckCircleIcon, DocumentArrowDownIcon, CalculatorIcon, ArrowDownTrayIcon, ShareIcon } from '@heroicons/react/24/outline';
 import { db } from '../db';
 import type { ReceiptRecord } from '../types';
 import { generateReceiptUrl } from '../lib/facturador/pdf-generator';
@@ -63,6 +63,36 @@ export function Contabilidad() {
     } catch (e) {
       console.error(e);
       toast.error('Error al generar PDF', { id: 'pdf' });
+    }
+  };
+
+  const handleDownload = () => {
+    if (!previewUrl) return;
+    const link = document.createElement('a');
+    link.href = previewUrl;
+    link.download = `Recibo.pdf`;
+    link.click();
+  };
+
+  const handleShare = async () => {
+    if (!previewUrl) return;
+    try {
+      const response = await fetch(previewUrl);
+      const blob = await response.blob();
+      const file = new File([blob], `Recibo.pdf`, { type: 'application/pdf' });
+      
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'Recibo de Pago',
+          text: 'Adjunto recibo de pago',
+        });
+      } else {
+        toast.error('Compartir archivos no soportado en este navegador');
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al compartir');
     }
   };
 
@@ -167,7 +197,15 @@ export function Contabilidad() {
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ background: '#111', padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', width: '100%', height: '100%', maxWidth: '800px', margin: '0 auto' }}>
             <div style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#222' }}>
               <h3 style={{ margin: 0, color: 'white' }}>Vista Preliminar Recibo</h3>
-              <button className="ghost" onClick={() => setPreviewUrl(null)} style={{ color: 'white', fontSize: '1.5rem', padding: '0 0.5rem' }}>✕</button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="primary small" onClick={handleDownload} title="Descargar PDF" style={{ padding: '0 12px', minHeight: '36px' }}>
+                  <ArrowDownTrayIcon className="icon" style={{ width: 18, height: 18 }} />
+                </button>
+                <button className="primary small" onClick={handleShare} title="Compartir PDF" style={{ padding: '0 12px', minHeight: '36px' }}>
+                  <ShareIcon className="icon" style={{ width: 18, height: 18 }} />
+                </button>
+                <button className="ghost" onClick={() => setPreviewUrl(null)} style={{ color: 'white', fontSize: '1.5rem', padding: '0 0.5rem', minHeight: '36px' }}>✕</button>
+              </div>
             </div>
             <div style={{ flex: 1, backgroundColor: '#555' }}>
               <iframe src={previewUrl} style={{ width: '100%', height: '100%', border: 'none', background: 'white' }} title="Recibo" />
