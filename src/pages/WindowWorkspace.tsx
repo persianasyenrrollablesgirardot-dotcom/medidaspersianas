@@ -202,7 +202,6 @@ export function WindowWorkspace() {
                     <QuickSolutionBasics
                       solution={activeSolution}
                       catalog={catalog}
-                      onCatalogChange={updateCatalog}
                       onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)}
                     />
                     <QuickForm solution={activeSolution} onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)} />
@@ -288,12 +287,10 @@ function PlanTemplatePicker({ selected, onSelect, onClear }: { selected?: MountP
 function QuickSolutionBasics({
   solution,
   catalog,
-  onCatalogChange,
   onChange,
 }: {
   solution: TechnicalSolution;
   catalog: TechnicalCatalog;
-  onCatalogChange: (patch: Partial<TechnicalCatalog>) => void;
   onChange: (patch: Partial<TechnicalSolution>) => void;
 }) {
   return (

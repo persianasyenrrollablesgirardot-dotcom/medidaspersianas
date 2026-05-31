@@ -15,7 +15,7 @@ export function Settings() {
   const updateCatalogList = async (key: keyof TechnicalCatalog, newList: string[]) => {
     try {
       if (catalog?.id) {
-        await db.catalog.update(catalog.id, { [key]: newList, lastUpdatedAt: Date.now() });
+        await db.catalog.update(catalog.id, { [key]: newList, lastUpdatedAt: Date.now() } as any);
       } else {
         await db.catalog.add({ ...DEFAULT_CATALOG, [key]: newList, lastUpdatedAt: Date.now() } as any);
       }
