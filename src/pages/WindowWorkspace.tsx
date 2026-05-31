@@ -201,8 +201,8 @@ export function WindowWorkspace() {
                   <>
                     <QuickSolutionBasics
                       solution={activeSolution}
-                      systems={catalog.systems}
-                      fabrics={catalog.fabrics}
+                      catalog={catalog}
+                      onCatalogChange={updateCatalog}
                       onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)}
                     />
                     <QuickForm solution={activeSolution} onChange={(patch: Partial<TechnicalSolution>) => patchSolution(activeSolution.id, patch)} />
@@ -287,39 +287,57 @@ function PlanTemplatePicker({ selected, onSelect, onClear }: { selected?: MountP
 
 function QuickSolutionBasics({
   solution,
-  systems,
-  fabrics,
+  catalog,
+  onCatalogChange,
   onChange,
 }: {
   solution: TechnicalSolution;
-  systems: string[];
-  fabrics: string[];
+  catalog: TechnicalCatalog;
+  onCatalogChange: (patch: Partial<TechnicalCatalog>) => void;
   onChange: (patch: Partial<TechnicalSolution>) => void;
 }) {
   return (
     <div className="quick-layer-row">
       <div className="grid-2">
-        <Field label="Tipo de persiana">
-          <SelectInput value={solution.system} onChange={e => onChange({ system: e.target.value })}>
-            {systems.map(system => <option key={system}>{system}</option>)}
-          </SelectInput>
-        </Field>
-        <Field label="Instalacion de esta persiana">
-          <SelectInput value={solution.layer} onChange={e => onChange({ layer: e.target.value as TechnicalSolution['layer'] })}>
-            <option value="inside">Interna</option>
-            <option value="outside">Externa</option>
-            <option value="wall">Pared</option>
-            <option value="ceiling">Techo</option>
-            <option value="frame">Marco</option>
-            <option value="mixed">Mixta</option>
-          </SelectInput>
-        </Field>
-        <Field label="Tipo de tela">
-          <SelectInput value={solution.fabric || ''} onChange={e => onChange({ fabric: e.target.value })}>
-            <option value="">Sin definir</option>
-            {fabrics.map(fabric => <option key={fabric}>{fabric}</option>)}
-          </SelectInput>
-        </Field>
+        <EditableSelect
+          label="Tipo de persiana"
+          value={solution.system}
+          options={catalog.systems || []}
+          onChange={value => onChange({ system: value })}
+          onAddOption={value => {
+            if (!catalog.systems.includes(value)) onCatalogChange({ systems: [...catalog.systems, value] });
+          }}
+          onDeleteOption={value => {
+            onCatalogChange({ systems: catalog.systems.filter(s => s !== value) });
+            if (solution.system === value) onChange({ system: '' });
+          }}
+        />
+        <EditableSelect
+          label="Instalacion de esta persiana"
+          value={solution.layer}
+          options={catalog.mounts || []}
+          onChange={value => onChange({ layer: value })}
+          onAddOption={value => {
+            if (!catalog.mounts.includes(value)) onCatalogChange({ mounts: [...catalog.mounts, value] });
+          }}
+          onDeleteOption={value => {
+            onCatalogChange({ mounts: catalog.mounts.filter(m => m !== value) });
+            if (solution.layer === value) onChange({ layer: '' });
+          }}
+        />
+        <EditableSelect
+          label="Tipo de tela"
+          value={solution.fabric || ''}
+          options={catalog.fabrics || []}
+          onChange={value => onChange({ fabric: value })}
+          onAddOption={value => {
+            if (!catalog.fabrics.includes(value)) onCatalogChange({ fabrics: [...catalog.fabrics, value] });
+          }}
+          onDeleteOption={value => {
+            onCatalogChange({ fabrics: catalog.fabrics.filter(f => f !== value) });
+            if (solution.fabric === value) onChange({ fabric: '' });
+          }}
+        />
       </div>
     </div>
   );

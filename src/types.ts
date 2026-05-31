@@ -1,6 +1,6 @@
 export type ProjectStatus = 'draft' | 'quick_quote' | 'technical_pending' | 'ready_for_fabrication' | 'archived';
 export type SolutionStatus = 'quick' | 'technical_pending' | 'needs_review' | 'ready_for_fabrication' | 'blocked';
-export type MountLayer = 'inside' | 'outside' | 'wall' | 'ceiling' | 'frame' | 'mixed';
+export type MountLayer = 'inside' | 'outside' | 'wall' | 'ceiling' | 'frame' | 'mixed' | string;
 export type InstallSurface = 'concrete' | 'drywall' | 'wood' | 'aluminum' | 'tile' | 'unknown';
 export type DriveType = 'manual' | 'motor' | 'none';
 export type EvidenceKind = 'general' | 'measurement' | 'obstacle' | 'electric' | 'level' | 'detail';
