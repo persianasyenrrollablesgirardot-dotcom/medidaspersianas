@@ -7,6 +7,7 @@ import { newWindow } from '../lib/projectFactory';
 import { updateSpace } from '../lib/projectStore';
 import { statusLabel } from '../lib/labels';
 import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
+import { solutionTotal } from '../lib/metrics';
 import type { TechnicalProject } from '../types';
 
 export function WindowList() {
@@ -36,13 +37,17 @@ export function WindowList() {
           const blockers = win.solutions.reduce((sum, sol) => sum + sol.alerts.filter(a => a.level === 'blocker').length, 0);
           const warnings = win.solutions.reduce((sum, sol) => sum + sol.alerts.filter(a => a.level === 'warning').length, 0);
           const badge = blockers ? `${blockers} bloqueo${blockers > 1 ? 's' : ''}` : warnings ? `${warnings} alerta${warnings > 1 ? 's' : ''}` : statusLabel(win.solutions[0]?.status || 'draft');
+          const windowTotal = win.solutions.reduce((sum, sol) => sum + solutionTotal(sol), 0);
           return (
             <article key={win.id} className="window-tile">
               <button className="window-tile-main" onClick={() => navigate(`/project/${project.id}/space/${space.id}/window/${win.id}`)}>
                 <strong>{win.label}</strong>
-                <span>{win.solutions.length} soluciones</span>
-                <span>{win.evidence.length} fotos</span>
-                <em className={blockers ? 'bad' : warnings ? 'warn' : 'ok'}>{badge}</em>
+                <div className="card-meta" style={{ marginTop: '4px' }}>
+                  <span>{win.solutions.length} soluciones</span>
+                  <span>{win.evidence.length} fotos</span>
+                  {windowTotal > 0 && <span style={{ color: 'var(--green)', fontWeight: 'bold' }}>$ {windowTotal.toLocaleString('es-CO')}</span>}
+                </div>
+                <em className={blockers ? 'bad' : warnings ? 'warn' : 'ok'} style={{ marginTop: '4px' }}>{badge}</em>
               </button>
               <button className="mini-danger" onClick={() => updateSpace(project, space.id, current => ({ ...current, windows: current.windows.filter(w => w.id !== win.id) }))} aria-label={`Eliminar ${win.label}`}>
                 <TrashIcon className="icon" />
