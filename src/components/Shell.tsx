@@ -12,7 +12,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <NavItem to="/" label="Proyectos" icon={<HomeIcon />} />
         <NavItem to="/exports" label="Exportar" icon={<ArrowDownTrayIcon />} />
         <NavItem to="/facturacion" label="Facturas" icon={<DocumentTextIcon />} />
-        <NavItem to="/contabilidad" label="Contabilidad" icon={<BanknotesIcon />} />
+        <NavItem to="/contabilidad" label="Cartera" icon={<BanknotesIcon />} />
         <NavItem to="/papelera" label="Papelera" icon={<TrashIcon />} />
         <NavItem to="/settings" label="Ajustes" icon={<Cog6ToothIcon />} />
       </nav>

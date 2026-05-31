@@ -601,6 +601,8 @@ body { color: var(--text); background: var(--bg); }
   .space-grid, .window-grid { grid-template-columns: 1fr; }
   .list-title { grid-template-columns: 1fr; }
   .list-title .primary { width: 100%; }
+  .nav-item { font-size: 8.5px; letter-spacing: 0; padding: 0 2px; }
+  .nav-icon svg, .icon { width: 18px; height: 18px; }
 }
 
 @media (min-width: 980px) {
