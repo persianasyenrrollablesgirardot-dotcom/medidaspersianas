@@ -7,35 +7,37 @@ import { generateReportHtml, technicalSummary, type PdfReportProfile } from '../
 import { addFallbackProject, duplicateFallbackProject, getFallbackProject, trashFallbackProject, useFallbackSummaries, useFallbackCatalog } from '../lib/localFallbackStore';
 import { PdfPreviewModal } from '../components/PdfPreviewModal';
 import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
-import type { TechnicalProject } from '../types';
+import type { TechnicalProject, ProjectSummary } from '../types';
 import { DEFAULT_CATALOG } from '../db';
 import { useAuth } from '../components/AuthContext';
 import { collection, getDocs } from 'firebase/firestore';
 import { dbFirestore } from '../lib/firebase';
+import { useEffect } from 'react';
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const [creating, setCreating] = useState(false);
   const { role } = useAuth();
   const visibleLocalProjects = useFallbackSummaries();
-  const [cloudProjects, setCloudProjects] = useState<any[]>([]);
-  const [loadingCloud, setLoadingCloud] = useState(false);
+  const [cloudProjects, setCloudProjects] = useState<ProjectSummary[]>([]);
   
   useEffect(() => {
     if (role === 'proveedor') {
-      setLoadingCloud(true);
       getDocs(collection(dbFirestore, 'cloud_projects')).then(snapshot => {
-        const projs = snapshot.docs.map(doc => ({ ...doc.data(), projectId: doc.data().id || doc.data().projectId }));
+        const projs = snapshot.docs.map(doc => ({ ...doc.data(), projectId: doc.data().id || doc.data().projectId } as unknown as ProjectSummary));
         setCloudProjects(projs);
-        setLoadingCloud(false);
       }).catch(e => {
         console.error(e);
         toast.error('Error cargando proyectos de la nube');
-        setLoadingCloud(false);
       });
     }
   }, [role]);
 
   const visibleProjects = role === 'proveedor' ? cloudProjects : visibleLocalProjects;
+  const catalog = useFallbackCatalog();
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [activeProject, setActiveProject] = useState<TechnicalProject | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
@@ -182,7 +184,7 @@ export function Dashboard() {
                 </div>
                 {project.systemTotals && Object.keys(project.systemTotals).length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
-                    {Object.entries(project.systemTotals).map(([sys, totals]) => totals.area > 0 && (
+                    {Object.entries(project.systemTotals as Record<string, { area: number; price: number }>).map(([sys, totals]) => totals.area > 0 && (
                       <span key={sys} style={{ fontSize: '11px', padding: '2px 6px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: '4px' }}>
                         {sys}: <strong>{totals.area.toFixed(2)} m²</strong>
                       </span>
@@ -190,8 +192,7 @@ export function Dashboard() {
                   </div>
                 )}
               </button>
-              {role === 'admin' && (
-                <div className="project-card-actions">
+              <div className="project-card-actions" style={{ display: role === 'admin' ? 'flex' : 'none' }}>
                 <button
                   className="project-setup"
                   onClick={() => navigate(`/project/${project.projectId}`)}
@@ -247,9 +248,7 @@ export function Dashboard() {
                   <TrashIcon className="icon" />
                 </button>
               </div>
-              )}
-              {role === 'admin' && (
-                <div className="project-report-actions">
+              <div className="project-report-actions" style={{ display: role === 'admin' ? 'flex' : 'none' }}>
                 <button
                   type="button"
                   className="project-data-pill"
@@ -303,7 +302,6 @@ export function Dashboard() {
                   Recibo
                 </button>
               </div>
-              )}
             </article>
           );
         })}
