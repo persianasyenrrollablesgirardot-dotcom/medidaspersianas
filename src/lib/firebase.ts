@@ -3,7 +3,7 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAyQfHSfPKDbBGfKuSzPXA3wXXfsAS5jbk",
+  apiKey: "AIzaSyAyQFHSfPKDBbGfKuSzPXA3wXXfsAS5jbk",
   authDomain: "gestor-de-campo.firebaseapp.com",
   projectId: "gestor-de-campo",
   storageBucket: "gestor-de-campo.firebasestorage.app",
