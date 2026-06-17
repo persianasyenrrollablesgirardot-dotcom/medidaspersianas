@@ -23,7 +23,7 @@ export function Login() {
       if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         toast.error('Correo o contraseña incorrectos');
       } else {
-        toast.error('Error al iniciar sesión');
+        toast.error('Error: ' + (err as Error).message);
       }
     } finally {
       setLoading(false);
