@@ -116,7 +116,7 @@ export async function extractInvoiceDataFromText(text: string): Promise<any> {
           content: [
             {
               type: 'text',
-              text: \`Extrae la información de esta factura o cotización de texto no estructurado:\\n\\n\${text}\`
+              text: `Extrae la información de esta factura o cotización de texto no estructurado:\n\n${text}`
             }
           ],
         },
