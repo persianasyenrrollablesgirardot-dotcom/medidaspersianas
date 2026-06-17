@@ -219,6 +219,7 @@ function projectToSummary(project: TechnicalProject): ProjectSummary {
     deletedAt: project.deletedAt || 0,
     updatedAt: project.updatedAt,
     synced: false,
+    sentToSupplier: project.sentToSupplier,
   };
 }
 

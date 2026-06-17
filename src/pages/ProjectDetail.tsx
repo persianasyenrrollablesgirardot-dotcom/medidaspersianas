@@ -6,11 +6,13 @@ import { DEFAULT_CATALOG, db } from '../db';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { generateReportHtml, technicalSummary, type PdfReportProfile } from '../lib/exporters';
-import { isFallbackId, useFallbackCatalog, useFallbackProject } from '../lib/localFallbackStore';
+import { isFallbackId, useFallbackCatalog, useFallbackProject, saveFallbackProject } from '../lib/localFallbackStore';
 import { saveProject } from '../lib/projectStore';
 import { PdfPreviewModal } from '../components/PdfPreviewModal';
 import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
 import { quoteArea, solutionArea, solutionTotal } from '../lib/metrics';
+import { useAuth } from '../components/AuthContext';
+import { syncProjectToCloud } from '../lib/cloudSync';
 import type { TechnicalCatalog, TechnicalProject, TechnicalSolution } from '../types';
 
 export function ProjectDetail() {
@@ -26,6 +28,24 @@ export function ProjectDetail() {
   const catalog = dbCatalog || fallbackCatalog || DEFAULT_CATALOG;
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const { role } = useAuth();
+
+  const handleSendToSupplier = async () => {
+    if (!project) return;
+    try {
+      const updated = { ...project, sentToSupplier: true };
+      if (fallbackMode) {
+        saveFallbackProject(updated as TechnicalProject);
+      } else {
+        await saveProject(updated as TechnicalProject);
+      }
+      await syncProjectToCloud(updated as TechnicalProject);
+      toast.success('Proyecto enviado a proveedor correctamente');
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al enviar el proyecto');
+    }
+  };
 
   const generateReport = async (profile: PdfReportProfile) => {
     if (!project) return;
@@ -103,6 +123,8 @@ export function ProjectDetail() {
     { profile: 'internal', label: 'PDF interno' },
   ];
 
+  const formatMeasure = (val: number | undefined) => val ? `${val} cm` : '-';
+
   return (
     <div className="page detail-page">
       <PageHeader title={project.clientName || 'Proyecto sin cliente'} subtitle={project.code} backTo="/" />
@@ -117,6 +139,19 @@ export function ProjectDetail() {
               <DocumentArrowDownIcon className="icon" /> {item.label}
             </button>
           ))}
+          {role === 'admin' && (
+            <>
+              {!project.sentToSupplier ? (
+                <button className="secondary" type="button" onClick={handleSendToSupplier} style={{ background: 'var(--blue)', color: 'white', borderColor: 'var(--blue)' }}>
+                  Enviar a Proveedor
+                </button>
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '8px 16px', background: 'var(--success-light, #dcfce7)', color: 'var(--success, #16a34a)', borderRadius: '6px', fontSize: '14px', fontWeight: 'bold' }}>
+                  Enviado a Proveedor ✓
+                </span>
+              )}
+            </>
+          )}
           <button 
             className="secondary" 
             style={{ borderColor: '#10b981', color: '#10b981' }}

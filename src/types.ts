@@ -23,6 +23,7 @@ export interface TechnicalProject {
   updatedAt: number;
   deletedAt?: number;
   synced: boolean;
+  sentToSupplier?: boolean;
 }
 
 export interface ProjectSummary {
@@ -45,6 +46,7 @@ export interface ProjectSummary {
   deletedAt?: number;
   updatedAt: number;
   synced: boolean;
+  sentToSupplier?: boolean;
 }
 
 export interface SpaceRecord {

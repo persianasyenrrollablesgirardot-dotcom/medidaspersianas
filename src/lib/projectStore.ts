@@ -100,6 +100,7 @@ export function buildProjectSummary(project: TechnicalProject): ProjectSummary |
     deletedAt: project.deletedAt || 0,
     updatedAt: project.updatedAt,
     synced: project.synced,
+    sentToSupplier: project.sentToSupplier,
   };
 }
 
