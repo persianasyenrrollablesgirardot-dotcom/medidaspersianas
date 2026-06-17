@@ -102,6 +102,15 @@ export function Dashboard() {
                   {project.totalAreaM2 ? <span style={{ color: 'var(--blue)', fontWeight: 'bold' }}>{project.totalAreaM2.toFixed(2)} m²</span> : null}
                   {project.totalEstimate ? <span style={{ color: 'var(--green)', fontWeight: 'bold' }}>$ {project.totalEstimate.toLocaleString('es-CO')}</span> : null}
                 </div>
+                {project.systemTotals && Object.keys(project.systemTotals).length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                    {Object.entries(project.systemTotals).map(([sys, totals]) => totals.area > 0 && (
+                      <span key={sys} style={{ fontSize: '11px', padding: '2px 6px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: '4px' }}>
+                        {sys}: <strong>{totals.area.toFixed(2)} m²</strong>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </button>
               <div className="project-card-actions">
                 <button
