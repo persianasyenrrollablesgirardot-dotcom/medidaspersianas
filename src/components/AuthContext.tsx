@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setRole(userDoc.data().role);
           } else {
             // Auto-assign admin if it's the specific email
-            if (firebaseUser.email === 'admin@campojuno.com') {
+            if (firebaseUser.email === 'persianasyenrrollablesgirardot@gmail.com') {
               await setDoc(doc(dbFirestore, 'users', firebaseUser.uid), { role: 'admin', email: firebaseUser.email });
               setRole('admin');
             } else {

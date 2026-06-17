@@ -43,7 +43,7 @@ export function Login() {
               type="email" 
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="admin@campojuno.com"
+              placeholder="persianasyenrrollablesgirardot@gmail.com"
               style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #334155', background: '#0f172a', color: 'white' }}
             />
           </div>
