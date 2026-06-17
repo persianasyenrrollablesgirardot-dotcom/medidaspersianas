@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
+    "@anthropic-ai/sdk": "^0.104.2",
     "@heroicons/react": "^2.2.0",
     "@react-pdf/renderer": "^4.5.1",
     "date-fns": "^4.1.0",

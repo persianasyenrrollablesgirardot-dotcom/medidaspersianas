@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { extractInvoiceData, extractInvoiceDataFromText } from '../lib/facturador/gemini'
+import { extractInvoiceData, extractInvoiceDataFromText } from '../lib/facturador/claude'
 import { UploadCloud, FileText, Loader2, Wand2, History, Type } from 'lucide-react'
 import { generateFinalInvoiceUrl } from '../lib/facturador/pdf-generator'
 import { db, generateDocumentSequence } from '../db'
