@@ -214,6 +214,8 @@ function projectToSummary(project: TechnicalProject): ProjectSummary {
     totalEstimate,
     totalAreaM2,
     systemTotals,
+    createdAt: project.createdAt || project.updatedAt,
+    contactPhone: project.contactPhone,
     deletedAt: project.deletedAt || 0,
     updatedAt: project.updatedAt,
     synced: false,

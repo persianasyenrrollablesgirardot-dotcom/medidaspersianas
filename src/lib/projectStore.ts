@@ -1,6 +1,6 @@
 import { db } from '../db';
 import type { EvidenceKind, ProjectSummary, SpaceRecord, TechnicalProject, TechnicalSolution, WindowRecord } from '../types';
-import { quoteTotal, solutionTotal } from './metrics';
+import { quoteTotal, solutionTotal, solutionArea } from './metrics';
 import { uid } from './ids';
 import { isFallbackId, saveFallbackProject } from './localFallbackStore';
 
@@ -59,18 +59,44 @@ export function buildProjectSummary(project: TechnicalProject): ProjectSummary |
     , 0)
   , 0);
 
+  const totalAreaM2 = activeSpaces.reduce((sum, space) => 
+    sum + space.windows.reduce((wSum, win) => 
+      wSum + win.solutions.reduce((sSum, sol) => 
+        sSum + (sol.itemType !== 'maintenance' ? solutionArea(sol) : 0)
+      , 0)
+    , 0)
+  , 0);
+
+  const systemTotals = activeSpaces.reduce((acc, space) => {
+    space.windows.forEach(win => {
+      win.solutions.forEach(sol => {
+        const sys = sol.system || 'Sin sistema';
+        if (!acc[sys]) acc[sys] = { area: 0, price: 0 };
+        if (sol.itemType !== 'maintenance') {
+          acc[sys].area += solutionArea(sol);
+        }
+        acc[sys].price += solutionTotal(sol);
+      });
+    });
+    return acc;
+  }, {} as Record<string, { area: number; price: number }>);
+
   return {
     projectId: project.id,
     code: project.code,
     clientName: project.clientName,
     siteName: project.siteName,
     address: project.address,
+    contactPhone: project.contactPhone,
     status: project.status,
     isClone: project.isClone,
     spacesCount: activeSpaces.length,
     windowsCount,
     solutionsCount,
     totalEstimate,
+    totalAreaM2,
+    systemTotals,
+    createdAt: project.createdAt || project.updatedAt,
     deletedAt: project.deletedAt || 0,
     updatedAt: project.updatedAt,
     synced: project.synced,

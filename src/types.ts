@@ -32,6 +32,7 @@ export interface ProjectSummary {
   clientName: string;
   siteName?: string;
   address?: string;
+  contactPhone?: string;
   status: ProjectStatus;
   isClone?: boolean;
   spacesCount: number;
@@ -40,6 +41,7 @@ export interface ProjectSummary {
   totalEstimate?: number;
   totalAreaM2?: number;
   systemTotals?: Record<string, { area: number; price: number }>;
+  createdAt: number;
   deletedAt?: number;
   updatedAt: number;
   synced: boolean;

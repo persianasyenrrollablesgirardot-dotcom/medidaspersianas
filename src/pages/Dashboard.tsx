@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { newProject } from '../lib/projectFactory';
@@ -18,6 +18,38 @@ export function Dashboard() {
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [activeProject, setActiveProject] = useState<TechnicalProject | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+
+  const filteredProjects = useMemo(() => {
+    let result = visibleProjects;
+
+    if (dateFilter !== 'all') {
+      const now = Date.now();
+      const oneDay = 24 * 60 * 60 * 1000;
+      result = result.filter(p => {
+        const diff = now - p.createdAt;
+        if (dateFilter === 'today') return diff <= oneDay;
+        if (dateFilter === 'week') return diff <= 7 * oneDay;
+        if (dateFilter === 'month') return diff <= 30 * oneDay;
+        return true;
+      });
+    }
+
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(p => 
+        (p.clientName && p.clientName.toLowerCase().includes(term)) ||
+        (p.contactPhone && p.contactPhone.toLowerCase().includes(term)) ||
+        (p.siteName && p.siteName.toLowerCase().includes(term)) ||
+        (p.address && p.address.toLowerCase().includes(term)) ||
+        (p.code && p.code.toLowerCase().includes(term))
+      );
+    }
+
+    return result;
+  }, [visibleProjects, searchTerm, dateFilter]);
   
   const reportProfiles: Array<{ profile: PdfReportProfile; label: string }> = [
     { profile: 'client', label: 'Cliente' },
@@ -79,15 +111,33 @@ export function Dashboard() {
         <Stat label="Listos" value={visibleProjects.filter(p => p.status === 'ready_for_fabrication').length} />
       </section>
 
-      <div className="section-title list-title">
+      <div className="section-title list-title" style={{ flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h2>Proyectos activos</h2>
-          <p className="muted">{visibleProjects.length} registros locales</p>
+          <p className="muted">Mostrando {filteredProjects.length} de {visibleProjects.length} proyectos</p>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%', maxWidth: '500px' }}>
+          <div style={{ flex: 1, position: 'relative' }}>
+            <DocumentMagnifyingGlassIcon className="icon" style={{ position: 'absolute', left: '10px', top: '10px', color: '#888' }} />
+            <input 
+              type="search" 
+              placeholder="Buscar cliente, teléfono..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={{ width: '100%', paddingLeft: '36px' }}
+            />
+          </div>
+          <select value={dateFilter} onChange={e => setDateFilter(e.target.value as any)} style={{ minWidth: '130px' }}>
+            <option value="all">Todas las fechas</option>
+            <option value="today">Hoy</option>
+            <option value="week">Esta semana</option>
+            <option value="month">Este mes</option>
+          </select>
         </div>
       </div>
 
       <section className="list">
-        {visibleProjects.map(project => {
+        {filteredProjects.map(project => {
           return (
             <article key={project.projectId} className={`project-card ${project.isClone ? 'is-clone' : ''}`}>
               <button className="project-open" onClick={() => navigate(`/project/${project.projectId}/spaces`)}>
