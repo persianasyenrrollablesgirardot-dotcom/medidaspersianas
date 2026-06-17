@@ -19,7 +19,6 @@ import { Contabilidad } from './pages/Contabilidad';
 import { AdminPanel } from './pages/AdminPanel';
 import { Login } from './pages/Login';
 import { AuthProvider, useAuth } from './components/AuthContext';
-import { SupplierSync } from './components/SupplierSync';
 
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: ('admin' | 'proveedor')[] }) {
   const { user, role, loading } = useAuth();
@@ -46,7 +45,6 @@ export default function App() {
 
   return (
     <AuthProvider>
-      <SupplierSync />
       <BrowserRouter>
         <Toaster position="top-center" toastOptions={{ style: { background: '#111', color: '#fff', border: '1px solid #2b2b2b' } }} />
         <Routes>

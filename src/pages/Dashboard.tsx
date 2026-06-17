@@ -9,15 +9,33 @@ import { PdfPreviewModal } from '../components/PdfPreviewModal';
 import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
 import type { TechnicalProject } from '../types';
 import { DEFAULT_CATALOG } from '../db';
+import { useAuth } from '../components/AuthContext';
+import { collection, getDocs } from 'firebase/firestore';
+import { dbFirestore } from '../lib/firebase';
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const [creating, setCreating] = useState(false);
-  const visibleProjects = useFallbackSummaries();
-  const catalog = useFallbackCatalog();
-  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
-  const [activeProject, setActiveProject] = useState<TechnicalProject | null>(null);
-  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const { role } = useAuth();
+  const visibleLocalProjects = useFallbackSummaries();
+  const [cloudProjects, setCloudProjects] = useState<any[]>([]);
+  const [loadingCloud, setLoadingCloud] = useState(false);
+  
+  useEffect(() => {
+    if (role === 'proveedor') {
+      setLoadingCloud(true);
+      getDocs(collection(dbFirestore, 'cloud_projects')).then(snapshot => {
+        const projs = snapshot.docs.map(doc => ({ ...doc.data(), projectId: doc.data().id || doc.data().projectId }));
+        setCloudProjects(projs);
+        setLoadingCloud(false);
+      }).catch(e => {
+        console.error(e);
+        toast.error('Error cargando proyectos de la nube');
+        setLoadingCloud(false);
+      });
+    }
+  }, [role]);
+
+  const visibleProjects = role === 'proveedor' ? cloudProjects : visibleLocalProjects;
   
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
@@ -95,14 +113,16 @@ export function Dashboard() {
       <header className="hero">
         <p>App Tecnica Campo Juno</p>
         <h1>Levantamiento tecnico de campo</h1>
-        <div className="hero-actions">
-          <button className="primary" onClick={create} disabled={creating}>
-            <PlusIcon className="icon" /> {creating ? 'Creando...' : 'Nuevo proyecto'}
-          </button>
-          <button className="secondary" onClick={() => navigate('/papelera')}>
-            <TrashIcon className="icon" /> Papelera
-          </button>
-        </div>
+        {role === 'admin' && (
+          <div className="hero-actions">
+            <button className="primary" onClick={create} disabled={creating}>
+              <PlusIcon className="icon" /> {creating ? 'Creando...' : 'Nuevo proyecto'}
+            </button>
+            <button className="secondary" onClick={() => navigate('/papelera')}>
+              <TrashIcon className="icon" /> Papelera
+            </button>
+          </div>
+        )}
       </header>
 
       <section className="stats-row">
@@ -140,9 +160,15 @@ export function Dashboard() {
         {filteredProjects.map(project => {
           return (
             <article key={project.projectId} className={`project-card ${project.isClone ? 'is-clone' : ''}`}>
-              <button className="project-open" onClick={() => navigate(`/project/${project.projectId}/spaces`)}>
+              <button 
+                className="project-open" 
+                onClick={() => {
+                  if (role === 'admin') navigate(`/project/${project.projectId}/spaces`);
+                }}
+                style={{ cursor: role === 'proveedor' ? 'default' : 'pointer' }}
+              >
                 <div>
-                  <strong>{project.clientName || 'Proyecto sin cliente'}</strong>
+                  <strong>{role === 'proveedor' ? 'Censurado' : (project.clientName || 'Proyecto sin cliente')}</strong>
                   <span>{project.siteName || project.address || project.code}</span>
                 </div>
                 <div className="card-meta">
@@ -150,7 +176,9 @@ export function Dashboard() {
                   <span>{project.windowsCount} ventanas</span>
                   <span>{project.solutionsCount} soluciones</span>
                   {project.totalAreaM2 ? <span style={{ color: 'var(--blue)', fontWeight: 'bold' }}>{project.totalAreaM2.toFixed(2)} m²</span> : null}
-                  {project.totalEstimate ? <span style={{ color: 'var(--green)', fontWeight: 'bold' }}>$ {project.totalEstimate.toLocaleString('es-CO')}</span> : null}
+                  {role === 'admin' && project.totalEstimate !== undefined && (
+                    <span className="price">$ {project.totalEstimate.toLocaleString('es-CO')}</span>
+                  )}
                 </div>
                 {project.systemTotals && Object.keys(project.systemTotals).length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
@@ -162,7 +190,8 @@ export function Dashboard() {
                   </div>
                 )}
               </button>
-              <div className="project-card-actions">
+              {role === 'admin' && (
+                <div className="project-card-actions">
                 <button
                   className="project-setup"
                   onClick={() => navigate(`/project/${project.projectId}`)}
@@ -218,7 +247,9 @@ export function Dashboard() {
                   <TrashIcon className="icon" />
                 </button>
               </div>
-              <div className="project-report-actions">
+              )}
+              {role === 'admin' && (
+                <div className="project-report-actions">
                 <button
                   type="button"
                   className="project-data-pill"
@@ -272,6 +303,7 @@ export function Dashboard() {
                   Recibo
                 </button>
               </div>
+              )}
             </article>
           );
         })}
