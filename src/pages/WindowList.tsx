@@ -7,7 +7,7 @@ import { newWindow } from '../lib/projectFactory';
 import { updateSpace } from '../lib/projectStore';
 import { statusLabel } from '../lib/labels';
 import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
-import { solutionTotal } from '../lib/metrics';
+import { solutionTotal, solutionArea } from '../lib/metrics';
 import type { TechnicalProject } from '../types';
 
 export function WindowList() {
@@ -38,6 +38,7 @@ export function WindowList() {
           const warnings = win.solutions.reduce((sum, sol) => sum + sol.alerts.filter(a => a.level === 'warning').length, 0);
           const badge = blockers ? `${blockers} bloqueo${blockers > 1 ? 's' : ''}` : warnings ? `${warnings} alerta${warnings > 1 ? 's' : ''}` : statusLabel(win.solutions[0]?.status || 'draft');
           const windowTotal = win.solutions.reduce((sum, sol) => sum + solutionTotal(sol), 0);
+          const windowAreaM2 = win.solutions.reduce((sum, sol) => sum + (sol.itemType !== 'maintenance' ? solutionArea(sol) : 0), 0);
           return (
             <article key={win.id} className="window-tile">
               <button className="window-tile-main" onClick={() => navigate(`/project/${project.id}/space/${space.id}/window/${win.id}`)}>
@@ -45,6 +46,7 @@ export function WindowList() {
                 <div className="card-meta" style={{ marginTop: '4px' }}>
                   <span>{win.solutions.length} soluciones</span>
                   <span>{win.evidence.length} fotos</span>
+                  {windowAreaM2 > 0 && <span style={{ color: 'var(--blue)', fontWeight: 'bold' }}>{windowAreaM2.toFixed(2)} m²</span>}
                   {windowTotal > 0 && <span style={{ color: 'var(--green)', fontWeight: 'bold' }}>$ {windowTotal.toLocaleString('es-CO')}</span>}
                 </div>
                 <em className={blockers ? 'bad' : warnings ? 'warn' : 'ok'} style={{ marginTop: '4px' }}>{badge}</em>

@@ -7,7 +7,7 @@ import { TextInput } from '../components/Field';
 import { newSpace } from '../lib/projectFactory';
 import { saveProject } from '../lib/projectStore';
 import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
-import { solutionTotal } from '../lib/metrics';
+import { solutionTotal, solutionArea } from '../lib/metrics';
 import type { TechnicalProject } from '../types';
 
 export function SpaceList() {
@@ -35,6 +35,7 @@ export function SpaceList() {
         {project.spaces.map(space => {
           const solutions = space.windows.reduce((sum, win) => sum + win.solutions.length, 0);
           const spaceTotal = space.windows.reduce((sum, win) => sum + win.solutions.reduce((wSum, sol) => wSum + solutionTotal(sol), 0), 0);
+          const spaceAreaM2 = space.windows.reduce((sum, win) => sum + win.solutions.reduce((wSum, sol) => wSum + (sol.itemType !== 'maintenance' ? solutionArea(sol) : 0), 0), 0);
           return (
             <article key={space.id} className="space-tile">
               <button className="space-tile-main" onClick={() => navigate(`/project/${project.id}/space/${space.id}`)}>
@@ -42,6 +43,7 @@ export function SpaceList() {
                 <div className="card-meta" style={{ marginTop: '4px' }}>
                   <span>{space.windows.length} ventanas</span>
                   <span>{solutions} soluciones</span>
+                  {spaceAreaM2 > 0 && <span style={{ color: 'var(--blue)', fontWeight: 'bold' }}>{spaceAreaM2.toFixed(2)} m²</span>}
                   {spaceTotal > 0 && <span style={{ color: 'var(--green)', fontWeight: 'bold' }}>$ {spaceTotal.toLocaleString('es-CO')}</span>}
                 </div>
               </button>
