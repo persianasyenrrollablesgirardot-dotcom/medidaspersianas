@@ -38,6 +38,8 @@ export interface ProjectSummary {
   windowsCount: number;
   solutionsCount: number;
   totalEstimate?: number;
+  totalAreaM2?: number;
+  systemTotals?: Record<string, { area: number; price: number }>;
   deletedAt?: number;
   updatedAt: number;
   synced: boolean;

@@ -74,6 +74,28 @@ export function ProjectDetail() {
     , 0)
   , 0);
 
+  const totalAreaM2 = activeSpaces.reduce((sum, space) => 
+    sum + space.windows.reduce((wSum, win) => 
+      wSum + win.solutions.reduce((sSum, sol) => 
+        sSum + (sol.itemType !== 'maintenance' ? solutionArea(sol) : 0)
+      , 0)
+    , 0)
+  , 0);
+
+  const systemTotals = activeSpaces.reduce((acc, space) => {
+    space.windows.forEach(win => {
+      win.solutions.forEach(sol => {
+        const sys = sol.system || 'Sin sistema';
+        if (!acc[sys]) acc[sys] = { area: 0, price: 0 };
+        if (sol.itemType !== 'maintenance') {
+          acc[sys].area += solutionArea(sol);
+        }
+        acc[sys].price += solutionTotal(sol);
+      });
+    });
+    return acc;
+  }, {} as Record<string, { area: number; price: number }>);
+
   const reportProfiles: Array<{ profile: PdfReportProfile; label: string }> = [
     { profile: 'client', label: 'PDF cliente' },
     { profile: 'supplier', label: 'PDF proveedor' },
@@ -154,7 +176,32 @@ export function ProjectDetail() {
           <DetailValue label="Espacios" value={activeSpaces.length} />
           <DetailValue label="Ventanas" value={windows} />
           <DetailValue label="Persianas" value={solutions} />
+          <DetailValue label="Área Total" value={`${totalAreaM2.toFixed(2)} m²`} />
           <DetailValue label="Total Proyecto" value={`$ ${totalEstimate.toLocaleString('es-CO')}`} />
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>Resumen por Sistema</h2>
+        <div style={{ marginTop: '16px', overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid #eee' }}>
+                <th style={{ padding: '8px' }}>Sistema</th>
+                <th style={{ padding: '8px' }}>Total Área (m²)</th>
+                <th style={{ padding: '8px' }}>Total COP</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(systemTotals).map(([sys, totals]) => (
+                <tr key={sys} style={{ borderBottom: '1px solid #eee' }}>
+                  <td style={{ padding: '8px', fontWeight: '500' }}>{sys}</td>
+                  <td style={{ padding: '8px', color: 'var(--blue)', fontWeight: 'bold' }}>{totals.area > 0 ? `${totals.area.toFixed(2)} m²` : '-'}</td>
+                  <td style={{ padding: '8px' }}>$ {totals.price.toLocaleString('es-CO')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -196,6 +243,9 @@ export function ProjectDetail() {
                   </div>
                   <div className="detail-tags">
                     <em>{win.quickMode === 'angle45' ? 'Corte 45 grados' : 'Sencilla'}</em>
+                    <em style={{ color: 'var(--blue)', fontWeight: 'bold', marginLeft: '8px' }}>
+                      {win.solutions.reduce((acc, sol) => acc + (sol.itemType !== 'maintenance' ? solutionArea(sol) : 0), 0).toFixed(2)} m²
+                    </em>
                   </div>
                 </div>
 

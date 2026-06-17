@@ -194,6 +194,28 @@ function renderProjectReport(project: TechnicalProject, catalog: TechnicalCatalo
     , 0)
   , 0);
 
+  const totalAreaM2 = activeSpaces.reduce((sum, space) => 
+    sum + space.windows.reduce((wSum, win) => 
+      wSum + win.solutions.reduce((sSum, sol) => 
+        sSum + (sol.itemType !== 'maintenance' ? solutionArea(sol) : 0)
+      , 0)
+    , 0)
+  , 0);
+
+  const systemTotals = activeSpaces.reduce((acc, space) => {
+    space.windows.forEach(win => {
+      win.solutions.forEach(sol => {
+        const sys = sol.system || 'Sin sistema';
+        if (!acc[sys]) acc[sys] = { area: 0, price: 0 };
+        if (sol.itemType !== 'maintenance') {
+          acc[sys].area += solutionArea(sol);
+        }
+        acc[sys].price += solutionTotal(sol);
+      });
+    });
+    return acc;
+  }, {} as Record<string, { area: number; price: number }>);
+
   return `
     <section class="project">
       <h1>${escapeHtml(PROFILE_LABELS[profile])}</h1>
@@ -206,6 +228,7 @@ function renderProjectReport(project: TechnicalProject, catalog: TechnicalCatalo
         <div class="box"><span>Espacios</span><strong>${activeSpaces.length}</strong></div>
         <div class="box"><span>Ventanas</span><strong>${activeSpaces.reduce((sum, space) => sum + space.windows.length, 0)}</strong></div>
         <div class="box"><span>Persianas</span><strong>${activeSpaces.reduce((sum, space) => sum + space.windows.reduce((wSum, win) => wSum + win.solutions.length, 0), 0)}</strong></div>
+        <div class="box"><span>Área Total</span><strong><span style="color: #2563eb;">${totalAreaM2.toFixed(2)} m²</span></strong></div>
       </div>
       ${activeSpaces.map(space => `
         <h2>${escapeHtml(space.name)}</h2>
@@ -217,6 +240,28 @@ function renderProjectReport(project: TechnicalProject, catalog: TechnicalCatalo
           <h2 style="margin: 0; color: #333; font-size: 18px;">Total Proyecto: ${totalEstimate.toLocaleString('es-CO')} COP</h2>
         </div>
         ` : ''}
+
+      <div style="margin-top: 20px; page-break-inside: avoid;">
+        <h2 style="font-size: 16px;">Resumen General por Sistema</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Sistema</th>
+              <th>Total Área (m²)</th>
+              ${showPrice ? '<th>Total COP</th>' : ''}
+            </tr>
+          </thead>
+          <tbody>
+            ${Object.entries(systemTotals).map(([sys, totals]) => `
+              <tr>
+                <td><strong>${escapeHtml(sys)}</strong></td>
+                <td><strong style="color: #2563eb;">${totals.area > 0 ? `${totals.area.toFixed(2)} m²` : '-'}</strong></td>
+                ${showPrice ? `<td>${totals.price.toLocaleString('es-CO')} COP</td>` : ''}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
     </section>
   `;
 }

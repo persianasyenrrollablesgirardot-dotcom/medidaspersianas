@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DEFAULT_CATALOG } from '../db';
 import type { ProjectSummary, TechnicalCatalog, TechnicalProject } from '../types';
-import { solutionTotal } from './metrics';
+import { solutionTotal, solutionArea } from './metrics';
 
 const PROJECTS_KEY = 'juno_fallback_projects_v1';
 const CATALOG_KEY = 'juno_fallback_catalog_v1';
@@ -178,6 +178,28 @@ function projectToSummary(project: TechnicalProject): ProjectSummary {
     , 0)
   , 0);
 
+  const totalAreaM2 = activeSpaces.reduce((sum, space) => 
+    sum + space.windows.reduce((wSum, win) => 
+      wSum + win.solutions.reduce((sSum, sol) => 
+        sSum + (sol.itemType !== 'maintenance' ? solutionArea(sol) : 0)
+      , 0)
+    , 0)
+  , 0);
+
+  const systemTotals = activeSpaces.reduce((acc, space) => {
+    space.windows.forEach(win => {
+      win.solutions.forEach(sol => {
+        const sys = sol.system || 'Sin sistema';
+        if (!acc[sys]) acc[sys] = { area: 0, price: 0 };
+        if (sol.itemType !== 'maintenance') {
+          acc[sys].area += solutionArea(sol);
+        }
+        acc[sys].price += solutionTotal(sol);
+      });
+    });
+    return acc;
+  }, {} as Record<string, { area: number; price: number }>);
+
   return {
     projectId: project.id!,
     code: project.code,
@@ -190,6 +212,8 @@ function projectToSummary(project: TechnicalProject): ProjectSummary {
     windowsCount,
     solutionsCount,
     totalEstimate,
+    totalAreaM2,
+    systemTotals,
     deletedAt: project.deletedAt || 0,
     updatedAt: project.updatedAt,
     synced: false,
