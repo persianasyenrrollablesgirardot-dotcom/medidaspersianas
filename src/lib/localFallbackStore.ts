@@ -101,13 +101,15 @@ export function useFallbackTrashSummaries() {
 export function useFallbackProject(id?: string) {
   const numericId = Number(id);
   const [project, setProject] = useState<TechnicalProject | undefined>(() => {
-    if (isFallbackId(numericId)) return getFallbackProject(numericId);
+    const local = getFallbackProject(numericId);
+    if (local) return local;
     return getCloudProjectCache(numericId);
   });
 
   useEffect(() => {
     const refresh = () => {
-      if (isFallbackId(numericId)) setProject(getFallbackProject(numericId));
+      const local = getFallbackProject(numericId);
+      if (local) setProject(local);
       else setProject(getCloudProjectCache(numericId));
     };
     refresh();
