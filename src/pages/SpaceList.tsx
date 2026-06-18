@@ -8,6 +8,7 @@ import { newSpace } from '../lib/projectFactory';
 import { saveProject } from '../lib/projectStore';
 import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
 import { solutionTotal, solutionArea } from '../lib/metrics';
+import { useAuth } from '../components/AuthContext';
 import type { TechnicalProject } from '../types';
 
 export function SpaceList() {
@@ -16,6 +17,7 @@ export function SpaceList() {
   const fallbackProject = useFallbackProject(id);
   const dbProject = useLiveQuery<TechnicalProject | undefined>(() => isFallbackId(Number(id)) ? Promise.resolve(undefined) : db.projects.get(Number(id)), [id]);
   const project = fallbackProject || dbProject;
+  const { role } = useAuth();
 
   if (!project) return <div className="page"><div className="empty">Cargando espacios...</div></div>;
 
@@ -29,7 +31,7 @@ export function SpaceList() {
           <h2>Ambientes del proyecto</h2>
           <p className="muted">{project.spaces.length} espacios registrados</p>
         </div>
-        <button className="primary" onClick={add}><PlusIcon className="icon" /> Agregar</button>
+        {role === 'admin' && <button className="primary" onClick={add}><PlusIcon className="icon" /> Agregar</button>}
       </div>
       <section className="space-grid">
         {project.spaces.map(space => {
@@ -44,15 +46,17 @@ export function SpaceList() {
                   <span>{space.windows.length} ventanas</span>
                   <span>{solutions} soluciones</span>
                   {spaceAreaM2 > 0 && <span style={{ color: 'var(--blue)', fontWeight: 'bold' }}>{spaceAreaM2.toFixed(2)} m²</span>}
-                  {spaceTotal > 0 && <span style={{ color: 'var(--green)', fontWeight: 'bold' }}>$ {spaceTotal.toLocaleString('es-CO')}</span>}
+                  {role === 'admin' && spaceTotal > 0 && <span style={{ color: 'var(--green)', fontWeight: 'bold' }}>$ {spaceTotal.toLocaleString('es-CO')}</span>}
                 </div>
               </button>
-              <div className="space-tile-edit">
-                <TextInput value={space.name} onChange={e => saveProject({ ...project, spaces: project.spaces.map(s => s.id === space.id ? { ...s, name: e.target.value } : s) })} aria-label={`Nombre de ${space.name}`} />
-                <button className="mini-danger" onClick={() => saveProject({ ...project, spaces: project.spaces.filter(s => s.id !== space.id) })} aria-label={`Eliminar ${space.name}`}>
-                  <TrashIcon className="icon" />
-                </button>
-              </div>
+              {role === 'admin' && (
+                <div className="space-tile-edit">
+                  <TextInput value={space.name} onChange={e => saveProject({ ...project, spaces: project.spaces.map(s => s.id === space.id ? { ...s, name: e.target.value } : s) })} aria-label={`Nombre de ${space.name}`} />
+                  <button className="mini-danger" onClick={() => saveProject({ ...project, spaces: project.spaces.filter(s => s.id !== space.id) })} aria-label={`Eliminar ${space.name}`}>
+                    <TrashIcon className="icon" />
+                  </button>
+                </div>
+              )}
             </article>
           );
         })}

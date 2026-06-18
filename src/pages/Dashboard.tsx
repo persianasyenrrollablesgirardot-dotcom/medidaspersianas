@@ -26,6 +26,7 @@ export function Dashboard() {
       getDocs(collection(dbFirestore, 'cloud_projects')).then(snapshot => {
         const projs = snapshot.docs.map(doc => ({ ...doc.data(), projectId: doc.data().id || doc.data().projectId } as unknown as ProjectSummary));
         setCloudProjects(projs);
+        window.localStorage.setItem('cloud_projects_cache', JSON.stringify(projs));
       }).catch(e => {
         console.error(e);
         toast.error('Error cargando proyectos de la nube');
@@ -165,9 +166,8 @@ export function Dashboard() {
               <button 
                 className="project-open" 
                 onClick={() => {
-                  if (role === 'admin') navigate(`/project/${project.projectId}/spaces`);
+                  navigate(`/project/${project.projectId}/spaces`);
                 }}
-                style={{ cursor: role === 'proveedor' ? 'default' : 'pointer' }}
               >
                 <div>
                   <strong>{role === 'proveedor' ? 'Censurado' : (project.clientName || 'Proyecto sin cliente')}</strong>

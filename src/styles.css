@@ -609,3 +609,33 @@ body { color: var(--text); background: var(--bg); }
   .space-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .window-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+
+/* ROLES Y PERMISOS - MODO PROVEEDOR (CENSURADO Y SOLO LECTURA) */
+.role-proveedor .primary,
+.role-proveedor .mini-danger,
+.role-proveedor .space-tile-edit,
+.role-proveedor .detail-edit-button,
+.role-proveedor .add-button,
+.role-proveedor .workspace-sidebar button.danger,
+.role-proveedor .workspace-sidebar button.secondary,
+.role-proveedor .field-row input,
+.role-proveedor .field-row select,
+.role-proveedor .field-row textarea,
+.role-proveedor .price,
+.role-proveedor .price-tag,
+.role-proveedor .total-price,
+.role-proveedor [style*="color: var(--green)"] {
+  display: none !important;
+}
+
+.role-proveedor input, 
+.role-proveedor select, 
+.role-proveedor textarea {
+  pointer-events: none;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  color: var(--text) !important;
+  appearance: none;
+  -moz-appearance: none;
+  -webkit-appearance: none;
+}

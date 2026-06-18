@@ -8,7 +8,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const { role, logout } = useAuth();
   
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${role === 'proveedor' ? 'role-proveedor' : ''}`}>
       <AutosaveStatus />
       <main className="app-main" style={{ paddingBottom: '80px' }}>{children}</main>
       <nav className="bottom-nav">

@@ -53,6 +53,17 @@ export function getFallbackProject(id: number): TechnicalProject | undefined {
   return getFallbackProjects().find(project => project.id === id);
 }
 
+export function getCloudProjectCache(id: number): TechnicalProject | undefined {
+  try {
+    const raw = window.localStorage.getItem('cloud_projects_cache');
+    if (raw) {
+      const projs = JSON.parse(raw) as TechnicalProject[];
+      return projs.find(p => p.id === id || (p as any).projectId === id);
+    }
+  } catch {}
+  return undefined;
+}
+
 export function saveFallbackProject(project: TechnicalProject) {
   if (!isFallbackId(project.id)) return;
   const updated = { ...project, updatedAt: Date.now(), synced: false };
@@ -89,11 +100,16 @@ export function useFallbackTrashSummaries() {
 
 export function useFallbackProject(id?: string) {
   const numericId = Number(id);
-  const [project, setProject] = useState<TechnicalProject | undefined>(() => isFallbackId(numericId) ? getFallbackProject(numericId) : undefined);
+  const [project, setProject] = useState<TechnicalProject | undefined>(() => {
+    if (isFallbackId(numericId)) return getFallbackProject(numericId);
+    return getCloudProjectCache(numericId);
+  });
 
   useEffect(() => {
-    if (!isFallbackId(numericId)) return;
-    const refresh = () => setProject(getFallbackProject(numericId));
+    const refresh = () => {
+      if (isFallbackId(numericId)) setProject(getFallbackProject(numericId));
+      else setProject(getCloudProjectCache(numericId));
+    };
     refresh();
     window.addEventListener(CHANGE_EVENT, refresh);
     return () => window.removeEventListener(CHANGE_EVENT, refresh);

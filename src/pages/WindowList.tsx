@@ -8,6 +8,7 @@ import { updateSpace } from '../lib/projectStore';
 import { statusLabel } from '../lib/labels';
 import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
 import { solutionTotal, solutionArea } from '../lib/metrics';
+import { useAuth } from '../components/AuthContext';
 import type { TechnicalProject } from '../types';
 
 export function WindowList() {
@@ -17,6 +18,7 @@ export function WindowList() {
   const dbProject = useLiveQuery<TechnicalProject | undefined>(() => isFallbackId(Number(id)) ? Promise.resolve(undefined) : db.projects.get(Number(id)), [id]);
   const project = fallbackProject || dbProject;
   const space = project?.spaces.find(s => s.id === spaceId);
+  const { role } = useAuth();
 
   if (!project || !space) return <div className="page"><div className="empty">Cargando ventanas...</div></div>;
 
@@ -30,7 +32,7 @@ export function WindowList() {
           <h2>Ventanas levantadas</h2>
           <p className="muted">{space.windows.length} ventanas en este espacio</p>
         </div>
-        <button className="primary" onClick={add}><PlusIcon className="icon" /> Agregar</button>
+        {role === 'admin' && <button className="primary" onClick={add}><PlusIcon className="icon" /> Agregar</button>}
       </div>
       <section className="window-grid">
         {space.windows.map(win => {
@@ -47,13 +49,15 @@ export function WindowList() {
                   <span>{win.solutions.length} soluciones</span>
                   <span>{win.evidence.length} fotos</span>
                   {windowAreaM2 > 0 && <span style={{ color: 'var(--blue)', fontWeight: 'bold' }}>{windowAreaM2.toFixed(2)} m²</span>}
-                  {windowTotal > 0 && <span style={{ color: 'var(--green)', fontWeight: 'bold' }}>$ {windowTotal.toLocaleString('es-CO')}</span>}
+                  {role === 'admin' && windowTotal > 0 && <span style={{ color: 'var(--green)', fontWeight: 'bold' }}>$ {windowTotal.toLocaleString('es-CO')}</span>}
                 </div>
                 <em className={blockers ? 'bad' : warnings ? 'warn' : 'ok'} style={{ marginTop: '4px' }}>{badge}</em>
               </button>
-              <button className="mini-danger" onClick={() => updateSpace(project, space.id, current => ({ ...current, windows: current.windows.filter(w => w.id !== win.id) }))} aria-label={`Eliminar ${win.label}`}>
-                <TrashIcon className="icon" />
-              </button>
+              {role === 'admin' && (
+                <button className="mini-danger" onClick={() => updateSpace(project, space.id, current => ({ ...current, windows: current.windows.filter(w => w.id !== win.id) }))} aria-label={`Eliminar ${win.label}`}>
+                  <TrashIcon className="icon" />
+                </button>
+              )}
             </article>
           );
         })}
