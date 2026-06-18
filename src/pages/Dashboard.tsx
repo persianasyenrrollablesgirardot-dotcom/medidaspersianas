@@ -192,6 +192,21 @@ export function Dashboard() {
                   </div>
                 )}
               </button>
+              {role === 'proveedor' && (
+                <div className="project-report-actions" style={{ justifyContent: 'center', marginTop: '10px', paddingBottom: '10px' }}>
+                  <button
+                    type="button"
+                    className="report-pill"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      generateReport(project, 'supplier');
+                    }}
+                    style={{ background: 'var(--blue)', color: 'white', borderColor: 'var(--blue)', width: '100%', padding: '10px' }}
+                  >
+                    <DocumentArrowDownIcon className="icon" /> Abrir PDF de Fabricación
+                  </button>
+                </div>
+              )}
               <div className="project-card-actions" style={{ display: role === 'admin' ? 'flex' : 'none' }}>
                 <button
                   className="project-setup"
