@@ -47,6 +47,24 @@ export function ProjectDetail() {
     }
   };
 
+  const handleUnsendFromSupplier = async () => {
+    if (!project) return;
+    if (!confirm('¿Seguro que deseas retirar este proyecto? El proveedor ya no podrá verlo.')) return;
+    try {
+      const updated = { ...project, sentToSupplier: false };
+      if (fallbackMode) {
+        saveFallbackProject(updated as TechnicalProject);
+      } else {
+        await saveProject(updated as TechnicalProject);
+      }
+      await syncProjectToCloud(updated as TechnicalProject);
+      toast.success('Proyecto retirado del proveedor');
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al retirar el proyecto');
+    }
+  };
+
   const generateReport = async (profile: PdfReportProfile) => {
     if (!project) return;
     try {
@@ -146,14 +164,26 @@ export function ProjectDetail() {
                   Enviado a Proveedor ✓
                 </span>
               )}
-              <button
-                className="secondary"
-                type="button"
-                onClick={handleSendToSupplier}
-                style={{ background: 'var(--blue)', color: 'white', borderColor: 'var(--blue)' }}
-              >
-                {project.sentToSupplier ? '🔄 Re-enviar a Proveedor' : 'Enviar a Proveedor'}
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  className="secondary"
+                  type="button"
+                  onClick={handleSendToSupplier}
+                  style={{ background: 'var(--blue)', color: 'white', borderColor: 'var(--blue)' }}
+                >
+                  {project.sentToSupplier ? '🔄 Re-enviar a Proveedor' : 'Enviar a Proveedor'}
+                </button>
+                {project.sentToSupplier && (
+                  <button
+                    className="secondary danger-outline"
+                    type="button"
+                    onClick={handleUnsendFromSupplier}
+                    style={{ borderColor: 'var(--danger, #ef4444)', color: 'var(--danger, #ef4444)' }}
+                  >
+                    Retirar del Proveedor
+                  </button>
+                )}
+              </div>
             </div>
           )}
           <button 
