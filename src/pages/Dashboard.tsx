@@ -13,6 +13,36 @@ import { useAuth } from '../components/AuthContext';
 import { collection, getDocs } from 'firebase/firestore';
 import { dbFirestore } from '../lib/firebase';
 import { useEffect } from 'react';
+import { supplierStatusDocId, useSupplierStatuses } from '../lib/supplierStatus';
+
+function ProjectSupplierBadge({ project }: { project: any }) {
+  const docId = supplierStatusDocId(project.projectId, project.code);
+  const statuses = useSupplierStatuses(docId);
+  
+  if (!project.spaces) return null; // We need the full project data to count solutions
+  
+  const allBlinds = project.spaces.flatMap((s: any) => s.windows.flatMap((w: any) => w.solutions));
+  const total = allBlinds.length;
+  const done = allBlinds.filter((s: any) => statuses[s.id]).length;
+  const allDone = total > 0 && done === total;
+  
+  if (total === 0) return null;
+  
+  return (
+    <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center' }}>
+      <span style={{ 
+        fontWeight: 'bold', 
+        color: allDone ? '#16a34a' : '#ef4444', 
+        background: allDone ? 'rgba(22,163,74,0.15)' : 'rgba(239,68,68,0.15)', 
+        padding: '4px 10px', 
+        borderRadius: '12px', 
+        fontSize: '13px' 
+      }}>
+        {allDone ? '✓ PROYECTO COMPLETADO' : `⚠ ${done}/${total} persianas gestionadas`}
+      </span>
+    </div>
+  );
+}
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -182,6 +212,7 @@ export function Dashboard() {
                     <span className="price">$ {project.totalEstimate.toLocaleString('es-CO')}</span>
                   )}
                 </div>
+                {role === 'proveedor' && <ProjectSupplierBadge project={project} />}
                 {project.systemTotals && Object.keys(project.systemTotals).length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
                     {Object.entries(project.systemTotals as Record<string, { area: number; price: number }>).map(([sys, totals]) => totals.area > 0 && (
