@@ -9,6 +9,7 @@ import { statusLabel } from '../lib/labels';
 import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
 import { solutionTotal, solutionArea } from '../lib/metrics';
 import { useAuth } from '../components/AuthContext';
+import { supplierStatusDocId, useSupplierStatuses } from '../lib/supplierStatus';
 import type { TechnicalProject } from '../types';
 
 export function WindowList() {
@@ -19,6 +20,8 @@ export function WindowList() {
   const project = fallbackProject || dbProject;
   const space = project?.spaces.find(s => s.id === spaceId);
   const { role } = useAuth();
+  const docId = project ? supplierStatusDocId(project.id, project.code) : undefined;
+  const supplierStatuses = useSupplierStatuses(role === 'proveedor' ? docId : undefined);
 
   if (!project || !space) return <div className="page"><div className="empty">Cargando ventanas...</div></div>;
 
@@ -54,6 +57,17 @@ export function WindowList() {
                   <span>{win.evidence.length} fotos</span>
                   {windowAreaM2 > 0 && <span style={{ color: 'var(--blue)', fontWeight: 'bold' }}>{windowAreaM2.toFixed(2)} m²</span>}
                   {role === 'admin' && windowTotal > 0 && <span style={{ color: 'var(--green)', fontWeight: 'bold' }}>$ {windowTotal.toLocaleString('es-CO')}</span>}
+                  {role === 'proveedor' && (() => {
+                    const blinds = win.solutions.filter(s => s.itemType !== 'maintenance');
+                    const done = blinds.filter(s => supplierStatuses[s.id]).length;
+                    const total = blinds.length;
+                    const allDone = total > 0 && done === total;
+                    return total > 0 ? (
+                      <span style={{ fontWeight: 'bold', color: allDone ? '#16a34a' : '#ef4444', background: allDone ? 'rgba(22,163,74,0.15)' : 'rgba(239,68,68,0.15)', padding: '2px 8px', borderRadius: '10px', fontSize: '12px' }}>
+                        {allDone ? '✓ Completo' : `${done}/${total} gestionadas`}
+                      </span>
+                    ) : null;
+                  })()}
                 </div>
                 <em className={blockers ? 'bad' : warnings ? 'warn' : 'ok'} style={{ marginTop: '4px' }}>{badge}</em>
               </button>

@@ -9,6 +9,7 @@ import { saveProject } from '../lib/projectStore';
 import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
 import { solutionTotal, solutionArea } from '../lib/metrics';
 import { useAuth } from '../components/AuthContext';
+import { supplierStatusDocId, useSupplierStatuses } from '../lib/supplierStatus';
 import type { TechnicalProject } from '../types';
 
 export function SpaceList() {
@@ -18,6 +19,8 @@ export function SpaceList() {
   const dbProject = useLiveQuery<TechnicalProject | undefined>(() => isFallbackId(Number(id)) ? Promise.resolve(undefined) : db.projects.get(Number(id)), [id]);
   const project = fallbackProject || dbProject;
   const { role } = useAuth();
+  const docId = project ? supplierStatusDocId(project.id, project.code) : undefined;
+  const supplierStatuses = useSupplierStatuses(role === 'proveedor' ? docId : undefined);
 
   if (!project) return <div className="page"><div className="empty">Cargando espacios...</div></div>;
 
@@ -47,6 +50,17 @@ export function SpaceList() {
                   <span>{solutions} soluciones</span>
                   {spaceAreaM2 > 0 && <span style={{ color: 'var(--blue)', fontWeight: 'bold' }}>{spaceAreaM2.toFixed(2)} m²</span>}
                   {role === 'admin' && spaceTotal > 0 && <span style={{ color: 'var(--green)', fontWeight: 'bold' }}>$ {spaceTotal.toLocaleString('es-CO')}</span>}
+                  {role === 'proveedor' && (() => {
+                    const allBlinds = space.windows.flatMap(w => w.solutions.filter(s => s.itemType !== 'maintenance'));
+                    const done = allBlinds.filter(s => supplierStatuses[s.id]).length;
+                    const total = allBlinds.length;
+                    const allDone = total > 0 && done === total;
+                    return total > 0 ? (
+                      <span style={{ fontWeight: 'bold', color: allDone ? '#16a34a' : '#ef4444', background: allDone ? 'rgba(22,163,74,0.15)' : 'rgba(239,68,68,0.15)', padding: '2px 8px', borderRadius: '10px', fontSize: '12px' }}>
+                        {allDone ? '✓ Espacio completo' : `⚠ ${done}/${total} gestionadas`}
+                      </span>
+                    ) : null;
+                  })()}
                 </div>
               </button>
               {role === 'admin' && (
