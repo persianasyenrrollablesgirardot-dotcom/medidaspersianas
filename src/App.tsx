@@ -19,6 +19,7 @@ import { Contabilidad } from './pages/Contabilidad';
 import { AdminPanel } from './pages/AdminPanel';
 import { Login } from './pages/Login';
 import { AuthProvider, useAuth } from './components/AuthContext';
+import { SupplierProjectView } from './pages/SupplierProjectView';
 
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: ('admin' | 'proveedor')[] }) {
   const { user, role, loading } = useAuth();
@@ -58,6 +59,7 @@ export default function App() {
                   <Route path="/project/:id/quote" element={<QuickQuoteModule />} />
                   <Route path="/project/:id/detail" element={<ProjectDetail />} />
                   <Route path="/project/:id/spaces" element={<SpaceList />} />
+                  <Route path="/project/:id/supplier-view" element={<SupplierProjectView />} />
                   <Route path="/project/:id/space/:spaceId" element={<WindowList />} />
                   <Route path="/project/:id/space/:spaceId/window/:windowId" element={<WindowWorkspace />} />
                   <Route path="/exports" element={<ExportCenter />} />
