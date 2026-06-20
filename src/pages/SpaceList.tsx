@@ -51,7 +51,7 @@ export function SpaceList() {
                   {spaceAreaM2 > 0 && <span style={{ color: 'var(--blue)', fontWeight: 'bold' }}>{spaceAreaM2.toFixed(2)} m²</span>}
                   {role === 'admin' && spaceTotal > 0 && <span style={{ color: 'var(--green)', fontWeight: 'bold' }}>$ {spaceTotal.toLocaleString('es-CO')}</span>}
                   {role === 'proveedor' && (() => {
-                    const allBlinds = space.windows.flatMap(w => w.solutions.filter(s => s.itemType !== 'maintenance'));
+                    const allBlinds = space.windows.flatMap(w => w.solutions);
                     const done = allBlinds.filter(s => supplierStatuses[s.id]).length;
                     const total = allBlinds.length;
                     const allDone = total > 0 && done === total;

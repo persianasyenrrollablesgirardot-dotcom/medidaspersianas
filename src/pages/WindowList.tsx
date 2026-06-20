@@ -58,7 +58,7 @@ export function WindowList() {
                   {windowAreaM2 > 0 && <span style={{ color: 'var(--blue)', fontWeight: 'bold' }}>{windowAreaM2.toFixed(2)} m²</span>}
                   {role === 'admin' && windowTotal > 0 && <span style={{ color: 'var(--green)', fontWeight: 'bold' }}>$ {windowTotal.toLocaleString('es-CO')}</span>}
                   {role === 'proveedor' && (() => {
-                    const blinds = win.solutions.filter(s => s.itemType !== 'maintenance');
+                    const blinds = win.solutions;
                     const done = blinds.filter(s => supplierStatuses[s.id]).length;
                     const total = blinds.length;
                     const allDone = total > 0 && done === total;

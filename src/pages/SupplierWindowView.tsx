@@ -138,8 +138,8 @@ export function SupplierWindowView() {
 
   if (!project || !space || !win) return <div className="page"><div className="empty">Cargando persianas...</div></div>;
 
-  const blinds = win.solutions.filter(s => s.itemType !== 'maintenance');
-  const totalAreaM2 = blinds.reduce((sum, sol) => sum + solutionArea(sol), 0);
+  const blinds = win.solutions;
+  const totalAreaM2 = blinds.reduce((sum, sol) => sum + (sol.itemType !== 'maintenance' ? solutionArea(sol) : 0), 0);
   const gestionadas = blinds.filter(s => statuses[s.id]).length;
   const allDone = gestionadas === blinds.length && blinds.length > 0;
 
