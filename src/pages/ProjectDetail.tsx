@@ -140,17 +140,21 @@ export function ProjectDetail() {
             </button>
           ))}
           {role === 'admin' && (
-            <>
-              {!project.sentToSupplier ? (
-                <button className="secondary" type="button" onClick={handleSendToSupplier} style={{ background: 'var(--blue)', color: 'white', borderColor: 'var(--blue)' }}>
-                  Enviar a Proveedor
-                </button>
-              ) : (
-                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '8px 16px', background: 'var(--success-light, #dcfce7)', color: 'var(--success, #16a34a)', borderRadius: '6px', fontSize: '14px', fontWeight: 'bold' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
+              {project.sentToSupplier && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 12px', background: 'var(--success-light, #dcfce7)', color: 'var(--success, #16a34a)', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>
                   Enviado a Proveedor ✓
                 </span>
               )}
-            </>
+              <button
+                className="secondary"
+                type="button"
+                onClick={handleSendToSupplier}
+                style={{ background: 'var(--blue)', color: 'white', borderColor: 'var(--blue)' }}
+              >
+                {project.sentToSupplier ? '🔄 Re-enviar a Proveedor' : 'Enviar a Proveedor'}
+              </button>
+            </div>
           )}
           <button 
             className="secondary" 
