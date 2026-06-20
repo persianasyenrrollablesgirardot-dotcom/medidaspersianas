@@ -166,11 +166,7 @@ export function Dashboard() {
               <button 
                 className="project-open" 
                 onClick={() => {
-                  if (role === 'proveedor') {
-                    navigate(`/project/${project.projectId}/supplier-view`);
-                  } else {
-                    navigate(`/project/${project.projectId}/spaces`);
-                  }
+                  navigate(`/project/${project.projectId}/spaces`);
                 }}
               >
                 <div>

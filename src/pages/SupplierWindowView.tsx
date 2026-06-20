@@ -58,41 +58,29 @@ function ProductCard({ solution, windowLabel, spaceName }: { solution: Technical
   );
 }
 
-export function SupplierProjectView() {
-  const { id } = useParams();
+export function SupplierWindowView() {
+  const { id, spaceId, windowId } = useParams();
   const numericId = Number(id);
   const fallbackProject = useFallbackProject(id);
   const dbProject = useLiveQuery<TechnicalProject | undefined>(() => isFallbackId(numericId) ? Promise.resolve(undefined) : db.projects.get(numericId), [numericId]);
   const project = fallbackProject || dbProject;
+  const space = project?.spaces.find(s => s.id === spaceId);
+  const win = space?.windows.find(w => w.id === windowId);
 
-  if (!project) return <div className="page"><div className="empty">Cargando proyecto para producción...</div></div>;
+  if (!project || !space || !win) return <div className="page"><div className="empty">Cargando persianas...</div></div>;
 
-  const activeSpaces = project.spaces.filter(s => !s.isExcluded).map(s => ({
-    ...s,
-    windows: s.windows.filter(w => !w.isExcluded)
-  }));
-  
-  const totalAreaM2 = activeSpaces.reduce((sum, space) => 
-    sum + space.windows.reduce((wSum, win) => 
-      wSum + win.solutions.reduce((sSum, sol) => 
-        sSum + (sol.itemType !== 'maintenance' ? solutionArea(sol) : 0)
-      , 0)
-    , 0)
-  , 0);
-
-  const totalSolutions = activeSpaces.reduce((sum, space) => 
-    sum + space.windows.reduce((wSum, win) => wSum + win.solutions.length, 0)
-  , 0);
+  const totalAreaM2 = win.solutions.reduce((sum, sol) => sum + (sol.itemType !== 'maintenance' ? solutionArea(sol) : 0), 0);
+  const totalSolutions = win.solutions.length;
 
   return (
     <div className="page" style={{ paddingBottom: '100px' }}>
-      <PageHeader title="Orden de Producción" subtitle={project.clientName || project.code} backTo="/" />
+      <PageHeader title={win.label} subtitle={`${project.clientName || project.code} - ${space.name}`} backTo={`/project/${project.id}/space/${space.id}`} />
       
       <section className="panel" style={{ background: 'var(--blue)', color: 'white', borderColor: 'var(--blue)', marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 style={{ fontSize: '20px', margin: '0 0 4px 0' }}>Resumen de Fabricación</h2>
-            <p style={{ margin: 0, opacity: 0.8, fontSize: '14px' }}>Toda la información técnica lista para taller.</p>
+            <h2 style={{ fontSize: '20px', margin: '0 0 4px 0' }}>Resumen de la Ventana</h2>
+            <p style={{ margin: 0, opacity: 0.8, fontSize: '14px' }}>Persianas a fabricar para esta ubicación.</p>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{totalAreaM2.toFixed(2)} m²</div>
@@ -101,34 +89,18 @@ export function SupplierProjectView() {
         </div>
       </section>
 
-      {activeSpaces.length === 0 ? (
-        <div className="empty">No hay elementos a fabricar en este proyecto.</div>
+      {win.solutions.length === 0 ? (
+        <div className="empty">Esta ventana no tiene persianas para fabricar.</div>
       ) : (
         <div className="supplier-spaces-container">
-          {activeSpaces.map((space, i) => {
-            const spaceSolutionsCount = space.windows.reduce((acc, win) => acc + win.solutions.length, 0);
-            if (spaceSolutionsCount === 0) return null;
-            
-            return (
-              <div key={space.id} style={{ marginBottom: '32px' }}>
-                <h2 style={{ fontSize: '18px', color: '#fff', borderBottom: '2px solid #374151', paddingBottom: '8px', marginBottom: '16px' }}>
-                  {i + 1}. {space.name}
-                </h2>
-                <div>
-                  {space.windows.map(win => (
-                    win.solutions.map(sol => (
-                      <ProductCard 
-                        key={sol.id} 
-                        solution={sol} 
-                        windowLabel={win.label} 
-                        spaceName={space.name} 
-                      />
-                    ))
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+          {win.solutions.map(sol => (
+            <ProductCard 
+              key={sol.id} 
+              solution={sol} 
+              windowLabel={win.label} 
+              spaceName={space.name} 
+            />
+          ))}
         </div>
       )}
     </div>
