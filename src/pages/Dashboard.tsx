@@ -174,7 +174,7 @@ export function Dashboard() {
                 }}
               >
                 <div>
-                  <strong>{role === 'proveedor' ? 'Censurado' : (project.clientName || 'Proyecto sin cliente')}</strong>
+                  <strong>{project.clientName || 'Proyecto sin cliente'}</strong>
                   <span>{project.siteName || project.address || project.code}</span>
                 </div>
                 <div className="card-meta">

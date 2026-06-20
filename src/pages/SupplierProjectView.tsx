@@ -86,7 +86,7 @@ export function SupplierProjectView() {
 
   return (
     <div className="page" style={{ paddingBottom: '100px' }}>
-      <PageHeader title="Orden de Producción" subtitle={project.clientName === 'Censurado' ? 'Proyecto Reservado' : (project.clientName || project.code)} backTo="/" />
+      <PageHeader title="Orden de Producción" subtitle={project.clientName || project.code} backTo="/" />
       
       <section className="panel" style={{ background: 'var(--blue)', color: 'white', borderColor: 'var(--blue)', marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
