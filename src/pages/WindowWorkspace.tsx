@@ -8,7 +8,7 @@ import { EditableSelect } from '../components/EditableSelect';
 import { MeasureInput } from '../components/MeasureInput';
 import { PageHeader } from '../components/PageHeader';
 import { Segmented } from '../components/Segmented';
-import { addEvidence, updateSolution, updateWindow } from '../lib/projectStore';
+import { addEvidence as addStoreEvidence, updateSolution, updateWindow } from '../lib/projectStore';
 import { newMaintenance, newSolution } from '../lib/projectFactory';
 import { evidenceLabel } from '../lib/labels';
 import { quoteArea, solutionArea, solutionTotal } from '../lib/metrics';
@@ -153,6 +153,10 @@ export function WindowWorkspace() {
     setActiveSolutionId(remaining[0]?.id);
   };
 
+  const handleAddEvidence = (file: File, kind: EvidenceKind) => {
+    addStoreEvidence(project, space.id, win.id, file, kind);
+  };
+
   return (
     <div className="page narrow workspace">
       <PageHeader title={win.label} subtitle={space.name} backTo={`/project/${project.id}/space/${space.id}`} />
@@ -222,7 +226,7 @@ export function WindowWorkspace() {
 
       {tab === 'evidence' && (
         <section className="panel focus-panel">
-          <EvidenceForm win={win} onAdd={(file: File, kind: EvidenceKind) => addEvidence(project, space.id, win.id, file, kind)} onDelete={(evidenceId: string) => patchWindow({ evidence: win.evidence.filter(e => e.id !== evidenceId) })} />
+          <EvidenceForm win={win} onAdd={handleAddEvidence} onDelete={(evidenceId: string) => patchWindow({ evidence: win.evidence.filter(e => e.id !== evidenceId) })} />
         </section>
       )}
 
