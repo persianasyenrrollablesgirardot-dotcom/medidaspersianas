@@ -242,13 +242,25 @@ function projectToSummary(project: TechnicalProject): ProjectSummary {
 }
 
 function writeFallbackProjects(projects: TechnicalProject[]) {
-  const payload = JSON.stringify(projects);
   try {
+    const payload = JSON.stringify(projects);
     window.localStorage.setItem(PROJECTS_KEY, payload);
-  } catch {
-    window.sessionStorage.setItem(PROJECTS_KEY, payload);
+    window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
+  } catch (error) {
+    // If quota exceeded, try to purge trash to free up space
+    const activeProjects = projects.filter(p => !p.deletedAt);
+    if (activeProjects.length < projects.length) {
+      try {
+        const purgedPayload = JSON.stringify(activeProjects);
+        window.localStorage.setItem(PROJECTS_KEY, purgedPayload);
+        window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
+        return; // Success after purge
+      } catch (purgeError) {
+        throw purgeError; // Still out of space
+      }
+    }
+    throw error; // No trash to purge, throw original error
   }
-  window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
 }
 
 function normalizeFallbackCatalog(catalog: TechnicalCatalog): TechnicalCatalog {
