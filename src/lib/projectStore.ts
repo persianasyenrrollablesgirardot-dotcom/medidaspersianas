@@ -8,37 +8,45 @@ const saveQueues = new Map<number, Promise<void>>();
 
 export async function saveProject(project: TechnicalProject) {
   if (!project.id) return;
-  if (isFallbackId(project.id)) {
-    saveFallbackProject(project);
-    return;
-  }
-  const hydrated: TechnicalProject = {
-    ...project,
-    updatedAt: Date.now(),
-    synced: false,
-    spaces: project.spaces.map(space => ({
-      ...space,
-      windows: space.windows.map(window => ({
-        ...window,
-        solutions: window.solutions.map(solution => ({
-          ...solution,
-          alerts: solution.alerts || [],
-          quickQuote: solution.quickQuote ? { ...solution.quickQuote, estimatedTotal: quoteTotal(solution.quickQuote) } : undefined,
+  
+  try {
+    if (isFallbackId(project.id)) {
+      saveFallbackProject(project);
+      return;
+    }
+    const hydrated: TechnicalProject = {
+      ...project,
+      updatedAt: Date.now(),
+      synced: false,
+      spaces: project.spaces.map(space => ({
+        ...space,
+        windows: space.windows.map(window => ({
+          ...window,
+          solutions: window.solutions.map(solution => ({
+            ...solution,
+            alerts: solution.alerts || [],
+            quickQuote: solution.quickQuote ? { ...solution.quickQuote, estimatedTotal: quoteTotal(solution.quickQuote) } : undefined,
+          })),
         })),
       })),
-    })),
-  };
+    };
 
-  const previous = saveQueues.get(project.id) || Promise.resolve();
-  const next = previous
-    .catch(() => undefined)
-    .then(async () => {
-      await db.projects.put(hydrated);
-      await upsertProjectSummary(hydrated);
-    })
-    .then(() => undefined);
-  saveQueues.set(project.id, next);
-  await next;
+    const previous = saveQueues.get(project.id) || Promise.resolve();
+    const next = previous
+      .catch(() => undefined)
+      .then(async () => {
+        await db.projects.put(hydrated);
+        await upsertProjectSummary(hydrated);
+      })
+      .then(() => undefined);
+    saveQueues.set(project.id, next);
+    await next;
+  } catch (e) {
+    import('react-hot-toast').then(({ default: toast }) => {
+      toast.error('Memoria local llena. No se guardaron los cambios.', { id: 'save-error', duration: 4000 });
+    });
+    console.error('Error guardando el proyecto:', e);
+  }
 }
 
 export function buildProjectSummary(project: TechnicalProject): ProjectSummary | undefined {
