@@ -263,7 +263,7 @@ function writeFallbackProjects(projects: TechnicalProject[]) {
   }
 }
 
-function normalizeFallbackCatalog(catalog: TechnicalCatalog): TechnicalCatalog {
+export function normalizeFallbackCatalog(catalog: TechnicalCatalog): TechnicalCatalog {
   return {
     ...DEFAULT_CATALOG,
     ...catalog,
@@ -278,4 +278,54 @@ function normalizeFallbackCatalog(catalog: TechnicalCatalog): TechnicalCatalog {
     siteConditions: catalog.siteConditions !== undefined ? catalog.siteConditions : DEFAULT_CATALOG.siteConditions,
     lastUpdatedAt: catalog.lastUpdatedAt || Date.now(),
   };
+}
+
+export async function autoCompressOldEvidence() {
+  const projects = getFallbackProjects();
+  let modified = false;
+
+  for (const project of projects) {
+    for (const space of project.spaces) {
+      for (const win of space.windows) {
+        for (let i = 0; i < win.evidence.length; i++) {
+          const ev = win.evidence[i];
+          if (ev.dataUrl && ev.dataUrl.length > 500000) { // > 500KB string
+            try {
+              const img = new Image();
+              img.src = ev.dataUrl;
+              await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+              
+              const maxSide = 1280;
+              const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+              const width = Math.max(1, Math.round(img.width * scale));
+              const height = Math.max(1, Math.round(img.height * scale));
+              
+              const canvas = document.createElement('canvas');
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(img, 0, 0, width, height);
+                ev.dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+                modified = true;
+              }
+            } catch (e) {
+              console.error("Error compressing old image", e);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (modified) {
+    try {
+      const payload = JSON.stringify(projects);
+      window.localStorage.setItem(PROJECTS_KEY, payload);
+      window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
+      console.log("Successfully compressed old bloated images in localStorage.");
+    } catch (e) {
+      console.error("Failed to save compressed projects", e);
+    }
+  }
 }

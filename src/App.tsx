@@ -20,6 +20,7 @@ import { AdminPanel } from './pages/AdminPanel';
 import { Login } from './pages/Login';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { SupplierWindowView } from './pages/SupplierWindowView';
+import { autoCompressOldEvidence } from './lib/localFallbackStore';
 
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: ('admin' | 'proveedor')[] }) {
   const { user, role, loading } = useAuth();
@@ -33,6 +34,8 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode,
 
 export default function App() {
   useEffect(() => {
+    autoCompressOldEvidence();
+    
     db.catalog.toCollection().first().then(cat => {
       if (cat && cat.id) {
         if (!cat.maintenanceCatalog || cat.maintenanceCatalog.length === 0) {
