@@ -6,7 +6,9 @@ import { PageHeader } from '../components/PageHeader';
 import { saveProject } from '../lib/projectStore';
 import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
 import type { TechnicalProject } from '../types';
-import { ChatBubbleOvalLeftIcon } from '@heroicons/react/24/outline';
+import { ChatBubbleOvalLeftIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { buildBackup, downloadText } from '../lib/exporters';
+import toast from 'react-hot-toast';
 
 export function ProjectSetup() {
   const { id } = useParams();
@@ -62,9 +64,21 @@ export function ProjectSetup() {
         <Field label="Direccion / referencia">
           <TextInput value={project.address || ''} onChange={e => update({ address: e.target.value })} placeholder="Direccion o punto de referencia" />
         </Field>
-        <button className="primary wide" onClick={() => navigate(`/project/${project.id}/spaces`)}>
-          Continuar a espacios
-        </button>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+          <button className="primary" style={{ flex: 1 }} onClick={() => navigate(`/project/${project.id}/spaces`)}>
+            Continuar a espacios
+          </button>
+          <button 
+            className="secondary outline" 
+            onClick={() => {
+              downloadText(`proyecto_${project.clientName || project.code}.json`, JSON.stringify(buildBackup([project]), null, 2), 'application/json');
+              toast.success('Backup del proyecto exportado');
+            }}
+            title="Exportar archivo del proyecto para importar en otro dispositivo"
+          >
+            <ArrowDownTrayIcon className="icon" /> Exportar
+          </button>
+        </div>
       </section>
     </div>
   );
