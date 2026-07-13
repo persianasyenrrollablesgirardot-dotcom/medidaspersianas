@@ -24,6 +24,9 @@ export interface TechnicalProject {
   deletedAt?: number;
   synced: boolean;
   sentToSupplier?: boolean;
+  catalogSnapshot?: {
+    customWindowFields?: Array<{ id: string; label: string; options: string[] }>;
+  };
 }
 
 export interface ProjectSummary {

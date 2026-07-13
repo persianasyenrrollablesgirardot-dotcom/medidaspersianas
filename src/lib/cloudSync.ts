@@ -1,14 +1,15 @@
 import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { dbFirestore } from './firebase';
-import type { TechnicalProject } from '../types';
+import type { TechnicalProject, TechnicalCatalog } from '../types';
 
-export async function syncProjectToCloud(project: TechnicalProject) {
+export async function syncProjectToCloud(project: TechnicalProject, catalog?: TechnicalCatalog) {
   try {
     const projectRef = doc(dbFirestore, 'cloud_projects', String(project.id || project.code));
     
     if (project.sentToSupplier) {
       await setDoc(projectRef, {
         ...project,
+        catalogSnapshot: catalog ? { customWindowFields: catalog.customWindowFields } : null,
         lastSyncedToCloud: Date.now()
       }, { merge: true });
     } else {

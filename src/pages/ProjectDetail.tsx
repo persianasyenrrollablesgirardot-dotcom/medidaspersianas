@@ -39,7 +39,7 @@ export function ProjectDetail() {
       } else {
         await saveProject(updated as TechnicalProject);
       }
-      await syncProjectToCloud(updated as TechnicalProject);
+      await syncProjectToCloud(updated as TechnicalProject, catalog);
       toast.success('Proyecto enviado a proveedor correctamente');
     } catch (e) {
       console.error(e);
@@ -57,7 +57,7 @@ export function ProjectDetail() {
       } else {
         await saveProject(updated as TechnicalProject);
       }
-      await syncProjectToCloud(updated as TechnicalProject);
+      await syncProjectToCloud(updated as TechnicalProject, catalog);
       toast.success('Proyecto retirado del proveedor');
     } catch (e) {
       console.error(e);

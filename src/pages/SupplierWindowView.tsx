@@ -40,7 +40,7 @@ function ProductCard({
   const width = solution.quickQuote?.width || solution.assembly.fabricationWidth || 0;
   const height = solution.quickQuote?.height || solution.assembly.fabricationHeight || 0;
   const color = solution.color || solution.assembly.profileColor;
-  const customFields = catalog.customWindowFields || [];
+  const customFields: Array<{id: string; label: string; options: string[]}> = (win as any).projectCatalogSnapshot?.customWindowFields || catalog.customWindowFields || [];
   const winCustomValues = win.customFields || {};
 
   return (
@@ -132,6 +132,9 @@ export function SupplierWindowView() {
   const catalog = dbCatalog || fallbackCatalog || DEFAULT_CATALOG;
   const space = project?.spaces.find(s => s.id === spaceId);
   const win = space?.windows.find(w => w.id === windowId);
+  if (win && project?.catalogSnapshot) {
+    (win as any).projectCatalogSnapshot = project.catalogSnapshot;
+  }
 
   const docId = supplierStatusDocId(project?.id, project?.code);
   const statuses = useSupplierStatuses(project ? docId : undefined);
