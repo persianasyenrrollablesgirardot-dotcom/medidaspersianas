@@ -10,6 +10,7 @@ export function Facturacion() {
   const [documentMode, setDocumentMode] = useState<'COTIZACION' | 'FACTURA' | null>(null)
   const [inputMethod, setInputMethod] = useState<'PDF' | 'TEXT'>('PDF')
   const [rawText, setRawText] = useState('')
+  const [discountPercent, setDiscountPercent] = useState<number | ''>('')
   const [formData, setFormData] = useState<any>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [records, setRecords] = useState<any[]>([])
@@ -53,9 +54,23 @@ export function Facturacion() {
       setIsProcessing(true)
       try {
         const extractedData = await extractInvoiceData(file)
+        
+        if (discountPercent && typeof discountPercent === 'number' && discountPercent > 0) {
+          const discountAmount = extractedData.subtotal 
+            ? extractedData.subtotal * (discountPercent / 100) 
+            : extractedData.total * (discountPercent / 100);
+          extractedData.discount = (extractedData.discount || 0) + discountAmount;
+          extractedData.total = extractedData.subtotal 
+            ? extractedData.subtotal - extractedData.discount 
+            : extractedData.total - discountAmount;
+        }
+
         // Obtener consecutivo de Dexie
         const seq = await generateDocumentSequence(documentMode);
         
+        extractedData.type = documentMode;
+        extractedData.documentNumber = seq;
+
         await db.invoices.add({
           type: documentMode,
           documentNumber: seq,
@@ -64,9 +79,6 @@ export function Facturacion() {
           date: Date.now(),
           formData: extractedData
         });
-        
-        extractedData.type = documentMode;
-        extractedData.documentNumber = seq;
         
         setFormData(extractedData)
         loadRegistry()
@@ -84,9 +96,23 @@ export function Facturacion() {
       setIsProcessing(true)
       try {
         const extractedData = await extractInvoiceDataFromText(rawText)
+        
+        if (discountPercent && typeof discountPercent === 'number' && discountPercent > 0) {
+          const discountAmount = extractedData.subtotal 
+            ? extractedData.subtotal * (discountPercent / 100) 
+            : extractedData.total * (discountPercent / 100);
+          extractedData.discount = (extractedData.discount || 0) + discountAmount;
+          extractedData.total = extractedData.subtotal 
+            ? extractedData.subtotal - extractedData.discount 
+            : extractedData.total - discountAmount;
+        }
+
         // Obtener consecutivo de Dexie
         const seq = await generateDocumentSequence(documentMode);
         
+        extractedData.type = documentMode;
+        extractedData.documentNumber = seq;
+
         await db.invoices.add({
           type: documentMode,
           documentNumber: seq,
@@ -95,9 +121,6 @@ export function Facturacion() {
           date: Date.now(),
           formData: extractedData
         });
-        
-        extractedData.type = documentMode;
-        extractedData.documentNumber = seq;
         
         setFormData(extractedData)
         loadRegistry()
@@ -114,6 +137,7 @@ export function Facturacion() {
     setFormData(null)
     setDocumentMode(null)
     setRawText('')
+    setDiscountPercent('')
   }
 
   const handleShare = async () => {
@@ -218,23 +242,37 @@ export function Facturacion() {
             </div>
 
             {inputMethod === 'PDF' ? (
-              <div className="upload-zone" onClick={() => fileInputRef.current?.click()}>
-                 <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="application/pdf" style={{display: 'none'}} />
-                 
-                 {isProcessing ? (
-                   <div style={{textAlign: 'center'}}>
-                     <Loader2 className="spinner" size={64} color="var(--primary)" style={{margin: '0 auto', marginBottom: '1rem', animation: 'spin 1s linear infinite'}} />
-                     <h2>Analizando PDF para {documentMode}...</h2>
-                     <p style={{color: 'var(--text-muted)', marginTop: '0.5rem'}}>Generando consecutivo oficial y extrayendo datos...</p>
-                   </div>
-                 ) : (
-                   <div style={{textAlign: 'center', cursor: 'pointer', padding: '3rem', border: '2px dashed var(--glass-border)', borderRadius: 'var(--radius-lg)', backgroundColor: 'var(--bg-deep)', transition: 'all 0.3s'}} className="hover-upload">
-                     <UploadCloud size={64} color="var(--primary)" style={{margin: '0 auto', marginBottom: '1rem'}} />
-                     <h2>Sube el PDF de la {documentMode}</h2>
-                     <p style={{color: 'var(--text-muted)', marginTop: '0.5rem'}}>La IA extraerá la info y se le asignará un número consecutivo de la base de datos.</p>
-                   </div>
-                 )}
-              </div>
+              <>
+                <div className="upload-zone" onClick={() => fileInputRef.current?.click()}>
+                   <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="application/pdf" style={{display: 'none'}} />
+                   
+                   {isProcessing ? (
+                     <div style={{textAlign: 'center'}}>
+                       <Loader2 className="spinner" size={64} color="var(--primary)" style={{margin: '0 auto', marginBottom: '1rem', animation: 'spin 1s linear infinite'}} />
+                       <h2>Analizando PDF para {documentMode}...</h2>
+                       <p style={{color: 'var(--text-muted)', marginTop: '0.5rem'}}>Generando consecutivo oficial y extrayendo datos...</p>
+                     </div>
+                   ) : (
+                     <div style={{textAlign: 'center', cursor: 'pointer', padding: '3rem', border: '2px dashed var(--glass-border)', borderRadius: 'var(--radius-lg)', backgroundColor: 'var(--bg-deep)', transition: 'all 0.3s'}} className="hover-upload">
+                       <UploadCloud size={64} color="var(--primary)" style={{margin: '0 auto', marginBottom: '1rem'}} />
+                       <h2>Sube el PDF de la {documentMode}</h2>
+                       <p style={{color: 'var(--text-muted)', marginTop: '0.5rem'}}>La IA extraerá la info y se le asignará un número consecutivo de la base de datos.</p>
+                     </div>
+                   )}
+                </div>
+                {!isProcessing && (
+                  <div style={{ marginTop: '1rem', background: 'var(--bg-deep)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <label style={{ color: 'var(--text-main)', fontWeight: 'bold' }}>Aplicar Descuento Extra (%):</label>
+                    <input 
+                      type="number" 
+                      placeholder="Ej: 10" 
+                      value={discountPercent} 
+                      onChange={e => setDiscountPercent(e.target.value === '' ? '' : Number(e.target.value))}
+                      style={{ background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '8px', borderRadius: '4px', width: '80px', outline: 'none' }}
+                    />
+                  </div>
+                )}
+              </>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {isProcessing ? (
@@ -252,6 +290,16 @@ export function Facturacion() {
                       className="input"
                       style={{ width: '100%', height: '200px', resize: 'none' }}
                     />
+                    <div style={{ marginTop: '0.5rem', background: 'var(--bg-deep)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <label style={{ color: 'var(--text-main)', fontWeight: 'bold' }}>Aplicar Descuento Extra (%):</label>
+                      <input 
+                        type="number" 
+                        placeholder="Ej: 10" 
+                        value={discountPercent} 
+                        onChange={e => setDiscountPercent(e.target.value === '' ? '' : Number(e.target.value))}
+                        style={{ background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-main)', padding: '8px', borderRadius: '4px', width: '80px', outline: 'none' }}
+                      />
+                    </div>
                     <button onClick={handleTextSubmit} disabled={rawText.length < 10} className="primary" style={{ opacity: rawText.length >= 10 ? 1 : 0.5 }}>
                       Generar {documentMode} Mágicamente
                     </button>
