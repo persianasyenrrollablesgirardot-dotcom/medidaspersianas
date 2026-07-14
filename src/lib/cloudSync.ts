@@ -6,9 +6,21 @@ export async function syncProjectToCloud(project: TechnicalProject, catalog?: Te
   try {
     const projectRef = doc(dbFirestore, 'cloud_projects', String(project.id || project.code));
     
+    // Strip dataUrls from evidence to prevent exceeding Firestore 1MB document limit
+    const sanitizedProject = {
+      ...project,
+      spaces: project.spaces.map(space => ({
+        ...space,
+        windows: space.windows.map(win => ({
+          ...win,
+          evidence: win.evidence ? win.evidence.map(e => ({ ...e, dataUrl: '' })) : []
+        }))
+      }))
+    };
+
     if (project.sentToSupplier) {
       await setDoc(projectRef, {
-        ...project,
+        ...sanitizedProject,
         catalogSnapshot: catalog ? { customWindowFields: catalog.customWindowFields } : null,
         lastSyncedToCloud: Date.now()
       }, { merge: true });
