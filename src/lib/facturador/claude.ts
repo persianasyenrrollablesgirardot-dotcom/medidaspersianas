@@ -19,9 +19,10 @@ No incluyas formato markdown como \`\`\`json. Devuelve SOLO el texto JSON crudo.
 REGLAS CRÍTICAS:
 1. Para la "quantity" (cantidad): Ten MUCHO CUIDADO. A veces está en metros cuadrados (m2), metros (m) o unidades. Asegúrate de extraer el número exacto correspondiente a la cantidad o área.
 2. Descuentos: Revisa minuciosamente si hay algún descuento aplicado al subtotal o a los ítems. Si hay un descuento total, ponlo en la propiedad "discount". Si no hay, pon 0.
-3. Descripciones Largas: Extrae TODO el bloque de texto descriptivo completo y concaténalo en el campo "description" usando saltos de línea (\\n).
+3. Descripciones Largas: Extrae TODO el bloque de texto descriptivo completo y concaténalo en el campo "description" usando saltos de línea (\n).
 4. OMITIR MEDIDAS: Bajo ninguna circunstancia debes incluir las medidas específicas (ancho, alto, ancho x alto) en la descripción del ítem. Al cliente final solo se le factura por metros cuadrados totales o unidades. Ignora cualquier medida técnica específica.
-5. MANTENIMIENTOS: CRITICO Y OBLIGATORIO. Si ves palabras como "Mantenimiento", "Servicios", "Lavado", "Cambio", DEBES registrar cada uno como un item en el JSON final. Su precio DEBE ser sumado al "total".
+5. EXTRACCIÓN LITERAL DE TOTALES: NO INVENTES NI CALCULES VALORES. Extrae el subtotal, impuestos, descuentos y el TOTAL FINAL exactamente como aparecen impresos en el documento. Si el documento tiene un gran total impreso, úsalo sin alterarlo, sin importar si la suma matemática de los ítems parece diferir. JAMÁS sumes o multipliques por tu cuenta; tu tarea es leer y extraer, no calcular.
+6. MANTENIMIENTOS: CRITICO Y OBLIGATORIO. Si ves palabras como "Mantenimiento", "Servicios", "Lavado", "Cambio", DEBES registrar cada uno como un item en el JSON final. Su precio DEBE ser extraído de la tabla.
 
 Estructura obligatoria:
 {
