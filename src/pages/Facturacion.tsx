@@ -55,14 +55,14 @@ export function Facturacion() {
       try {
         const extractedData = await extractInvoiceData(file)
         
+        if (!extractedData.subtotal) {
+          extractedData.subtotal = extractedData.total;
+        }
+
         if (discountPercent && typeof discountPercent === 'number' && discountPercent > 0) {
-          const discountAmount = extractedData.subtotal 
-            ? extractedData.subtotal * (discountPercent / 100) 
-            : extractedData.total * (discountPercent / 100);
+          const discountAmount = extractedData.subtotal * (discountPercent / 100);
           extractedData.discount = (extractedData.discount || 0) + discountAmount;
-          extractedData.total = extractedData.subtotal 
-            ? extractedData.subtotal - extractedData.discount 
-            : extractedData.total - discountAmount;
+          extractedData.total = extractedData.subtotal - extractedData.discount;
         }
 
         // Obtener consecutivo de Dexie
@@ -97,14 +97,14 @@ export function Facturacion() {
       try {
         const extractedData = await extractInvoiceDataFromText(rawText)
         
+        if (!extractedData.subtotal) {
+          extractedData.subtotal = extractedData.total;
+        }
+
         if (discountPercent && typeof discountPercent === 'number' && discountPercent > 0) {
-          const discountAmount = extractedData.subtotal 
-            ? extractedData.subtotal * (discountPercent / 100) 
-            : extractedData.total * (discountPercent / 100);
+          const discountAmount = extractedData.subtotal * (discountPercent / 100);
           extractedData.discount = (extractedData.discount || 0) + discountAmount;
-          extractedData.total = extractedData.subtotal 
-            ? extractedData.subtotal - extractedData.discount 
-            : extractedData.total - discountAmount;
+          extractedData.total = extractedData.subtotal - extractedData.discount;
         }
 
         // Obtener consecutivo de Dexie

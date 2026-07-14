@@ -59,13 +59,16 @@ export function buildProjectSummary(project: TechnicalProject): ProjectSummary |
   
   const windowsCount = activeSpaces.reduce((sum, space) => sum + space.windows.length, 0);
   const solutionsCount = activeSpaces.reduce((sum, space) => sum + space.windows.reduce((winSum, window) => winSum + window.solutions.length, 0), 0);
-  const totalEstimate = activeSpaces.reduce((sum, space) => 
+  const subtotalEstimate = activeSpaces.reduce((sum, space) => 
     sum + space.windows.reduce((wSum, win) => 
       wSum + win.solutions.reduce((sSum, sol) => 
         sSum + solutionTotal(sol)
       , 0)
     , 0)
   , 0);
+
+  const discountAmount = subtotalEstimate * ((project.discountPercent || 0) / 100);
+  const totalEstimate = subtotalEstimate - discountAmount;
 
   const totalAreaM2 = activeSpaces.reduce((sum, space) => 
     sum + space.windows.reduce((wSum, win) => 
@@ -109,6 +112,7 @@ export function buildProjectSummary(project: TechnicalProject): ProjectSummary |
     updatedAt: project.updatedAt,
     synced: project.synced,
     sentToSupplier: project.sentToSupplier,
+    discountPercent: project.discountPercent,
   };
 }
 

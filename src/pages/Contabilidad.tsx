@@ -54,7 +54,9 @@ export function Contabilidad() {
         date: new Date(receipt.date).toLocaleDateString('es-CO'),
         total: receipt.total,
         abono: receipt.abono,
-        saldo: receipt.saldo
+        saldo: receipt.saldo,
+        discountPercent: receipt.discountPercent,
+        totalNeto: receipt.discountPercent ? (receipt.total - (receipt.total * (receipt.discountPercent / 100))) : receipt.total
       };
       
       const url = await generateReceiptUrl(data);
