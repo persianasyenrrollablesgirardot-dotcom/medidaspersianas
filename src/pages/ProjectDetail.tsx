@@ -105,12 +105,17 @@ export function ProjectDetail() {
   const windows = activeSpaces.reduce((sum, space) => sum + space.windows.length, 0);
   const solutions = activeSpaces.reduce((sum, space) => sum + space.windows.reduce((wSum, win) => wSum + win.solutions.length, 0), 0);
   
-  const totalEstimate = activeSpaces.reduce((sum, space) => 
-    sum + space.windows.reduce((wSum, win) =>        wSum + win.solutions.reduce((sSum, sol) => 
-          sSum + solutionTotal(sol)
-        , 0)
+  const subtotalEstimate = activeSpaces.reduce((sum, space) => 
+    sum + space.windows.reduce((wSum, win) => 
+      wSum + win.solutions.reduce((sSum, sol) => 
+        sSum + solutionTotal(sol)
+      , 0)
     , 0)
   , 0);
+
+  const discountPercent = project.discountPercent || 0;
+  const discountAmount = subtotalEstimate * (discountPercent / 100);
+  const totalEstimate = subtotalEstimate - discountAmount;
 
   const totalAreaM2 = activeSpaces.reduce((sum, space) => 
     sum + space.windows.reduce((wSum, win) => 
@@ -370,7 +375,15 @@ export function ProjectDetail() {
       </section>
 
       <PdfPreviewModal htmlContent={previewHtml} onClose={() => setPreviewHtml(null)} />
-      {showReceiptModal && <PaymentReceiptModal project={project} total={totalEstimate} onClose={() => setShowReceiptModal(false)} />}
+      {showReceiptModal && (
+        <PaymentReceiptModal 
+          project={project} 
+          total={totalEstimate}
+          subtotal={subtotalEstimate}
+          discountPercent={project.discountPercent}
+          onClose={() => setShowReceiptModal(false)} 
+        />
+      )}
     </div>
   );
 }

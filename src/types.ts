@@ -24,6 +24,7 @@ export interface TechnicalProject {
   deletedAt?: number;
   synced: boolean;
   sentToSupplier?: boolean;
+  discountPercent?: number;
   catalogSnapshot?: {
     customWindowFields?: Array<{ id: string; label: string; options: string[] }>;
   };
@@ -50,6 +51,7 @@ export interface ProjectSummary {
   updatedAt: number;
   synced: boolean;
   sentToSupplier?: boolean;
+  discountPercent?: number;
 }
 
 export interface SpaceRecord {
@@ -251,7 +253,8 @@ export interface ReceiptRecord {
   projectId: number;
   projectCode: string;
   clientName: string;
-  total: number;
+  total: number; // Subtotal
+  discountPercent?: number; // Discount applied
   abono: number;
   saldo: number;
   date: number; // timestamp

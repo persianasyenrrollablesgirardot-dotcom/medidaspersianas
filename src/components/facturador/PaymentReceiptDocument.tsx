@@ -38,6 +38,8 @@ export interface ReceiptData {
   total: number;
   abono: number;
   saldo: number;
+  discountPercent?: number;
+  totalNeto?: number;
 }
 
 export const PaymentReceiptDocument = ({ data }: { data: ReceiptData }) => (
@@ -77,10 +79,27 @@ export const PaymentReceiptDocument = ({ data }: { data: ReceiptData }) => (
       </View>
 
       <View style={styles.totalsContainer}>
-        <View style={styles.totalRow}>
-           <Text>Total del Proyecto:</Text>
-           <Text>${formatCurrency(data.total)}</Text>
-        </View>
+        {data.discountPercent ? (
+          <>
+            <View style={styles.totalRow}>
+               <Text>Subtotal del Proyecto:</Text>
+               <Text>${formatCurrency(data.total)}</Text>
+            </View>
+            <View style={styles.totalRow}>
+               <Text>Descuento ({data.discountPercent}%):</Text>
+               <Text>-${formatCurrency(data.total - (data.totalNeto || data.total))}</Text>
+            </View>
+            <View style={styles.totalRow}>
+               <Text>Total a Pagar:</Text>
+               <Text>${formatCurrency(data.totalNeto || data.total)}</Text>
+            </View>
+          </>
+        ) : (
+          <View style={styles.totalRow}>
+             <Text>Total del Proyecto:</Text>
+             <Text>${formatCurrency(data.total)}</Text>
+          </View>
+        )}
         <View style={styles.totalRow}>
            <Text>Abono Recibido:</Text>
            <Text>${formatCurrency(data.abono)}</Text>

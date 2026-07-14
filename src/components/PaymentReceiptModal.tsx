@@ -7,10 +7,12 @@ import { db } from '../db';
 interface PaymentReceiptModalProps {
   project: TechnicalProject;
   total: number;
+  subtotal?: number;
+  discountPercent?: number;
   onClose: () => void;
 }
 
-export function PaymentReceiptModal({ project, total, onClose }: PaymentReceiptModalProps) {
+export function PaymentReceiptModal({ project, total, subtotal, discountPercent, onClose }: PaymentReceiptModalProps) {
   const [abono, setAbono] = useState<string>('');
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -39,7 +41,9 @@ export function PaymentReceiptModal({ project, total, onClose }: PaymentReceiptM
         clientNit: project.clientDocument || 'Sin NIT',
         clientAddress: project.address || 'Sin dirección',
         date: new Date().toLocaleDateString('es-CO'),
-        total,
+        total: subtotal || total,
+        discountPercent,
+        totalNeto: total,
         abono: abonoNum,
         saldo
       };
@@ -52,7 +56,8 @@ export function PaymentReceiptModal({ project, total, onClose }: PaymentReceiptM
           projectId: project.id!,
           projectCode: project.code,
           clientName: project.clientName || 'Cliente sin nombre',
-          total: total,
+          total: subtotal || total,
+          discountPercent,
           abono: abonoNum,
           saldo: saldo,
           date: Date.now(),
@@ -123,7 +128,13 @@ export function PaymentReceiptModal({ project, total, onClose }: PaymentReceiptM
             <div style={{ marginBottom: '1.5rem', background: 'var(--bg-deep)', padding: '1.5rem', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
               <p style={{ margin: '0 0 10px 0', color: 'var(--text-muted)' }}><strong>Proyecto:</strong> {project.code}</p>
               <p style={{ margin: '0 0 10px 0', color: 'var(--text-muted)' }}><strong>Cliente:</strong> {project.clientName || 'Sin definir'}</p>
-              <h2 style={{ margin: '0', color: 'var(--primary)', fontSize: '1.5rem' }}>Total: ${total.toLocaleString('es-CO')}</h2>
+              {discountPercent ? (
+                <>
+                  <p style={{ margin: '0 0 5px 0', color: 'var(--text-muted)' }}>Subtotal: ${(subtotal || total).toLocaleString('es-CO')}</p>
+                  <p style={{ margin: '0 0 10px 0', color: 'var(--text-muted)' }}>Descuento: {discountPercent}%</p>
+                </>
+              ) : null}
+              <h2 style={{ margin: '0', color: 'var(--primary)', fontSize: '1.5rem' }}>Total a Pagar: ${total.toLocaleString('es-CO')}</h2>
             </div>
             
             <div style={{ marginBottom: '2rem' }}>

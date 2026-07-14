@@ -64,6 +64,18 @@ export function ProjectSetup() {
         <Field label="Direccion / referencia">
           <TextInput value={project.address || ''} onChange={e => update({ address: e.target.value })} placeholder="Direccion o punto de referencia" />
         </Field>
+        <Field label="Descuento Global del Proyecto (%)">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-deep)', borderRadius: '6px', padding: '0 12px', border: '1px solid var(--glass-border)' }}>
+            <input 
+              type="number" 
+              value={project.discountPercent || ''}
+              onChange={e => update({ discountPercent: Number(e.target.value) || 0 })}
+              placeholder="Ej: 5"
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', width: '100%', outline: 'none', padding: '8px 0' }}
+            />
+            <span style={{ color: 'var(--text-muted)' }}>%</span>
+          </div>
+        </Field>
         <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
           <button className="primary" style={{ flex: 1 }} onClick={() => navigate(`/project/${project.id}/spaces`)}>
             Continuar a espacios
