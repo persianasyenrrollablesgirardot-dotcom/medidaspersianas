@@ -8,6 +8,7 @@ import { addFallbackProject, duplicateFallbackProject, getFallbackProject, trash
 import { PdfPreviewModal } from '../components/PdfPreviewModal';
 import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
 import type { TechnicalProject, ProjectSummary } from '../types';
+import { solutionTotal } from '../lib/metrics';
 import { DEFAULT_CATALOG } from '../db';
 import { useAuth } from '../components/AuthContext';
 import { collection, getDocs } from 'firebase/firestore';
@@ -355,16 +356,33 @@ export function Dashboard() {
       </section>
 
       <PdfPreviewModal htmlContent={previewHtml} onClose={() => setPreviewHtml(null)} />
-      {showReceiptModal && activeProject && (
-        <PaymentReceiptModal 
-          project={activeProject} 
-          total={visibleProjects.find(p => p.projectId === activeProject.id)?.totalEstimate || 0}
-          onClose={() => {
-            setShowReceiptModal(false);
-            setActiveProject(null);
-          }} 
-        />
-      )}
+      {showReceiptModal && activeProject && (() => {
+        const activeSpaces = activeProject.spaces.filter(s => !s.isExcluded).map(s => ({
+          ...s,
+          windows: s.windows.filter(w => !w.isExcluded)
+        }));
+        
+        const subtotalEstimate = activeSpaces.reduce((sum, space) => 
+          sum + space.windows.reduce((wSum, win) => 
+            wSum + win.solutions.reduce((sSum, sol) => 
+              sSum + solutionTotal(sol)
+            , 0)
+          , 0)
+        , 0);
+
+        return (
+          <PaymentReceiptModal 
+            project={activeProject} 
+            total={visibleProjects.find(p => p.projectId === activeProject.id)?.totalEstimate || 0}
+            subtotal={subtotalEstimate}
+            discountPercent={activeProject.discountPercent}
+            onClose={() => {
+              setShowReceiptModal(false);
+              setActiveProject(null);
+            }} 
+          />
+        );
+      })()}
     </div>
   );
 }
