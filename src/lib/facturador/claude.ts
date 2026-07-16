@@ -59,7 +59,7 @@ export async function extractInvoiceData(file: File): Promise<any> {
     });
 
     const response = await claude.messages.create({
-      model: 'claude-3-5-sonnet-latest',
+      model: 'claude-3-5-sonnet-20241022',
       max_tokens: 4000,
       system: SYSTEM_PROMPT,
       messages: [
@@ -108,7 +108,7 @@ export async function extractInvoiceDataFromText(text: string): Promise<any> {
     const claude = getClaude();
 
     const response = await claude.messages.create({
-      model: 'claude-3-5-sonnet-latest',
+      model: 'claude-3-5-sonnet-20241022',
       max_tokens: 4000,
       system: SYSTEM_PROMPT,
       messages: [
