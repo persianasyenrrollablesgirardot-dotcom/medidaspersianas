@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowPathIcon, ExclamationTriangleIcon, TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, ExclamationTriangleIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { DEFAULT_CATALOG, db, resetLocalAppData } from '../db';
 import { saveFallbackCatalog } from '../lib/localFallbackStore';
 import { useLiveQuery } from 'dexie-react-hooks';
@@ -11,14 +11,14 @@ import { MeasureInput } from '../components/MeasureInput';
 export function Settings() {
   const catalog = useLiveQuery<TechnicalCatalog | undefined>(() => db.catalog.toCollection().first().then(value => value || DEFAULT_CATALOG), []);
   const [activeSystem, setActiveSystem] = useState<string>('Enrollables Blackout');
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('CUSTOM_CLAUDE_API_KEY') || '');
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('CUSTOM_GEMINI_API_KEY') || '');
 
   const saveApiKey = () => {
     if (apiKey.trim()) {
-      localStorage.setItem('CUSTOM_CLAUDE_API_KEY', apiKey.trim());
-      toast.success('Clave API de Claude guardada correctamente');
+      localStorage.setItem('CUSTOM_GEMINI_API_KEY', apiKey.trim());
+      toast.success('Clave API guardada correctamente');
     } else {
-      localStorage.removeItem('CUSTOM_CLAUDE_API_KEY');
+      localStorage.removeItem('CUSTOM_GEMINI_API_KEY');
       toast.success('Clave API restablecida al valor por defecto');
     }
   };
@@ -46,19 +46,6 @@ export function Settings() {
       saveFallbackCatalog({ maintenanceCatalog: tasks });
     } catch(e) {
       toast.error('Error al guardar catálogo');
-    }
-  };
-
-  const saveCatalogCustomFields = async (customWindowFields: TechnicalCatalog['customWindowFields']) => {
-    try {
-      if (catalog?.id) {
-        await db.catalog.update(catalog.id, { customWindowFields, lastUpdatedAt: Date.now() });
-      } else {
-        await db.catalog.add({ ...DEFAULT_CATALOG, customWindowFields, lastUpdatedAt: Date.now() });
-      }
-      saveFallbackCatalog({ customWindowFields });
-    } catch (e) {
-      toast.error('Error al actualizar campos personalizados');
     }
   };
 
@@ -105,12 +92,6 @@ export function Settings() {
                   {(catalog?.systems || []).map(item => (
                     <span key={item} className="pill" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       {item}
-                      <button type="button" style={{ border: 'none', background: 'transparent', padding: '2px', cursor: 'pointer', color: 'var(--blue)', borderRadius: '50%' }} onClick={() => {
-                        const newVal = prompt('Nuevo nombre:', item);
-                        if (newVal && newVal.trim() && newVal.trim() !== item) updateCatalogList('systems', (catalog?.systems || []).map(i => i === item ? newVal.trim() : i));
-                      }}>
-                         <PencilIcon className="icon" style={{ width: '12px', height: '12px' }} />
-                      </button>
                       <button type="button" style={{ border: 'none', background: 'transparent', padding: '2px', cursor: 'pointer', color: 'var(--red)', borderRadius: '50%' }} onClick={() => confirm(`¿Eliminar ${item}?`) && updateCatalogList('systems', (catalog?.systems || []).filter(i => i !== item))}>
                          <TrashIcon className="icon" style={{ width: '12px', height: '12px' }} />
                       </button>
@@ -133,12 +114,6 @@ export function Settings() {
                   {(catalog?.mounts || []).map(item => (
                     <span key={item} className="pill" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       {item}
-                      <button type="button" style={{ border: 'none', background: 'transparent', padding: '2px', cursor: 'pointer', color: 'var(--blue)', borderRadius: '50%' }} onClick={() => {
-                        const newVal = prompt('Nuevo nombre:', item);
-                        if (newVal && newVal.trim() && newVal.trim() !== item) updateCatalogList('mounts', (catalog?.mounts || []).map(i => i === item ? newVal.trim() : i));
-                      }}>
-                         <PencilIcon className="icon" style={{ width: '12px', height: '12px' }} />
-                      </button>
                       <button type="button" style={{ border: 'none', background: 'transparent', padding: '2px', cursor: 'pointer', color: 'var(--red)', borderRadius: '50%' }} onClick={() => confirm(`¿Eliminar ${item}?`) && updateCatalogList('mounts', (catalog?.mounts || []).filter(i => i !== item))}>
                          <TrashIcon className="icon" style={{ width: '12px', height: '12px' }} />
                       </button>
@@ -161,12 +136,6 @@ export function Settings() {
                   {(catalog?.fabrics || []).map(item => (
                     <span key={item} className="pill" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       {item}
-                      <button type="button" style={{ border: 'none', background: 'transparent', padding: '2px', cursor: 'pointer', color: 'var(--blue)', borderRadius: '50%' }} onClick={() => {
-                        const newVal = prompt('Nuevo nombre:', item);
-                        if (newVal && newVal.trim() && newVal.trim() !== item) updateCatalogList('fabrics', (catalog?.fabrics || []).map(i => i === item ? newVal.trim() : i));
-                      }}>
-                         <PencilIcon className="icon" style={{ width: '12px', height: '12px' }} />
-                      </button>
                       <button type="button" style={{ border: 'none', background: 'transparent', padding: '2px', cursor: 'pointer', color: 'var(--red)', borderRadius: '50%' }} onClick={() => confirm(`¿Eliminar ${item}?`) && updateCatalogList('fabrics', (catalog?.fabrics || []).filter(i => i !== item))}>
                          <TrashIcon className="icon" style={{ width: '12px', height: '12px' }} />
                       </button>
@@ -174,73 +143,6 @@ export function Settings() {
                   ))}
                   {catalog?.fabrics?.length === 0 && <span className="muted">No hay opciones configuradas.</span>}
                 </div>
-              </div>
-
-              <div style={{ marginBottom: '24px', borderTop: '1px solid var(--line)', paddingTop: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <h4 style={{ margin: 0, fontSize: 16 }}>Campos Personalizados (Listas Extra)</h4>
-                  <button className="secondary small" onClick={() => {
-                    const val = prompt('Nombre de la nueva lista desplegable (ej: Color Perfilería):');
-                    if (val && val.trim()) {
-                      const id = 'custom_' + Date.now();
-                      const newFields = [...(catalog?.customWindowFields || []), { id, label: val.trim(), options: [] }];
-                      saveCatalogCustomFields(newFields);
-                    }
-                  }}>+ Nueva Lista</button>
-                </div>
-                <p style={{ margin: '0 0 16px 0', color: 'var(--muted)', fontSize: 13 }}>Crea nuevas listas desplegables que aparecerán en la ventana de tus proyectos.</p>
-                
-                {(catalog?.customWindowFields || []).map(field => (
-                  <div key={field.id} style={{ marginBottom: '16px', background: 'var(--bg-subtle)', padding: '12px', borderRadius: '8px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <strong style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px' }}>
-                        {field.label}
-                        <button className="icon-btn" onClick={() => {
-                          const val = prompt('Nuevo nombre para esta lista:', field.label);
-                          if (val && val.trim()) {
-                            const newFields = catalog!.customWindowFields.map(f => f.id === field.id ? { ...f, label: val.trim() } : f);
-                            saveCatalogCustomFields(newFields);
-                          }
-                        }} title="Renombrar Lista"><PencilIcon className="icon" style={{width:14, height:14}} /></button>
-                        <button className="icon-btn danger" onClick={() => {
-                          if (confirm(`¿Eliminar la lista "${field.label}" por completo?`)) {
-                            const newFields = catalog!.customWindowFields.filter(f => f.id !== field.id);
-                            saveCatalogCustomFields(newFields);
-                          }
-                        }} title="Eliminar Lista Completa"><TrashIcon className="icon" style={{width:14, height:14}} /></button>
-                      </strong>
-                      <button className="secondary small" onClick={() => {
-                        const val = prompt(`Nueva opción para ${field.label}:`);
-                        if (val && val.trim() && !field.options.includes(val.trim())) {
-                          const newFields = catalog!.customWindowFields.map(f => f.id === field.id ? { ...f, options: [...f.options, val.trim()] } : f);
-                          saveCatalogCustomFields(newFields);
-                        }
-                      }}>+ Añadir Opción</button>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      {field.options.map(opt => (
-                        <span key={opt} className="pill" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          {opt}
-                          <button type="button" style={{ border: 'none', background: 'transparent', padding: '2px', cursor: 'pointer', color: 'var(--blue)' }} onClick={() => {
-                            const newVal = prompt('Nuevo nombre de opción:', opt);
-                            if (newVal && newVal.trim() && newVal.trim() !== opt) {
-                              const newFields = catalog!.customWindowFields.map(f => f.id === field.id ? { ...f, options: f.options.map(o => o === opt ? newVal.trim() : o) } : f);
-                              saveCatalogCustomFields(newFields);
-                            }
-                          }}><PencilIcon className="icon" style={{ width: '12px', height: '12px' }} /></button>
-                          <button type="button" style={{ border: 'none', background: 'transparent', padding: '2px', cursor: 'pointer', color: 'var(--red)' }} onClick={() => {
-                            if(confirm(`¿Eliminar opción "${opt}"?`)) {
-                              const newFields = catalog!.customWindowFields.map(f => f.id === field.id ? { ...f, options: f.options.filter(o => o !== opt) } : f);
-                              saveCatalogCustomFields(newFields);
-                            }
-                          }}><TrashIcon className="icon" style={{ width: '12px', height: '12px' }} /></button>
-                        </span>
-                      ))}
-                      {field.options.length === 0 && <span className="muted">Esta lista no tiene opciones todavía.</span>}
-                    </div>
-                  </div>
-                ))}
-                {(catalog?.customWindowFields || []).length === 0 && <span className="muted">No hay listas personalizadas extras.</span>}
               </div>
 
               <hr style={{ borderColor: 'var(--line)', margin: '32px 0' }} />
@@ -366,16 +268,16 @@ export function Settings() {
               })()}          </div>
 
             <div style={{ borderTop: '1px solid var(--line)', paddingTop: 24, paddingBottom: 24 }}>
-              <h3 style={{ margin: '0 0 8px 0', fontSize: 18 }}>Inteligencia Artificial (Claude)</h3>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: 18 }}>Inteligencia Artificial</h3>
               <p style={{ margin: '0 0 16px 0', color: 'var(--muted)', fontSize: 14 }}>
-                Configura tu clave de la API de Anthropic Claude para procesar los PDFs y cotizaciones mágicamente.
+                Configura tu propia clave de la API de Google Gemini si la que viene por defecto falla o se agota.
               </p>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <input 
                   type="password" 
                   value={apiKey} 
                   onChange={e => setApiKey(e.target.value)} 
-                  placeholder="sk-ant-..." 
+                  placeholder="AIzaSy..." 
                   style={{ flex: 1, minWidth: '200px' }}
                 />
                 <button className="primary" onClick={saveApiKey}>
