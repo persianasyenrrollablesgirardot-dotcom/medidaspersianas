@@ -25,24 +25,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const OWNER_EMAIL = 'persianasyenrrollablesgirardot@gmail.com';
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
-        try {
-          const userDoc = await getDoc(doc(dbFirestore, 'users', firebaseUser.uid));
-          if (userDoc.exists()) {
-            setRole(userDoc.data().role);
-          } else {
-            // Auto-assign admin if it's the specific email
-            if (firebaseUser.email === 'persianasyenrrollablesgirardot@gmail.com') {
-              await setDoc(doc(dbFirestore, 'users', firebaseUser.uid), { role: 'admin', email: firebaseUser.email });
-              setRole('admin');
-            } else {
-              setRole('proveedor');
-            }
+        // El DUEÑO siempre es admin — no depende de Firestore ni de la red.
+        // (Antes: si el doc users/{uid} quedaba con role 'proveedor', o la lectura
+        //  fallaba, el dueño caía a la vista de usuario y quedaba atrapado.)
+        if (firebaseUser.email === OWNER_EMAIL) {
+          setRole('admin');
+          // Best-effort: dejar el doc correcto, sin bloquear el arranque.
+          setDoc(doc(dbFirestore, 'users', firebaseUser.uid), { role: 'admin', email: firebaseUser.email }, { merge: true }).catch(() => {});
+        } else {
+          try {
+            const userDoc = await getDoc(doc(dbFirestore, 'users', firebaseUser.uid));
+            setRole(userDoc.exists() ? (userDoc.data().role ?? 'proveedor') : 'proveedor');
+          } catch (e) {
+            console.error('Error fetching role:', e);
+            setRole('proveedor'); // por defecto restrictivo si falla la lectura
           }
-        } catch (e) {
-          console.error('Error fetching role:', e);
         }
       } else {
         setUser(null);
