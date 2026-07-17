@@ -6,7 +6,7 @@ import { useAuth } from './AuthContext';
 
 // Sello de versión: si al abrir la app NO ves este número, tu app está cacheada
 // (versión vieja) → reinstalá la PWA o borrá los datos de la app.
-const APP_VERSION = 'v2026.07.16-d';
+const APP_VERSION = 'v2026.07.16-e';
 
 export function Shell({ children }: { children: ReactNode }) {
   const { role, logout } = useAuth();
