@@ -60,7 +60,9 @@ export function Dashboard() {
         window.localStorage.setItem('cloud_projects_cache', JSON.stringify(projs));
       }).catch(e => {
         console.error(e);
-        toast.error('Error cargando proyectos de la nube');
+        // Mostramos el motivo REAL de Firebase (ej: 'permission-denied' = reglas
+        // de Firestore vencidas/bloqueadas) para poder diagnosticar sin la consola.
+        toast.error('Error nube: ' + (e?.code || e?.message || String(e)), { duration: 8000 });
       });
     }
   }, [role]);

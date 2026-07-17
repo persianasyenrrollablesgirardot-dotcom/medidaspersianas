@@ -41,9 +41,9 @@ export function ProjectDetail() {
       }
       await syncProjectToCloud(updated as TechnicalProject, catalog);
       toast.success('Proyecto enviado a proveedor correctamente');
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      toast.error('Error al enviar el proyecto');
+      toast.error('Error al enviar: ' + (e?.code || e?.message || String(e)), { duration: 8000 });
     }
   };
 
