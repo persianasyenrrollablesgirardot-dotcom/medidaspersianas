@@ -4,11 +4,16 @@ import { ArrowDownTrayIcon, HomeIcon, DocumentTextIcon, Cog6ToothIcon, Banknotes
 import { AutosaveStatus } from './AutosaveStatus';
 import { useAuth } from './AuthContext';
 
+// Sello de versión: si al abrir la app NO ves este número, tu app está cacheada
+// (versión vieja) → reinstalá la PWA o borrá los datos de la app.
+const APP_VERSION = 'v2026.07.16-b';
+
 export function Shell({ children }: { children: ReactNode }) {
   const { role, logout } = useAuth();
-  
+
   return (
     <div className={`app-shell ${role === 'proveedor' ? 'role-proveedor' : ''}`}>
+      <div style={{ position: 'fixed', top: 4, right: 6, fontSize: 10, color: '#9ca3af', opacity: 0.7, zIndex: 9999, pointerEvents: 'none' }}>{APP_VERSION}</div>
       <AutosaveStatus />
       <main className="app-main" style={{ paddingBottom: '80px' }}>{children}</main>
       <nav className="bottom-nav">

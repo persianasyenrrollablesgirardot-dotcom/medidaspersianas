@@ -58,14 +58,16 @@ export default function App() {
               <Shell>
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
-                  <Route path="/project/:id" element={<ProjectSetup />} />
-                  <Route path="/project/:id/quote" element={<QuickQuoteModule />} />
-                  <Route path="/project/:id/detail" element={<ProjectDetail />} />
-                  <Route path="/project/:id/spaces" element={<SpaceList />} />
+                  {/* El proveedor SOLO puede ver su Dashboard y la Orden de Producción.
+                      Todas las pantallas de edición del proyecto son solo del admin. */}
+                  <Route path="/project/:id" element={<ProtectedRoute allowedRoles={['admin']}><ProjectSetup /></ProtectedRoute>} />
+                  <Route path="/project/:id/quote" element={<ProtectedRoute allowedRoles={['admin']}><QuickQuoteModule /></ProtectedRoute>} />
+                  <Route path="/project/:id/detail" element={<ProtectedRoute allowedRoles={['admin']}><ProjectDetail /></ProtectedRoute>} />
+                  <Route path="/project/:id/spaces" element={<ProtectedRoute allowedRoles={['admin']}><SpaceList /></ProtectedRoute>} />
                   <Route path="/project/:id/supplier-view" element={<SupplierProjectView />} />
-                  <Route path="/project/:id/space/:spaceId" element={<WindowList />} />
-                  <Route path="/project/:id/space/:spaceId/window/:windowId" element={<WindowWorkspace />} />
-                  <Route path="/exports" element={<ExportCenter />} />
+                  <Route path="/project/:id/space/:spaceId" element={<ProtectedRoute allowedRoles={['admin']}><WindowList /></ProtectedRoute>} />
+                  <Route path="/project/:id/space/:spaceId/window/:windowId" element={<ProtectedRoute allowedRoles={['admin']}><WindowWorkspace /></ProtectedRoute>} />
+                  <Route path="/exports" element={<ProtectedRoute allowedRoles={['admin']}><ExportCenter /></ProtectedRoute>} />
                   <Route path="/facturacion" element={<ProtectedRoute allowedRoles={['admin']}><Facturacion /></ProtectedRoute>} />
                   <Route path="/contabilidad" element={<ProtectedRoute allowedRoles={['admin']}><Contabilidad /></ProtectedRoute>} />
                   <Route path="/papelera" element={<ProtectedRoute allowedRoles={['admin']}><ProjectTrash /></ProtectedRoute>} />
