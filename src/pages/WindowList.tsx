@@ -46,11 +46,7 @@ export function WindowList() {
           const windowAreaM2 = win.solutions.reduce((sum, sol) => sum + (sol.itemType !== 'maintenance' ? solutionArea(sol) : 0), 0);
           return (
             <article key={win.id} className="window-tile">
-              <button className="window-tile-main" onClick={() => navigate(
-                  role === 'proveedor' 
-                    ? `/project/${project.id}/space/${space.id}/supplier-window/${win.id}`
-                    : `/project/${project.id}/space/${space.id}/window/${win.id}`
-                )}>
+              <button className="window-tile-main" onClick={() => navigate(`/project/${project.id}/space/${space.id}/window/${win.id}`)}>
                 <strong>{win.label}</strong>
                 <div className="card-meta" style={{ marginTop: '4px' }}>
                   <span>{win.solutions.length} soluciones</span>

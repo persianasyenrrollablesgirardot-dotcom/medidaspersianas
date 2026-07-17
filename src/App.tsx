@@ -19,7 +19,7 @@ import { Contabilidad } from './pages/Contabilidad';
 import { AdminPanel } from './pages/AdminPanel';
 import { Login } from './pages/Login';
 import { AuthProvider, useAuth } from './components/AuthContext';
-import { SupplierWindowView } from './pages/SupplierWindowView';
+import { SupplierProjectView } from './pages/SupplierProjectView';
 import { autoCompressOldEvidence } from './lib/localFallbackStore';
 
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: ('admin' | 'proveedor')[] }) {
@@ -62,8 +62,8 @@ export default function App() {
                   <Route path="/project/:id/quote" element={<QuickQuoteModule />} />
                   <Route path="/project/:id/detail" element={<ProjectDetail />} />
                   <Route path="/project/:id/spaces" element={<SpaceList />} />
+                  <Route path="/project/:id/supplier-view" element={<SupplierProjectView />} />
                   <Route path="/project/:id/space/:spaceId" element={<WindowList />} />
-                  <Route path="/project/:id/space/:spaceId/supplier-window/:windowId" element={<SupplierWindowView />} />
                   <Route path="/project/:id/space/:spaceId/window/:windowId" element={<WindowWorkspace />} />
                   <Route path="/exports" element={<ExportCenter />} />
                   <Route path="/facturacion" element={<ProtectedRoute allowedRoles={['admin']}><Facturacion /></ProtectedRoute>} />
