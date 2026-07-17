@@ -176,6 +176,13 @@ function ProductCard({ solution, windowLabel, spaceName, win, catalog, isGestion
         </Block>
       )}
 
+      {/* Nota rápida (quickQuote.note) */}
+      {s.quickQuote?.note && (
+        <Block title="Nota rápida">
+          <p style={{ margin: 0, fontSize: '14px', color: '#e5e7eb', lineHeight: '1.5' }}>{s.quickQuote.note}</p>
+        </Block>
+      )}
+
       {/* Observaciones */}
       {s.notes && (
         <Block title="Observaciones">
@@ -269,18 +276,28 @@ export function SupplierProjectView() {
                 </h2>
                 {space.windows.map(win => {
                   const w = catSnap ? { ...win, projectCatalogSnapshot: catSnap } as WindowRecord : win;
-                  return win.solutions.map(sol => (
-                    <ProductCard
-                      key={sol.id}
-                      solution={sol}
-                      windowLabel={win.label}
-                      spaceName={space.name}
-                      win={w}
-                      catalog={catalog}
-                      isGestionado={!!statuses[sol.id]}
-                      onToggle={() => toggle(sol.id)}
-                    />
-                  ));
+                  return (
+                    <div key={win.id}>
+                      {win.notes && (
+                        <div style={{ marginBottom: '8px', padding: '10px 12px', background: 'rgba(37,99,235,0.12)', border: '1px solid #2563eb', borderRadius: '8px' }}>
+                          <label style={labelStyle}>Nota de la ventana — {win.label}</label>
+                          <p style={{ margin: 0, fontSize: '14px', color: '#e5e7eb', lineHeight: '1.5' }}>{win.notes}</p>
+                        </div>
+                      )}
+                      {win.solutions.map(sol => (
+                        <ProductCard
+                          key={sol.id}
+                          solution={sol}
+                          windowLabel={win.label}
+                          spaceName={space.name}
+                          win={w}
+                          catalog={catalog}
+                          isGestionado={!!statuses[sol.id]}
+                          onToggle={() => toggle(sol.id)}
+                        />
+                      ))}
+                    </div>
+                  );
                 })}
               </div>
             );
