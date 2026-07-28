@@ -105,14 +105,14 @@ export function Contabilidad() {
         <h1>Módulo de Contabilidad</h1>
       </header>
 
-      <section className="stats-row" style={{ marginTop: '-20px', zIndex: 10, position: 'relative' }}>
-        <div className="stat" style={{ flex: 1, borderColor: '#ef4444' }}>
-          <strong style={{ color: '#ef4444' }}>$ {totalPorCobrar.toLocaleString('es-CO')}</strong>
-          <span>Total por Cobrar</span>
+      <section className="cartera-kpis">
+        <div className="kpi kpi-red">
+          <span className="kpi-label">Total por cobrar</span>
+          <strong className="kpi-value">$ {totalPorCobrar.toLocaleString('es-CO')}</strong>
         </div>
-        <div className="stat" style={{ flex: 1, borderColor: '#10b981' }}>
-          <strong style={{ color: '#10b981' }}>$ {totalRecaudado.toLocaleString('es-CO')}</strong>
-          <span>Total Recaudado</span>
+        <div className="kpi kpi-green">
+          <span className="kpi-label">Total recaudado</span>
+          <strong className="kpi-value">$ {totalRecaudado.toLocaleString('es-CO')}</strong>
         </div>
       </section>
 
@@ -126,59 +126,44 @@ export function Contabilidad() {
       <section className="list">
         {receipts.map(receipt => {
           const isClosed = receipt.status === 'closed';
-          
+
           return (
-            <article 
-              key={receipt.id} 
-              className="project-card" 
-              style={{ 
-                opacity: isClosed ? 0.7 : 1, 
-                borderLeft: `4px solid ${isClosed ? '#6b7280' : '#f59e0b'}`,
-                textDecoration: isClosed ? 'line-through' : 'none',
-                textDecorationColor: '#6b7280'
-              }}
-            >
-              <div className="project-open" style={{ cursor: 'default' }}>
-                <div>
-                  <strong style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {receipt.clientName}
-                    {isClosed && <span style={{ fontSize: '0.7rem', background: '#374151', color: '#d1d5db', padding: '2px 6px', borderRadius: '4px', textDecoration: 'none' }}>PAGADO</span>}
-                  </strong>
-                  <span>Proyecto: {receipt.projectCode} • {new Date(receipt.date).toLocaleDateString('es-CO')}</span>
+            <article key={receipt.id} className={`receipt-card ${isClosed ? 'closed' : 'open'}`}>
+              <div className="receipt-head">
+                <div className="receipt-title">
+                  <strong>{receipt.clientName}</strong>
+                  {isClosed
+                    ? <span className="badge-paid">✓ Pagado</span>
+                    : <span className="badge-pending">Pendiente</span>}
                 </div>
-                <div className="card-meta" style={{ marginTop: '10px', display: 'flex', gap: '15px' }}>
-                  <span style={{ textDecoration: 'none' }}>Total: ${receipt.total.toLocaleString('es-CO')}</span>
-                  <span style={{ textDecoration: 'none', color: '#10b981' }}>Abono: ${receipt.abono.toLocaleString('es-CO')}</span>
-                  <span style={{ textDecoration: 'none', color: isClosed ? '#6b7280' : '#f59e0b', fontWeight: 'bold' }}>
-                    Saldo: ${receipt.saldo.toLocaleString('es-CO')}
-                  </span>
+                <span className="receipt-sub">Proyecto {receipt.projectCode} • {new Date(receipt.date).toLocaleDateString('es-CO')}</span>
+              </div>
+
+              <div className="receipt-amounts">
+                <div className="amount">
+                  <span>Total</span>
+                  <strong>$ {receipt.total.toLocaleString('es-CO')}</strong>
+                </div>
+                <div className="amount green">
+                  <span>Abono</span>
+                  <strong>$ {receipt.abono.toLocaleString('es-CO')}</strong>
+                </div>
+                <div className={`amount ${isClosed ? '' : 'amber'}`}>
+                  <span>Saldo</span>
+                  <strong>$ {receipt.saldo.toLocaleString('es-CO')}</strong>
                 </div>
               </div>
-              <div className="project-card-actions" style={{ padding: '0.5rem 1rem' }}>
-                <button
-                  className="ghost"
-                  onClick={() => handleViewPdf(receipt)}
-                  title="Ver PDF del Recibo"
-                  style={{ color: '#3b82f6' }}
-                >
-                  <DocumentArrowDownIcon className="icon" />
+
+              <div className="receipt-actions">
+                <button type="button" className="receipt-act" onClick={() => handleViewPdf(receipt)}>
+                  <DocumentArrowDownIcon className="icon" /> Ver recibo PDF
                 </button>
                 {!isClosed && (
-                  <button
-                    className="ghost"
-                    onClick={() => handleClose(receipt)}
-                    title="Marcar saldo como pagado (Cerrar Recibo)"
-                    style={{ color: '#10b981' }}
-                  >
-                    <CheckCircleIcon className="icon" />
+                  <button type="button" className="receipt-act green" onClick={() => handleClose(receipt)}>
+                    <CheckCircleIcon className="icon" /> Marcar pagado
                   </button>
                 )}
-                <button
-                  className="ghost"
-                  onClick={() => handleDelete(receipt.id!)}
-                  title="Eliminar Recibo"
-                  style={{ color: '#ef4444' }}
-                >
+                <button type="button" className="receipt-act danger" onClick={() => handleDelete(receipt.id!)} title="Eliminar recibo">
                   <TrashIcon className="icon" />
                 </button>
               </div>

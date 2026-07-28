@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { ProjectSummary, TechnicalCatalog, TechnicalProject, SyncQueueItem, InvoiceRecord, ReceiptRecord } from './types';
+import type { ProjectSummary, TechnicalCatalog, TechnicalProject, SyncQueueItem, InvoiceRecord, ReceiptRecord, PhotoRecord, BackupRecord } from './types';
 import { DEFAULT_MAINTENANCE_CATALOG } from './lib/defaultTasks';
 
 const DB_NAME = 'AppCampoJunoMobileV3DB';
@@ -33,6 +33,8 @@ class TechnicalFieldDB extends Dexie {
   syncQueue!: Table<SyncQueueItem, number>;
   invoices!: Table<InvoiceRecord, number>;
   receipts!: Table<ReceiptRecord, number>;
+  photos!: Table<PhotoRecord, string>;
+  backups!: Table<BackupRecord, number>;
 
   constructor() {
     super(DB_NAME);
@@ -50,6 +52,19 @@ class TechnicalFieldDB extends Dexie {
       syncQueue: '++id, type, status, createdAt',
       invoices: '++id, type, documentNumber, clientName, date',
       receipts: '++id, projectId, projectCode, clientName, date, status'
+    });
+    // v4: los proyectos del admin dejan de vivir en UNA clave de localStorage
+    // (tope duro de ~5 MB) y pasan acá, una fila por proyecto. Las fotos salen
+    // del proyecto a su propia tabla, como Blob. Ver `localFallbackStore.ts`.
+    this.version(4).stores({
+      projects: '++id, code, clientName, status, createdAt, updatedAt, deletedAt, synced',
+      projectSummaries: '++id, &projectId, code, clientName, status, updatedAt, deletedAt, synced',
+      catalog: '++id',
+      syncQueue: '++id, type, refId, status, nextAttemptAt, createdAt',
+      invoices: '++id, type, documentNumber, clientName, date',
+      receipts: '++id, projectId, projectCode, clientName, date, status',
+      photos: 'id, projectId, projectCode, createdAt, uploadedAt',
+      backups: '++id, createdAt, reason',
     });
   }
 }
@@ -144,17 +159,23 @@ db.on('ready', async () => {
     }
   }
 
-  window.setTimeout(() => {
-    cleanupExpiredProjects().catch(error => console.error('No se pudo limpiar papelera vencida', error));
-  }, 2500);
+  // La purga automática de la papelera quedó DESACTIVADA a propósito.
+  // Ver la nota en `cleanupExpiredProjects`.
 });
 
-async function cleanupExpiredProjects() {
-  const fortyDaysAgo = Date.now() - (40 * 24 * 60 * 60 * 1000);
-  const expired = await db.projects.where('deletedAt').belowOrEqual(fortyDaysAgo).and(project => (project.deletedAt || 0) > 0).primaryKeys();
-  if (expired.length > 0) await db.projects.bulkDelete(expired as number[]);
-  const expiredSummaries = await db.projectSummaries.where('deletedAt').belowOrEqual(fortyDaysAgo).and(project => (project.deletedAt || 0) > 0).primaryKeys();
-  if (expiredSummaries.length > 0) await db.projectSummaries.bulkDelete(expiredSummaries as number[]);
+/**
+ * DESACTIVADA. Borraba sin avisar todo lo que llevara 40 días en la papelera.
+ *
+ * Tenía sentido cuando el store cabía en 5 MB y había que hacer lugar. Ahora
+ * los proyectos viven en IndexedDB (cuota mucho mayor) y las fotos ni siquiera
+ * están dentro del proyecto, así que la papelera no le pesa a nadie. Borrar en
+ * silencio es justamente lo que hay que evitar acá: la papelera es la última
+ * red antes de perder algo de verdad.
+ *
+ * El borrado definitivo sigue disponible, pero explícito, desde la Papelera.
+ */
+export async function cleanupExpiredProjects() {
+  return;
 }
 
 function normalizeCatalog(catalog: TechnicalCatalog): Partial<TechnicalCatalog> {

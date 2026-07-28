@@ -101,8 +101,49 @@ export interface EvidenceItem {
   id: string;
   kind: EvidenceKind;
   label: string;
+  /**
+   * LEGADO. Foto en base64 incrustada en el proyecto. Es lo que hacía reventar
+   * el tope de ~5 MB de localStorage. Las fotos nuevas van a la tabla Dexie
+   * `photos` como Blob y acá queda ''. Se conserva el campo porque los
+   * respaldos viejos y la copia de la nube todavía lo traen.
+   */
   dataUrl: string;
+  /** Apunta a PhotoRecord.id en la tabla `photos` (fotos nuevas). */
+  photoId?: string;
+  /** URL pública en Supabase Storage, una vez subida. */
+  remoteUrl?: string;
   createdAt: number;
+}
+
+/**
+ * Una foto guardada como Blob nativo en IndexedDB, FUERA del proyecto.
+ * Blob pesa ~33% menos que el mismo contenido en base64 y no pasa por
+ * JSON.stringify, que era el cuello de botella real.
+ */
+export interface PhotoRecord {
+  /** Igual al EvidenceItem.id que la referencia. */
+  id: string;
+  projectId: number;
+  projectCode: string;
+  blob: Blob;
+  mime: string;
+  bytes: number;
+  createdAt: number;
+  /** URL pública en Supabase Storage cuando ya se subió. */
+  remoteUrl?: string;
+  uploadedAt?: number;
+}
+
+/** Snapshot rotativo del store, en un cajón aparte del store vivo. */
+export interface BackupRecord {
+  id?: number;
+  createdAt: number;
+  reason: 'diario' | 'manual' | 'pre-migracion' | 'pre-restauracion';
+  projectCount: number;
+  photoCount: number;
+  /** JSON de los proyectos SIN fotos (las fotos viven en `photos`). */
+  payload: string;
+  bytes: number;
 }
 
 export interface TechnicalSolution {
@@ -232,9 +273,15 @@ export interface TechnicalCatalog {
 
 export interface SyncQueueItem {
   id?: number;
-  type: 'upsert_project' | 'delete_project';
+  type: 'upsert_project' | 'delete_project' | 'upload_photo';
+  /** Identidad estable del elemento: `code` del proyecto o id de la foto. */
+  refId: string;
   payload: unknown;
   status: 'pending' | 'processing' | 'failed';
+  attempts: number;
+  lastError?: string;
+  /** Backoff: no reintentar antes de este instante. */
+  nextAttemptAt: number;
   createdAt: number;
 }
 

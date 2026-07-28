@@ -2,7 +2,9 @@ import { db } from '../db';
 import type { EvidenceKind, ProjectSummary, SpaceRecord, TechnicalProject, TechnicalSolution, WindowRecord } from '../types';
 import { quoteTotal, solutionTotal, solutionArea } from './metrics';
 import { uid } from './ids';
-import { isFallbackId, saveFallbackProject } from './localFallbackStore';
+import { isFallbackId, mutateFallbackProject, saveFallbackProject } from './localFallbackStore';
+import { compressToBlob, savePhoto } from './photoStore';
+import { enqueue } from './syncQueue';
 
 const saveQueues = new Map<number, Promise<void>>();
 
@@ -166,38 +168,68 @@ export function updateSolution(
   }));
 }
 
-export function addEvidence(project: TechnicalProject, spaceId: string, windowId: string, file: File, kind: EvidenceKind) {
-  const reader = new FileReader();
-  reader.onloadend = async () => {
-    const dataUrl = await compressImageDataUrl(String(reader.result));
-    updateWindow(project, spaceId, windowId, window => ({
-      ...window,
-      evidence: [...window.evidence, {
-        id: uid('evidence'),
-        kind,
-        label: file.name,
-        dataUrl,
-        createdAt: Date.now(),
-      }],
-    }));
-  };
-  reader.readAsDataURL(file);
-}
+/**
+ * Guarda una foto de evidencia.
+ *
+ * La foto NO entra al proyecto: se comprime a Blob y va a la tabla `photos`.
+ * El proyecto solo guarda el `photoId`. Antes cada foto viajaba en base64
+ * dentro del proyecto, y el proyecto dentro de una clave de localStorage con
+ * tope de 5 MB: con 15-20 fotos reventaba y se llevaba todo.
+ */
+export async function addEvidence(
+  project: TechnicalProject,
+  spaceId: string,
+  windowId: string,
+  file: File,
+  kind: EvidenceKind,
+) {
+  try {
+    const evidenceId = uid('evidence');
+    const blob = await compressToBlob(file);
+    await savePhoto({
+      id: evidenceId,
+      projectId: project.id!,
+      projectCode: project.code,
+      blob,
+    });
 
-async function compressImageDataUrl(dataUrl: string): Promise<string> {
-  if (!dataUrl.startsWith('data:image/')) return dataUrl;
-  const image = new Image();
-  image.src = dataUrl;
-  await image.decode();
-  const maxSide = 1280;
-  const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
-  const width = Math.max(1, Math.round(image.width * scale));
-  const height = Math.max(1, Math.round(image.height * scale));
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return dataUrl;
-  ctx.drawImage(image, 0, 0, width, height);
-  return canvas.toDataURL('image/jpeg', 0.72);
+    const evidence = {
+      id: evidenceId,
+      kind,
+      label: file.name,
+      dataUrl: '',
+      photoId: evidenceId,
+      createdAt: Date.now(),
+    };
+    const appendEvidence = (window: WindowRecord): WindowRecord => ({
+      ...window,
+      evidence: [...window.evidence, evidence],
+    });
+
+    // Mutar sobre la copia MÁS FRESCA del store, no sobre el snapshot que
+    // capturó React al abrir la ventana. Sin esto, al tomar varias fotos
+    // seguidas la compresión asíncrona de cada una parte del mismo proyecto
+    // viejo y la última escritura pisa a las anteriores => "algunos espacios
+    // no guardan la foto".
+    if (isFallbackId(project.id!)) {
+      const ok = mutateFallbackProject(project.id!, current => ({
+        ...current,
+        spaces: current.spaces.map(space => space.id === spaceId ? ({
+          ...space,
+          windows: space.windows.map(window => window.id === windowId ? appendEvidence(window) : window),
+        }) : space),
+      }));
+      if (!ok) throw new Error('Proyecto no encontrado al guardar la foto');
+    } else {
+      await updateWindow(project, spaceId, windowId, appendEvidence);
+    }
+
+    // Que suba sola apenas haya señal.
+    void enqueue('upload_photo', evidenceId, { photoId: evidenceId });
+  } catch (e) {
+    console.error('Error guardando la foto:', e);
+    import('react-hot-toast').then(({ default: toast }) => {
+      toast.error('No se pudo guardar la foto. Revisá el espacio libre del dispositivo.', { id: 'evidence-error', duration: 5000 });
+    });
+  }
 }

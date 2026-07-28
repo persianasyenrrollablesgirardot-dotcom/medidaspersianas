@@ -1,8 +1,11 @@
 import { useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { buildBackup, csvRows, downloadText, generateReportHtml, technicalSummary, type BackupPayload, type PdfReportProfile } from '../lib/exporters';
+import { csvRows, downloadText, generateReportHtml, technicalSummary, type PdfReportProfile } from '../lib/exporters';
+import type { TechnicalProject } from '../types';
 import { ArrowDownTrayIcon, ArrowUpTrayIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
-import { addFallbackProject, useFallbackActiveProjects, useFallbackCatalog } from '../lib/localFallbackStore';
+import { restoreProjects, useFallbackActiveProjects, useFallbackCatalog } from '../lib/localFallbackStore';
+import { hydrateProjectsPhotos } from '../lib/photoStore';
+import { descargarRespaldoCompleto } from '../lib/autoBackup';
 import { PdfPreviewModal } from '../components/PdfPreviewModal';
 import { DEFAULT_CATALOG } from '../db';
 
@@ -14,7 +17,9 @@ export function ExportCenter() {
 
   const generateReport = async (profile: PdfReportProfile) => {
     try {
-      const html = generateReportHtml(projects, catalog, profile);
+      // Las fotos viven fuera del proyecto: hay que traerlas para el <img> del PDF.
+      const conFotos = await hydrateProjectsPhotos(projects);
+      const html = generateReportHtml(conFotos, catalog, profile);
       setPreviewHtml(html);
     } catch (e) {
       console.error(e);
@@ -22,9 +27,17 @@ export function ExportCenter() {
     }
   };
 
-  const exportJson = () => {
-    downloadText(`backup_app_tecnica_campo_juno_${Date.now()}.json`, JSON.stringify(buildBackup(projects), null, 2), 'application/json');
-    toast.success('Backup JSON exportado');
+  // El respaldo lleva las fotos incrustadas para que el archivo sirva por sí
+  // solo, aunque se pierdan la app y el celular. Es el formato que salvó el
+  // rescate de julio.
+  const exportJson = async () => {
+    try {
+      const resultado = await descargarRespaldoCompleto();
+      toast.success(`Respaldo descargado: ${resultado.proyectos} proyectos con sus fotos.`);
+    } catch (e) {
+      console.error(e);
+      toast.error('No se pudo generar el respaldo');
+    }
   };
 
   const exportCsv = () => {
@@ -40,16 +53,41 @@ export function ExportCenter() {
 
   const importJson = async (file?: File) => {
     if (!file) return;
-    const text = await file.text();
-    const payload = JSON.parse(text) as BackupPayload;
-    if (payload.app !== 'App_Tecnica_Campo_Juno' || !Array.isArray(payload.projects)) {
+    let parsed: any;
+    try {
+      parsed = JSON.parse(await file.text());
+    } catch {
+      toast.error('El archivo no es un JSON válido');
+      return;
+    }
+    // Aceptamos varios formatos: el respaldo oficial ({ app, projects }), el archivo
+    // de rescate en crudo (un arreglo de proyectos) o { projects: [...] } sin etiqueta.
+    let projects: TechnicalProject[] = [];
+    if (Array.isArray(parsed)) projects = parsed;
+    else if (parsed && Array.isArray(parsed.projects)) projects = parsed.projects;
+    else {
       toast.error('Backup no compatible');
       return;
     }
-    for (const project of payload.projects) {
-      addFallbackProject({ ...project, id: undefined, synced: false, updatedAt: Date.now() });
+    // Validación mínima: que parezcan proyectos (tienen espacios).
+    projects = projects.filter(p => p && typeof p === 'object' && Array.isArray(p.spaces));
+    if (projects.length === 0) {
+      toast.error('El archivo no contiene proyectos');
+      return;
     }
-    toast.success(`${payload.projects.length} proyectos importados`);
+    // Combina por CÓDIGO de proyecto y nunca borra lo que ya existe. Antes se
+    // agregaba a ciegas: importar dos veces duplicaba todo y, si no cabía en
+    // los 5 MB, el proyecto entraba mutilado sin fotos.
+    try {
+      const r = await restoreProjects(projects);
+      toast.success(
+        `${r.added} proyectos nuevos, ${r.updated} actualizados${r.skipped ? `, ${r.skipped} descartados` : ''}.`,
+        { duration: 7000 },
+      );
+    } catch (e) {
+      console.error(e);
+      toast.error('No se pudo importar el respaldo');
+    }
   };
 
   return (

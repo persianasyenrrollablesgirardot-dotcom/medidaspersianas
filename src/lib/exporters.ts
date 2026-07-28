@@ -49,8 +49,18 @@ export function technicalSummary(project: TechnicalProject, catalog: TechnicalCa
 
   for (const space of activeSpaces) {
     lines.push(`== ${space.name.toUpperCase()} ==`);
+    if (space.notes) lines.push(`  Observacion del espacio: ${space.notes}`);
     for (const win of space.windows) {
       lines.push(`- ${win.label}`);
+      // Campos personalizados adicionales de la ventana (antes se omitian, por eso
+      // la cotizacion IA salia sin esa informacion).
+      if (catalog?.customWindowFields?.length) {
+        for (const field of catalog.customWindowFields) {
+          const value = win.customFields?.[field.id];
+          if (value) lines.push(`    ${field.label}: ${value}`);
+        }
+      }
+      if (win.notes) lines.push(`    Observacion de la ventana: ${win.notes}`);
       const validSolutions = win.solutions.filter(s => s.itemType === 'maintenance' ? s.maintenance?.tasks.some(t => t.selected) : (s.quickQuote ? quoteTotal(s.quickQuote) > 0 : solutionTotal(s) > 0));
       const rawMaints = win.solutions.filter(s => s.itemType === 'maintenance' ? s.maintenance?.tasks.some(t => t.selected) : false);
       const blinds = validSolutions.filter(s => s.itemType !== 'maintenance');
@@ -64,7 +74,7 @@ export function technicalSummary(project: TechnicalProject, catalog: TechnicalCa
       }
 
       for (const sol of blinds) {
-        lines.push(`  > ${sol.name} [${sol.layer}] ${sol.system} ${sol.fabric || ''}`);
+        lines.push(`  > ${sol.name} [${sol.layer}] ${sol.system} ${sol.fabric || ''} ${sol.color ? `color ${sol.color}` : ''}`);
         if (sol.quickQuote) {
           lines.push(`    Cotizacion: ${quoteArea(sol.quickQuote).toFixed(2)} m2 - ${quoteTotal(sol.quickQuote).toLocaleString('es-CO')} COP estimado`);
         }
@@ -232,7 +242,7 @@ function renderProjectReport(project: TechnicalProject, catalog: TechnicalCatalo
       </div>
       ${activeSpaces.map(space => `
         <h2>${escapeHtml(space.name)}</h2>
-        ${space.notes && profile === 'internal' ? `<p class="note"><strong>Nota de espacio:</strong> ${escapeHtml(space.notes)}</p>` : ''}
+        ${space.notes && profile !== 'client' ? `<p class="note"><strong>Nota de espacio:</strong> ${escapeHtml(space.notes)}</p>` : ''}
         ${space.windows.map(win => renderWindowReport(win, catalog, profile)).join('')}
       `).join('')}
       ${showPrice ? `
@@ -276,12 +286,21 @@ function renderWindowReport(win: TechnicalProject['spaces'][number]['windows'][n
     <h3>${escapeHtml(win.label)}</h3>
     <p><strong>Vano:</strong> ancho ${formatRaw(win.geometry.widthTop)} / ${formatRaw(win.geometry.widthMiddle)} / ${formatRaw(win.geometry.widthBottom)} - alto ${formatRaw(win.geometry.heightLeft)} / ${formatRaw(win.geometry.heightCenter)} / ${formatRaw(win.geometry.heightRight)} - profundidad ${formatRaw(win.geometry.depth)}</p>
     ${win.planTemplate ? renderPlan(win.planTemplate) : ''}
-    ${catalog?.customWindowFields?.length ? `<div class="grid">${catalog.customWindowFields.map(field => `<div class="box"><span>${escapeHtml(field.label)}</span><strong>${escapeHtml(win.customFields?.[field.id] || 'Sin definir')}</strong></div>`).join('')}</div>` : ''}
+    ${renderCustomFields(win, catalog)}
     ${showConditions && win.siteConditions.length ? `<p><strong>Condiciones:</strong> ${win.siteConditions.map(c => `<span class="badge">${escapeHtml(c.label)} | ${escapeHtml(c.severity)}</span>`).join('')}</p>` : ''}
-    ${win.notes && profile === 'internal' ? `<p class="note"><strong>Nota ventana:</strong> ${escapeHtml(win.notes)}</p>` : ''}
+    ${win.notes ? `<p class="note"><strong>Nota ventana:</strong> ${escapeHtml(win.notes)}</p>` : ''}
     ${showPhotos ? `<div class="photos">${win.evidence.map(ev => `<div><img src="${escapeHtml(ev.dataUrl)}" alt="${escapeHtml(ev.label)}"><p class="muted">${escapeHtml(ev.kind)}</p></div>`).join('')}</div>` : ''}
     ${renderTechnicalSolutions(win, catalog, profile)}
   `;
+}
+
+function renderCustomFields(win: TechnicalProject['spaces'][number]['windows'][number], catalog: TechnicalCatalog | undefined) {
+  // Solo los campos personalizados CON valor; los vacios / "Sin definir" no aparecen.
+  const filled = (catalog?.customWindowFields || [])
+    .map(field => ({ label: field.label, value: (win.customFields?.[field.id] || '').trim() }))
+    .filter(field => field.value.length > 0);
+  if (!filled.length) return '';
+  return `<div class="grid">${filled.map(field => `<div class="box"><span>${escapeHtml(field.label)}</span><strong>${escapeHtml(field.value)}</strong></div>`).join('')}</div>`;
 }
 
 function renderClientWindow(win: TechnicalProject['spaces'][number]['windows'][number], catalog: TechnicalCatalog | undefined) {
@@ -451,6 +470,7 @@ function renderTechnicalSolutions(win: TechnicalProject['spaces'][number]['windo
         ${includeProduction ? renderAssemblyDetailsBlock(sol) : ''}
         ${includeProduction ? renderDivisionsBlock(sol) : ''}
         ${includePrice ? renderPriceBlock(sol) : ''}
+        ${sol.notes ? `<p style="margin-top: 12px"><strong>Nota:</strong> ${escapeHtml(sol.notes)}</p>` : ''}
         ${includeAlerts ? renderAlertsBlock(sol) : ''}
       </article>
     `;
@@ -505,11 +525,13 @@ function renderPriceBlock(sol: TechnicalProject['spaces'][number]['windows'][num
 }
 
 function renderAlertsBlock(sol: TechnicalProject['spaces'][number]['windows'][number]['solutions'][number]) {
-  const items = [...sol.alerts.map(a => a.message), sol.notes].filter(Boolean);
+  // Solo alertas: la nota (observacion) ya se renderiza aparte y visible para todos
+  // los perfiles menos Cliente, para no depender de este bloque (installer/internal).
+  const items = sol.alerts.map(a => a.message).filter(Boolean);
   if (!items.length) return '';
   return `
     <div class="solution-block">
-      <p class="solution-block-title">Alertas / notas</p>
+      <p class="solution-block-title">Alertas</p>
       <ul class="solution-list">${items.map(item => `<li>${escapeHtml(String(item))}</li>`).join('')}</ul>
     </div>
   `;

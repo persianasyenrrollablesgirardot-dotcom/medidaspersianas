@@ -9,6 +9,8 @@ import { quoteArea, solutionArea, solutionTotal } from '../lib/metrics';
 import { uid } from '../lib/ids';
 import type { DivisionPart, EvidenceKind, TechnicalProject, TechnicalSolution } from '../types';
 import { ArrowLeftIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { EvidenceImage } from '../components/EvidenceImage';
+import { compressToBlob, savePhoto } from '../lib/photoStore';
 
 export function ProjectEditor() {
   const { id } = useParams();
@@ -70,25 +72,33 @@ export function ProjectEditor() {
     })),
   });
 
-  const addEvidence = (spaceId: string, windowId: string, file: File, kind: EvidenceKind) => {
-    const reader = new FileReader();
-    reader.onloadend = () => save({
+  /**
+   * Esta pantalla guardaba la foto SIN COMPRIMIR y en base64 dentro del
+   * proyecto — una foto de celular son varios MB, así que una sola bastaba
+   * para reventar el store. Ahora comprime a Blob y la manda a la tabla
+   * `photos`, igual que el resto de la app.
+   */
+  const addEvidence = async (spaceId: string, windowId: string, file: File, kind: EvidenceKind) => {
+    const evidenceId = uid('evidence');
+    const blob = await compressToBlob(file);
+    await savePhoto({ id: evidenceId, projectId: project.id!, projectCode: project.code, blob });
+    await save({
       ...project,
       spaces: project.spaces.map(space => space.id !== spaceId ? space : ({
         ...space,
         windows: space.windows.map(window => window.id !== windowId ? window : ({
           ...window,
           evidence: [...window.evidence, {
-            id: uid('evidence'),
+            id: evidenceId,
             kind,
             label: file.name,
-            dataUrl: String(reader.result),
+            dataUrl: '',
+            photoId: evidenceId,
             createdAt: Date.now(),
           }],
         })),
       })),
     });
-    reader.readAsDataURL(file);
   };
 
   return (
@@ -193,7 +203,7 @@ export function ProjectEditor() {
                   <div className="thumb-row">
                     {window.evidence.map(ev => (
                       <div key={ev.id} className="thumb">
-                        <img src={ev.dataUrl} alt={ev.label} />
+                        <EvidenceImage ev={ev} />
                         <button onClick={() => save({
                           ...project,
                           spaces: project.spaces.map(s => s.id === space.id ? {

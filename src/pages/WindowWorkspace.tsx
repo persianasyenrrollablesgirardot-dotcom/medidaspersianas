@@ -16,6 +16,8 @@ import { uid } from '../lib/ids';
 import type { DivisionPart, EvidenceKind, MountPlanTemplate, QuickWindowMode, TechnicalProject, TechnicalSolution } from '../types';
 import type { TechnicalCatalog } from '../types';
 import { isFallbackId, saveFallbackCatalog, useFallbackCatalog, useFallbackProject } from '../lib/localFallbackStore';
+import { EvidenceImage } from '../components/EvidenceImage';
+import { evidenceUrl, useEvidenceUrl } from '../lib/photoStore';
 
 type Tab = 'quick' | 'maintenance' | 'evidence';
 
@@ -66,16 +68,23 @@ export function WindowWorkspace() {
   const patchSolution = (solutionId: string, patch: Partial<TechnicalSolution>) => updateSolution(project, space.id, win.id, solutionId, patch);
 
   const updateCatalog = async (patch: Partial<TechnicalCatalog>) => {
-    if (fallbackMode) {
-      saveFallbackCatalog(patch);
-      return;
+    // Escribir en AMBOS stores. El editor de ventana LEE de Dexie (dbCatalog, que
+    // siempre existe porque se siembra al arrancar), mientras que el Dashboard/PDF
+    // lee del fallback (localStorage). Antes, en fallbackMode se escribía SOLO el
+    // fallback → el campo/opción agregado no aparecía en la ventana (que lee Dexie)
+    // y parecía que "no dejaba agregar nada". Ahora se escriben los dos y quedan en
+    // sync (mismo patrón que Ajustes).
+    try {
+      const current = catalog.id ? catalog : await db.catalog.toCollection().first();
+      if (current?.id) {
+        await db.catalog.update(current.id, { ...patch, lastUpdatedAt: Date.now() });
+      } else {
+        await db.catalog.add({ ...DEFAULT_CATALOG, ...patch, lastUpdatedAt: Date.now() });
+      }
+    } catch (e) {
+      console.error('Error guardando catálogo en Dexie:', e);
     }
-    const current = catalog.id ? catalog : await db.catalog.toCollection().first();
-    if (current?.id) {
-      await db.catalog.update(current.id, { ...patch, lastUpdatedAt: Date.now() });
-      return;
-    }
-    await db.catalog.add({ ...DEFAULT_CATALOG, ...patch, lastUpdatedAt: Date.now() });
+    saveFallbackCatalog(patch);
   };
   const addSol = (layer: TechnicalSolution['layer']) => {
     const sol = newSolution(layer === 'outside' ? 'Persiana externa' : 'Persiana interna', layer);
@@ -598,10 +607,14 @@ function DivisionsForm({ solution, onChange }: { solution: TechnicalSolution; on
 
 function EvidenceForm({ win, onAdd, onDelete }: any) {
   const [viewingImage, setViewingImage] = useState<any>(null);
+  // La foto puede estar como Blob local, en Supabase o en base64 heredado.
+  const viewingUrl = useEvidenceUrl(viewingImage || undefined);
 
   const handleShare = async (ev: any) => {
     try {
-      const res = await fetch(ev.dataUrl);
+      const url = await evidenceUrl(ev);
+      if (!url) throw new Error('Foto no disponible');
+      const res = await fetch(url);
       const blob = await res.blob();
       const file = new File([blob], `evidencia_${ev.id}.jpg`, { type: 'image/jpeg' });
       if (navigator.share) {
@@ -636,7 +649,7 @@ function EvidenceForm({ win, onAdd, onDelete }: any) {
       <div className="thumb-row wrap">
         {win.evidence.map((ev: any) => (
           <div key={ev.id} className="thumb" onClick={() => setViewingImage(ev)} style={{ cursor: 'pointer' }}>
-            <img src={ev.dataUrl} alt={ev.label} />
+            <EvidenceImage ev={ev} />
             <button onClick={(e) => { e.stopPropagation(); onDelete(ev.id); }}>x</button>
             <span>{evidenceLabel(ev.kind)}</span>
           </div>
@@ -652,10 +665,12 @@ function EvidenceForm({ win, onAdd, onDelete }: any) {
               <button className="ghost" onClick={() => setViewingImage(null)} style={{ color: 'white', fontSize: '1.5rem', width: 'auto', padding: '0 0.5rem' }}>✕</button>
             </div>
             <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'auto', padding: '1rem' }}>
-              <img src={viewingImage.dataUrl} alt={viewingImage.label} style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }} />
+              {viewingUrl
+                ? <img src={viewingUrl} alt={viewingImage.label} style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }} />
+                : <span style={{ color: 'white' }}>Cargando foto…</span>}
             </div>
             <div style={{ padding: '1rem', display: 'flex', gap: '1rem', background: 'rgba(0,0,0,0.8)' }}>
-              <a href={viewingImage.dataUrl} download={`evidencia_${viewingImage.id}.jpg`} className="primary" style={{ flex: 1, textAlign: 'center', textDecoration: 'none' }}>⬇️ Descargar</a>
+              <a href={viewingUrl || '#'} download={`evidencia_${viewingImage.id}.jpg`} className="primary" style={{ flex: 1, textAlign: 'center', textDecoration: 'none' }}>⬇️ Descargar</a>
               <button className="primary" onClick={() => handleShare(viewingImage)} style={{ flex: 1, background: '#10b981', borderColor: '#10b981' }}>📲 Compartir</button>
             </div>
           </div>

@@ -7,6 +7,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { generateReportHtml, technicalSummary, type PdfReportProfile } from '../lib/exporters';
 import { isFallbackId, useFallbackCatalog, useFallbackProject, saveFallbackProject } from '../lib/localFallbackStore';
+import { hydrateProjectPhotos } from '../lib/photoStore';
 import { saveProject } from '../lib/projectStore';
 import { PdfPreviewModal } from '../components/PdfPreviewModal';
 import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
@@ -32,6 +33,19 @@ export function ProjectDetail() {
 
   const handleSendToSupplier = async () => {
     if (!project) return;
+    // Alarma: si el pedido no tiene recibo de pago generado, avisar antes de enviar.
+    try {
+      const receiptCount = await db.receipts.where('projectId').equals(project.id!).count();
+      if (receiptCount === 0) {
+        const proceed = confirm('⚠ Este pedido NO tiene recibo de pago generado.\n\nSe recomienda generar el recibo antes de enviarlo al proveedor.\n\n¿Deseas enviarlo de todas formas?');
+        if (!proceed) {
+          toast('Genera el recibo con el botón "Recibo" y vuelve a enviar.', { icon: '🧾', duration: 5000 });
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('No se pudo verificar el recibo:', e);
+    }
     try {
       const updated = { ...project, sentToSupplier: true };
       if (fallbackMode) {
@@ -68,7 +82,9 @@ export function ProjectDetail() {
   const generateReport = async (profile: PdfReportProfile) => {
     if (!project) return;
     try {
-      const html = generateReportHtml([project], catalog || DEFAULT_CATALOG, profile);
+      // Las fotos viven fuera del proyecto: hay que traerlas para el <img> del PDF.
+      const conFotos = await hydrateProjectPhotos(project);
+      const html = generateReportHtml([conFotos], catalog || DEFAULT_CATALOG, profile);
       setPreviewHtml(html);
     } catch (e) {
       console.error(e);
