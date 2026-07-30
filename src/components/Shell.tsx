@@ -7,7 +7,7 @@ import { useAuth } from './AuthContext';
 
 // Sello de versión: si al abrir la app NO ves este número, tu app está cacheada
 // (versión vieja) → usá "Limpiar Caché" en Ajustes. NUNCA "borrar datos".
-const APP_VERSION = 'v2026.07.29-rescate';
+const APP_VERSION = 'v2026.07.30-subir';
 
 export function Shell({ children }: { children: ReactNode }) {
   const { role, logout } = useAuth();

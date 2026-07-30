@@ -59,6 +59,72 @@ export async function subirProyecto(project: TechnicalProject): Promise<void> {
   await setDoc(doc(dbFirestore, COLECCION, idDocumento(project)), aligerado, { merge: true });
 }
 
+/**
+ * SUBE TODO LO QUE HAY EN EL DISPOSITIVO, AHORA.
+ *
+ * Faltaba, y por eso la nube podía estar vacía sin que nada avisara: un
+ * proyecto solo se encolaba para subir cuando se GUARDABA (`persist()` en
+ * localFallbackStore). La migración de localStorage a IndexedDB escribe con
+ * `db.projects.put` directo, sin encolar, así que **todos los proyectos que ya
+ * existían nunca se subieron** — solo los que se editaran después. Sumado a que
+ * la escritura moría por el `undefined` (ver `firebase.ts`), la nube quedó sin
+ * nada mientras el panel decía "Al día".
+ *
+ * Lo que falla no se pierde: se encola con reintentos.
+ */
+export async function subirTodosLosProyectos(
+  avance?: (hechos: number, total: number) => void,
+): Promise<{ total: number; subidos: number; encolados: number }> {
+  if (!haySesion()) throw new Error('Sin sesión iniciada');
+
+  const proyectos = (await db.projects.toArray()).filter(p => !p.deletedAt);
+  let subidos = 0;
+  let encolados = 0;
+
+  for (let i = 0; i < proyectos.length; i++) {
+    const proyecto = proyectos[i];
+    try {
+      await subirProyecto(proyecto);
+      subidos++;
+    } catch (error) {
+      console.error(`No se pudo subir ${proyecto.code}`, error);
+      // Import dinámico: syncQueue importa de acá, y estáticamente sería un ciclo.
+      const { enqueue } = await import('./syncQueue');
+      await enqueue('upsert_project', proyecto.code, { code: proyecto.code, id: proyecto.id });
+      encolados++;
+    }
+    avance?.(i + 1, proyectos.length);
+  }
+
+  if (subidos > 0 && encolados === 0) marcarSubidaCompleta(subidos);
+  return { total: proyectos.length, subidos, encolados };
+}
+
+const CLAVE_ULTIMA_SUBIDA = 'juno_ultima_subida_completa_v1';
+
+function marcarSubidaCompleta(proyectos: number) {
+  try {
+    window.localStorage.setItem(CLAVE_ULTIMA_SUBIDA, JSON.stringify({ cuando: Date.now(), proyectos }));
+  } catch {
+    /* no es crítico */
+  }
+}
+
+/**
+ * Cuándo se subió TODO por última vez. `null` = nunca.
+ * El panel mostraba "Al día" con la cola vacía, que no es lo mismo que
+ * "está respaldado": una cola vacía también puede significar que nunca se
+ * encoló nada. Esto es el dato honesto.
+ */
+export function ultimaSubidaCompleta(): { cuando: number; proyectos: number } | null {
+  try {
+    const raw = window.localStorage.getItem(CLAVE_ULTIMA_SUBIDA);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function borrarProyectoDeLaNube(project: TechnicalProject): Promise<void> {
   if (!haySesion()) throw new Error('Sin sesión iniciada');
   await deleteDoc(doc(dbFirestore, COLECCION, idDocumento(project)));
