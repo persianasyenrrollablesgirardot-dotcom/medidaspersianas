@@ -40,7 +40,9 @@ Vista: **`src/pages/SupplierProjectView.tsx`** — "Orden de Producción" plana,
 
 4. **Firestore rechaza el documento COMPLETO si una propiedad vale `undefined`** (código `invalid-argument`, "Unsupported field value: undefined"). La app crea `undefined` a propósito (`quickQuote` en ProjectEditor/projectStore, `planTemplate` al pasar a modo simple, `manualArea` al vaciarlo). Mientras los proyectos vivían en localStorage no molestaba porque cada lectura era un `JSON.parse`, que borra esas claves; al pasarlos a IndexedDB dejaron de borrarse y rompió a la vez "Enviar a Proveedor" y el respaldo automático. **Está resuelto con `ignoreUndefinedProperties: true` en `src/lib/firebase.ts` — NO quitar esa opción.**
 
-5. **Facturación IA usa Claude** (`src/lib/facturador/claude.ts`, modelo `claude-haiku-4-5` que SÍ lee PDF). Key en `localStorage.CUSTOM_CLAUDE_API_KEY` o `VITE_CLAUDE_API_KEY`. El `.env.local` tiene `VITE_GEMINI_API_KEY` que NO se usa (histórico).
+5. **Pantalla NEGRA después de un deploy = archivo con hash que ya no existe.** Cada deploy cambia `index-<hash>.js`; si la PWA guardó un `index.html` viejo pide el `.js` viejo, que ya no está. El comodín de `vercel.json` reescribía TODO a `/index.html`, así que ese pedido devolvía **HTML con 200 en vez de 404** → el navegador esperaba un módulo JS, recibió HTML y abortó → React nunca monta. **Dos defensas puestas (no quitar):** (a) `vercel.json` excluye `/assets` del comodín (`"source": "/((?!assets/).*)"`) — `vercel.json` NO admite comentarios ni `$comment`, el schema lo rechaza; (b) `index.html` tiene una **pantalla de rescate** en HTML+JS clásico (corre aunque el bundle falle): a los 9s sin montar ofrece "Reparar y volver a abrir", que desregistra los SW y borra **solo Cache Storage**, nunca IndexedDB → ver gotcha 2.
+
+6. **Facturación IA usa Claude** (`src/lib/facturador/claude.ts`, modelo `claude-haiku-4-5` que SÍ lee PDF). Key en `localStorage.CUSTOM_CLAUDE_API_KEY` o `VITE_CLAUDE_API_KEY`. El `.env.local` tiene `VITE_GEMINI_API_KEY` que NO se usa (histórico).
 
 ## Cómo trabajar acá (aprendizajes de sesión)
 
