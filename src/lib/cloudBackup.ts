@@ -22,7 +22,10 @@ import type { TechnicalProject } from '../types';
 const COLECCION = 'admin_projects';
 
 function idDocumento(project: TechnicalProject): string {
-  const base = project.code || `sin-codigo-${project.id}`;
+  // `cloudDocId` solo existe en las copias extra de un código repetido. Sin
+  // esto, varias copias del mismo código escriben sobre el mismo documento y
+  // solo una queda respaldada — pasaba con 25 proyectos de este dispositivo.
+  const base = project.cloudDocId || project.code || `sin-codigo-${project.id}`;
   // Firestore no admite '/' en el id del documento.
   return base.replace(/[/\\]/g, '_').slice(0, 400);
 }

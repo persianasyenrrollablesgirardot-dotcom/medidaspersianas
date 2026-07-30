@@ -71,7 +71,9 @@ function persist(project: TechnicalProject, { sync = true } = {}) {
       const { project: light } = await extractPhotos(project);
       mirror.set(id, light);
       await db.projects.put(light);
-      if (sync) await enqueue('upsert_project', light.code, { code: light.code, id });
+      // El refId identifica al DOCUMENTO en la nube: con códigos repetidos, dos
+      // copias con el mismo refId se pisan en la cola. Ver `reconciliar()`.
+      if (sync) await enqueue('upsert_project', light.cloudDocId || light.code, { code: light.code, id });
     })
     .catch(error => {
       console.error('No se pudo guardar el proyecto', error);

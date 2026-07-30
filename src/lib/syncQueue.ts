@@ -136,11 +136,44 @@ export async function reconciliar(): Promise<number> {
   let encolados = 0;
   try {
     const proyectos = await db.projects.toArray();
+
+    // CÓDIGOS REPETIDOS. El rescate de julio dejó 28 códigos con 2 a 4 copias.
+    // Como el nombre del documento en la nube ES el código, todas las copias
+    // escribían sobre el mismo documento: solo una quedaba respaldada y las
+    // otras volvían a encolarse para siempre sin llegar nunca. Acá cada copia
+    // extra recibe un nombre propio y estable (por fecha de creación) para que
+    // ninguna quede afuera.
+    const porCodigo = new Map<string, typeof proyectos>();
+    proyectos.forEach(p => {
+      if (p.deletedAt || !p.code) return;
+      const grupo = porCodigo.get(p.code) || [];
+      grupo.push(p);
+      porCodigo.set(p.code, grupo);
+    });
+    for (const [code, grupo] of porCodigo) {
+      if (grupo.length < 2) continue;
+      const ordenado = [...grupo].sort(
+        (a, b) => (a.createdAt || 0) - (b.createdAt || 0) || (a.id || 0) - (b.id || 0),
+      );
+      for (let i = 0; i < ordenado.length; i++) {
+        const esperado = i === 0 ? undefined : `${code}__${i + 1}`;
+        if (ordenado[i].cloudDocId !== esperado) {
+          ordenado[i].cloudDocId = esperado;
+          await db.projects.update(ordenado[i].id!, { cloudDocId: esperado });
+        }
+      }
+    }
+
     for (const proyecto of proyectos) {
       if (proyecto.deletedAt) continue;
       if (!proyecto.code || typeof proyecto.id !== 'number') continue;
       if (proyecto.cloudSyncedUpdatedAt === proyecto.updatedAt) continue;
-      await enqueue('upsert_project', proyecto.code, { code: proyecto.code, id: proyecto.id });
+      // El refId es el documento, NO el código: si fuera el código, dos copias
+      // se pisarían tambien en la cola y una nunca se subiría.
+      await enqueue('upsert_project', proyecto.cloudDocId || proyecto.code, {
+        code: proyecto.code,
+        id: proyecto.id,
+      });
       encolados++;
     }
   } catch (error) {

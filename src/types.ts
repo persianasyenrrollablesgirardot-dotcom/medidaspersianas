@@ -31,6 +31,15 @@ export interface TechnicalProject {
    * Que se pierda no rompe nada: falla hacia el lado seguro (vuelve a subir).
    */
   cloudSyncedUpdatedAt?: number;
+  /**
+   * Nombre del documento en la nube. Normalmente es el `code`, que es la
+   * identidad real entre dispositivos. Pero en este store hay códigos
+   * REPETIDOS (el rescate de julio dejó 28 códigos con 2 a 4 copias), y con el
+   * código como nombre del documento todas las copias escriben encima de la
+   * misma y solo UNA quedaba respaldada. A las copias extra se les asigna acá
+   * un nombre propio (`CODE__2`, `CODE__3`…) para que ninguna quede afuera.
+   */
+  cloudDocId?: string;
   catalogSnapshot?: {
     customWindowFields?: Array<{ id: string; label: string; options: string[] }>;
   };
