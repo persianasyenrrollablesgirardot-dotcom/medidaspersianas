@@ -21,6 +21,7 @@ const MAX_INTENTOS = 8;
 
 let corriendo = false;
 let temporizador: number | undefined;
+let reconciliador: number | undefined;
 let drenando = false;
 
 function avisar() {
@@ -111,6 +112,57 @@ async function procesar(item: SyncQueueItem): Promise<void> {
   // Releemos por si la subida de fotos actualizó las URLs.
   const fresco = (await db.projects.get(id)) || project;
   await subirProyecto(fresco);
+
+  // Queda anotado QUÉ versión está en la nube. Es lo que le permite al
+  // reconciliador saber, sin preguntarle a la nube, qué falta subir.
+  await db.projects.update(id, { cloudSyncedUpdatedAt: fresco.updatedAt });
+}
+
+/**
+ * RECONCILIADOR — la sincronización pasa SOLA, sin botones.
+ *
+ * Antes un proyecto solo se encolaba al GUARDARLO (`persist()`). Todo lo que
+ * entraba por otro camino quedaba fuera de la nube para siempre y en silencio:
+ * la migración de localStorage a IndexedDB (que escribe con `db.projects.put`
+ * directo), las restauraciones, las importaciones. Así se perdió información.
+ *
+ * Esto recorre lo que hay en el dispositivo y encola lo que la nube no tiene o
+ * tiene viejo. Corre al arrancar, cada pocos minutos, al volver la señal y al
+ * traer la app al frente. Es idempotente: `enqueue` reemplaza lo pendiente del
+ * mismo proyecto en vez de acumular, y si no hay sesión o señal simplemente se
+ * queda esperando.
+ */
+export async function reconciliar(): Promise<number> {
+  let encolados = 0;
+  try {
+    const proyectos = await db.projects.toArray();
+    for (const proyecto of proyectos) {
+      if (proyecto.deletedAt) continue;
+      if (!proyecto.code || typeof proyecto.id !== 'number') continue;
+      if (proyecto.cloudSyncedUpdatedAt === proyecto.updatedAt) continue;
+      await enqueue('upsert_project', proyecto.code, { code: proyecto.code, id: proyecto.id });
+      encolados++;
+    }
+  } catch (error) {
+    console.error('No se pudo reconciliar con la nube', error);
+  }
+  if (encolados > 0) {
+    console.info(`Reconciliación: ${encolados} proyectos pendientes de subir a la nube.`);
+    avisar();
+  }
+  return encolados;
+}
+
+/** Cuántos proyectos del dispositivo todavía no tienen copia en la nube. */
+export async function sinCopiaEnLaNube(): Promise<number> {
+  try {
+    const proyectos = await db.projects.toArray();
+    return proyectos.filter(
+      p => !p.deletedAt && p.cloudSyncedUpdatedAt !== p.updatedAt,
+    ).length;
+  } catch {
+    return 0;
+  }
 }
 
 export async function drain(): Promise<void> {
@@ -161,17 +213,29 @@ export async function drain(): Promise<void> {
 export function startSync() {
   if (corriendo) return;
   corriendo = true;
-  window.addEventListener('online', () => void drain());
+
+  // Reconciliar y drenar van juntos: primero se detecta qué falta, después se
+  // sube. Sin la reconciliación, la cola drena una lista que nadie llenó.
+  const ciclo = async () => {
+    await reconciliar();
+    await drain();
+  };
+
+  window.addEventListener('online', () => void ciclo());
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') void drain();
+    if (document.visibilityState === 'visible') void ciclo();
   });
   temporizador = window.setInterval(() => void drain(), INTERVALO_MS);
-  void drain();
+  // Barrido completo cada 5 minutos, por si algo entró por un camino que no
+  // encola (importación, restauración, migración).
+  reconciliador = window.setInterval(() => void reconciliar(), 5 * 60_000);
+  void ciclo();
 }
 
 export function stopSync() {
   corriendo = false;
   if (temporizador) window.clearInterval(temporizador);
+  if (reconciliador) window.clearInterval(reconciliador);
 }
 
 /** Reintenta ya mismo todo lo que quedó marcado como fallido. */

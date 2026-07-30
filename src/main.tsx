@@ -4,6 +4,7 @@ import App from './App';
 import './styles.css';
 import { initLocalStore } from './lib/localFallbackStore';
 import { respaldoDiarioSiCorresponde } from './lib/autoBackup';
+import { restaurarDeLaNubeSiEstaVacio } from './lib/cloudRestore';
 import { startSync } from './lib/syncQueue';
 
 if (import.meta.env.DEV && 'serviceWorker' in navigator) {
@@ -58,7 +59,10 @@ async function arrancar() {
   // Lo que no bloquea el primer pintado va después.
   void pedirAlmacenamientoPersistente();
   void respaldoDiarioSiCorresponde();
+  // Sube lo que falte (reconciliador) y, si el equipo está vacío, baja lo que
+  // haya en la nube. Las dos direcciones sin que haya que tocar un botón.
   startSync();
+  restaurarDeLaNubeSiEstaVacio();
 }
 
 void arrancar();

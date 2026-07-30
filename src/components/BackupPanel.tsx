@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowDownTrayIcon, ArrowUpTrayIcon, ArrowUturnLeftIcon, CloudArrowDownIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
+import { ArrowDownTrayIcon, ArrowUturnLeftIcon, CloudArrowDownIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import {
   descargarRespaldoCompleto,
   diasDesdeUltimoExport,
@@ -8,11 +8,11 @@ import {
   restaurarSnapshot,
   tomarSnapshot,
 } from '../lib/autoBackup';
-import { bajarTodo, haySesion, probarNube, subirTodosLosProyectos, ultimaSubidaCompleta } from '../lib/cloudBackup';
+import { bajarTodo, haySesion, probarNube } from '../lib/cloudBackup';
 import { restoreProjects, getFallbackProjects } from '../lib/localFallbackStore';
 import { photoStats } from '../lib/photoStore';
 import { probarSupabase } from '../lib/supabasePhotos';
-import { useSyncStatus } from '../lib/syncQueue';
+import { sinCopiaEnLaNube, useSyncStatus } from '../lib/syncQueue';
 import type { BackupRecord } from '../types';
 
 function fecha(ts: number) {
@@ -40,18 +40,22 @@ export function BackupPanel() {
   const [fotos, setFotos] = useState({ count: 0, bytes: 0, pendingUpload: 0 });
   const [ocupado, setOcupado] = useState(false);
   const [prueba, setPrueba] = useState<{ ok: boolean; datos: string; fotos: string } | null>(null);
-  const [progreso, setProgreso] = useState<string | null>(null);
-  const [ultimaSubida, setUltimaSubida] = useState(() => ultimaSubidaCompleta());
+  const [sinCopia, setSinCopia] = useState<number | null>(null);
   const proyectos = getFallbackProjects().filter(p => !p.deletedAt).length;
   const diasSinExport = diasDesdeUltimoExport();
 
   const refrescar = async () => {
     setSnapshots(await listarSnapshots());
     setFotos(await photoStats());
+    setSinCopia(await sinCopiaEnLaNube());
   };
 
   useEffect(() => {
     void refrescar();
+    // La subida es automática, así que este número baja solo: hay que
+    // refrescarlo para que se vea avanzar sin tocar nada.
+    const t = window.setInterval(() => void sinCopiaEnLaNube().then(setSinCopia), 5000);
+    return () => window.clearInterval(t);
   }, []);
 
   /**
@@ -116,41 +120,6 @@ export function BackupPanel() {
     }
   };
 
-  /**
-   * Empuja TODO lo que hay en el dispositivo. Es el botón que faltaba: hasta
-   * ahora solo se subía lo que se editaba después de instalar la versión
-   * nueva, así que lo viejo podía no estar en la nube y nada lo avisaba.
-   */
-  const subirTodo = async () => {
-    if (!haySesion()) {
-      toast.error('Iniciá sesión para subir a la nube');
-      return;
-    }
-    if (proyectos === 0) {
-      toast('Este dispositivo no tiene proyectos para subir', { icon: '📭' });
-      return;
-    }
-    setOcupado(true);
-    setProgreso(`0 de ${proyectos}`);
-    try {
-      const r = await subirTodosLosProyectos((hechos, total) => setProgreso(`${hechos} de ${total}`));
-      setUltimaSubida(ultimaSubidaCompleta());
-      if (r.encolados === 0) {
-        toast.success(`${r.subidos} proyectos guardados en la nube.`, { duration: 8000 });
-      } else {
-        toast(
-          `${r.subidos} subidos. ${r.encolados} quedaron en cola y se reintentan solos.`,
-          { icon: '⚠️', duration: 9000 },
-        );
-      }
-    } catch (e: any) {
-      toast.error(`No se pudo subir: ${e?.message || e}`, { duration: 8000 });
-    } finally {
-      setProgreso(null);
-      setOcupado(false);
-    }
-  };
-
   const traerDeLaNube = async () => {
     if (!haySesion()) {
       toast.error('Iniciá sesión para leer la nube');
@@ -176,8 +145,9 @@ export function BackupPanel() {
   return (
     <div className="panel settings-panel">
       <p className="muted settings-help">
-        Tus proyectos se guardan <strong>en el celular</strong> (funcionan sin señal) y se
-        suben solos a la nube apenas hay conexión. Acá ves si eso está pasando de verdad.
+        Tus proyectos se guardan <strong>en el celular</strong> (funcionan sin señal) y
+        <strong> se suben solos</strong> a la nube apenas hay conexión — no hay que tocar
+        nada. Acá ves si eso está pasando de verdad.
       </p>
 
       {/* Estado */}
@@ -201,17 +171,17 @@ export function BackupPanel() {
         {/*
           Antes esta línea decía "Al día" cuando la cola estaba vacía, y eso NO
           es lo mismo que estar respaldado: una cola vacía también significa que
-          nunca se encoló nada. Esa confusión costó datos. Ahora se muestra el
-          único dato que prueba el respaldo: cuándo subió todo por última vez.
+          nunca se encoló nada. Esa confusión costó datos. Este número se cuenta
+          proyecto por proyecto contra lo que se confirmó subido, y baja solo.
         */}
         <Linea
-          etiqueta="Última subida completa"
+          etiqueta="Sin copia en la nube"
           valor={
-            ultimaSubida
-              ? `${fecha(ultimaSubida.cuando)} · ${ultimaSubida.proyectos} proyectos`
-              : 'NUNCA — tocá "Subir todo"'
+            sinCopia === null ? '…' :
+            sinCopia === 0 ? 'Ninguno: todo respaldado' :
+            `${sinCopia} ${sinCopia === 1 ? 'proyecto' : 'proyectos'} subiendo solos…`
           }
-          color={ultimaSubida ? '#16a34a' : '#dc2626'}
+          color={sinCopia === 0 ? '#16a34a' : '#f59e0b'}
         />
         {!nubeLista && (
           <Linea etiqueta="Fotos en la nube" valor="Sin configurar" color="#f59e0b" />
@@ -256,15 +226,6 @@ export function BackupPanel() {
       </div>
 
       <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
-        <button
-          className="primary"
-          onClick={subirTodo}
-          disabled={ocupado}
-          style={{ background: '#7c3aed', borderColor: '#7c3aed' }}
-        >
-          <ArrowUpTrayIcon className="icon" />
-          {progreso ? `Subiendo ${progreso}…` : 'Subir TODO a la nube ahora'}
-        </button>
         <button className="primary" onClick={descargar} disabled={ocupado} style={{ background: '#16a34a', borderColor: '#16a34a' }}>
           <ArrowDownTrayIcon className="icon" /> Descargar respaldo a Descargas
         </button>

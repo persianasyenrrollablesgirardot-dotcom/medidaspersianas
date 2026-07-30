@@ -25,6 +25,12 @@ export interface TechnicalProject {
   synced: boolean;
   sentToSupplier?: boolean;
   discountPercent?: number;
+  /**
+   * `updatedAt` de la última versión que se confirmó SUBIDA a la nube.
+   * Si no coincide con `updatedAt`, el reconciliador lo vuelve a encolar solo.
+   * Que se pierda no rompe nada: falla hacia el lado seguro (vuelve a subir).
+   */
+  cloudSyncedUpdatedAt?: number;
   catalogSnapshot?: {
     customWindowFields?: Array<{ id: string; label: string; options: string[] }>;
   };
