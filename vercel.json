@@ -1,7 +1,17 @@
 {
+  "$comment": [
+    "El comodín a /index.html es lo que hace funcionar las rutas del SPA (/login, /project/123...).",
+    "PERO si NO se excluye /assets, un archivo con hash que ya no existe -- por ejemplo el",
+    "index-<hash>.js de un deploy anterior, que la PWA todavía tenga anotado en su index.html --",
+    "devuelve el HTML con código 200 en vez de 404. El navegador espera un módulo JavaScript,",
+    "recibe HTML, aborta, y la app queda en NEGRO. Peor: el Service Worker llega a guardar ese",
+    "HTML bajo un nombre .js, así que el problema se vuelve permanente.",
+    "Excluyendo /assets, lo que falta responde 404 de verdad: el error es claro, no se cachea",
+    "basura, y la pantalla de rescate de index.html puede ofrecer el botón de reparar."
+  ],
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!assets/).*)",
       "destination": "/index.html"
     }
   ]
