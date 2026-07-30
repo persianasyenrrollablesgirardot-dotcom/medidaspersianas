@@ -115,8 +115,26 @@ async function procesar(item: SyncQueueItem): Promise<void> {
 
   // Queda anotado QUÉ versión está en la nube. Es lo que le permite al
   // reconciliador saber, sin preguntarle a la nube, qué falta subir.
-  await db.projects.update(id, { cloudSyncedUpdatedAt: fresco.updatedAt });
+  subidosEnEstaSesion.add(fresco.cloudDocId || fresco.code);
+  const anotados = await db.projects.update(id, { cloudSyncedUpdatedAt: fresco.updatedAt });
+  if (!anotados) {
+    // Se subió bien pero no se pudo dejar la marca. No se pierde nada (el
+    // candado de sesión evita resubirlo), pero conviene verlo si se repite.
+    console.warn(`Subido a la nube pero sin anotar la marca: ${fresco.code}`);
+  }
 }
+
+/**
+ * Documentos ya subidos en ESTA sesión.
+ *
+ * La marca `cloudSyncedUpdatedAt` es lo que evita resubir entre sesiones, pero
+ * si por cualquier motivo no llega a escribirse (una recarga en el momento
+ * exacto, por ejemplo), el reconciliador volvería a encolar el proyecto cada 5
+ * minutos y a resubirlo — gastando datos móviles en el terreno para nada.
+ * Este candado en memoria corta eso: como máximo una subida por proyecto por
+ * sesión, aunque la marca falle.
+ */
+const subidosEnEstaSesion = new Set<string>();
 
 /**
  * RECONCILIADOR — la sincronización pasa SOLA, sin botones.
@@ -170,7 +188,9 @@ export async function reconciliar(): Promise<number> {
       if (proyecto.cloudSyncedUpdatedAt === proyecto.updatedAt) continue;
       // El refId es el documento, NO el código: si fuera el código, dos copias
       // se pisarían tambien en la cola y una nunca se subiría.
-      await enqueue('upsert_project', proyecto.cloudDocId || proyecto.code, {
+      const documento = proyecto.cloudDocId || proyecto.code;
+      if (subidosEnEstaSesion.has(documento)) continue;
+      await enqueue('upsert_project', documento, {
         code: proyecto.code,
         id: proyecto.id,
       });
