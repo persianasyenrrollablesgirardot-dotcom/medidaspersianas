@@ -177,7 +177,14 @@ export async function reconciliar(): Promise<number> {
         const esperado = i === 0 ? undefined : `${code}__${i + 1}`;
         if (ordenado[i].cloudDocId !== esperado) {
           ordenado[i].cloudDocId = esperado;
-          await db.projects.update(ordenado[i].id!, { cloudDocId: esperado });
+          // La marca anterior hablaba de OTRO documento (el del código pelado).
+          // Si no se borra, el proyecto queda "respaldado" bajo un nombre que
+          // nunca se escribió: hay que volver a subirlo con el nombre nuevo.
+          ordenado[i].cloudSyncedUpdatedAt = 0;
+          await db.projects.update(ordenado[i].id!, {
+            cloudDocId: esperado,
+            cloudSyncedUpdatedAt: 0,
+          });
         }
       }
     }
