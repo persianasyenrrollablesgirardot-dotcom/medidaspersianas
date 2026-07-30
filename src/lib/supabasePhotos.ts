@@ -1,4 +1,5 @@
 import { db } from '../db';
+import { limpiarEnv } from './env';
 import type { PhotoRecord } from '../types';
 
 /**
@@ -14,9 +15,12 @@ import type { PhotoRecord } from '../types';
  * Ver `SUPABASE_SETUP.md` en la raíz del repo.
  */
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-const BUCKET = (import.meta.env.VITE_SUPABASE_BUCKET as string | undefined) || 'evidencias';
+// limpiarEnv NO es decorativo: las tres variables venían con un BOM invisible
+// adelante y por eso `fetch` abortaba antes de salir a la red ("String contains
+// non ISO-8859-1 code point"). Ver `env.ts`.
+const SUPABASE_URL = limpiarEnv(import.meta.env.VITE_SUPABASE_URL as string | undefined);
+const SUPABASE_ANON_KEY = limpiarEnv(import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined);
+const BUCKET = limpiarEnv(import.meta.env.VITE_SUPABASE_BUCKET as string | undefined) || 'evidencias';
 
 export function supabaseConfigurado(): boolean {
   return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);

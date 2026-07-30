@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { limpiarEnv } from '../env';
 
 // Modelo actual de la familia Haiku: rápido, económico y — a diferencia del viejo
 // claude-3-haiku-20240307 — SÍ soporta lectura de PDF e imágenes. El modelo anterior
@@ -6,8 +7,10 @@ import Anthropic from '@anthropic-ai/sdk';
 const MODEL = 'claude-haiku-4-5';
 
 function getClaude() {
-  const customKey = localStorage.getItem('CUSTOM_CLAUDE_API_KEY');
-  const apiKey = customKey || import.meta.env.VITE_CLAUDE_API_KEY;
+  // La clave viaja en un header (`x-api-key`): si trae un BOM o un espacio
+  // pegado al copiarla, `fetch` aborta antes de salir a la red. Ver `env.ts`.
+  const customKey = limpiarEnv(localStorage.getItem('CUSTOM_CLAUDE_API_KEY') ?? undefined);
+  const apiKey = customKey || limpiarEnv(import.meta.env.VITE_CLAUDE_API_KEY as string | undefined);
   if (!apiKey) {
     throw new Error("No hay una API Key de Claude configurada. Ve a Ajustes → Inteligencia Artificial (Claude) y pega tu clave (empieza con sk-ant-...).");
   }
