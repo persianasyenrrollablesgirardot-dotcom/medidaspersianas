@@ -38,7 +38,9 @@ Vista: **`src/pages/SupplierProjectView.tsx`** — "Orden de Producción" plana,
 
 3. **Sello de versión visible** en `src/components/Shell.tsx` (`APP_VERSION`, esquina superior derecha). **Bumpear en cada deploy** (ej: `-e` → `-f`). Sirve para que Jhon confirme de un vistazo si la PWA cargó la versión nueva o quedó cacheada (autoUpdate a veces tarda 1-2 reaperturas).
 
-4. **Facturación IA usa Claude** (`src/lib/facturador/claude.ts`, modelo `claude-haiku-4-5` que SÍ lee PDF). Key en `localStorage.CUSTOM_CLAUDE_API_KEY` o `VITE_CLAUDE_API_KEY`. El `.env.local` tiene `VITE_GEMINI_API_KEY` que NO se usa (histórico).
+4. **Firestore rechaza el documento COMPLETO si una propiedad vale `undefined`** (código `invalid-argument`, "Unsupported field value: undefined"). La app crea `undefined` a propósito (`quickQuote` en ProjectEditor/projectStore, `planTemplate` al pasar a modo simple, `manualArea` al vaciarlo). Mientras los proyectos vivían en localStorage no molestaba porque cada lectura era un `JSON.parse`, que borra esas claves; al pasarlos a IndexedDB dejaron de borrarse y rompió a la vez "Enviar a Proveedor" y el respaldo automático. **Está resuelto con `ignoreUndefinedProperties: true` en `src/lib/firebase.ts` — NO quitar esa opción.**
+
+5. **Facturación IA usa Claude** (`src/lib/facturador/claude.ts`, modelo `claude-haiku-4-5` que SÍ lee PDF). Key en `localStorage.CUSTOM_CLAUDE_API_KEY` o `VITE_CLAUDE_API_KEY`. El `.env.local` tiene `VITE_GEMINI_API_KEY` que NO se usa (histórico).
 
 ## Cómo trabajar acá (aprendizajes de sesión)
 
