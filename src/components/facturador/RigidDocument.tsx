@@ -22,6 +22,11 @@ const styles = StyleSheet.create({
   tableCol: { borderStyle: 'solid', borderWidth: 1, borderColor: '#e5e7eb', borderLeftWidth: 0, borderTopWidth: 0 },
   tableCellHeader: { margin: 8, fontSize: 10, fontWeight: 'bold' },
   tableCell: { margin: 8, fontSize: 10 },
+  // Fila de encabezado de ESPACIO (Sala, Habitacion...). Agrupa los items de abajo.
+  spaceRow: { flexDirection: 'row', backgroundColor: '#f0fdfa' },
+  spaceCol: { borderStyle: 'solid', borderWidth: 1, borderColor: '#e5e7eb', borderLeftWidth: 0, borderTopWidth: 0, width: '100%', borderLeft: '3px solid #0d9488' },
+  spaceCell: { margin: 8, marginTop: 6, marginBottom: 6, fontSize: 10, fontWeight: 'bold', color: '#0f766e', textTransform: 'uppercase' },
+  windowLabel: { fontSize: 8, color: '#6b7280', marginBottom: 2 },
   totalsContainer: { marginTop: 20, alignItems: 'flex-end' },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', width: '40%', marginBottom: 5 },
   totalText: { fontWeight: 'bold', fontSize: 12 },
@@ -37,6 +42,26 @@ const styles = StyleSheet.create({
   bulletPoint: { flexDirection: 'row', marginBottom: 5, paddingLeft: 10 },
   bullet: { width: 10 },
 });
+
+/**
+ * Agrupa los items por ESPACIO conservando el orden de aparicion (Map mantiene el
+ * orden de insercion), asi los items del mismo ambiente quedan juntos aunque la IA
+ * los haya devuelto intercalados.
+ *
+ * Documentos viejos de la bitacora (guardados antes de que la IA extrajera la
+ * ubicacion) no traen `space`: en ese caso todos caen en el grupo "" y la tabla se
+ * dibuja plana, exactamente como antes.
+ */
+const groupItemsBySpace = (items: any[]): Array<[string, any[]]> => {
+  const groups = new Map<string, any[]>();
+  for (const item of items || []) {
+    const space = String(item?.space ?? '').trim();
+    const bucket = groups.get(space);
+    if (bucket) bucket.push(item);
+    else groups.set(space, [item]);
+  }
+  return Array.from(groups.entries());
+};
 
 export const RigidDocument = ({ data }: { data: any }) => (
   <Document>
@@ -69,11 +94,25 @@ export const RigidDocument = ({ data }: { data: any }) => (
           <View style={{...styles.tableColHeader, width: '20%'}}><Text style={styles.tableCellHeader}>Cant. (m²)</Text></View>
           <View style={{...styles.tableColHeader, width: '20%'}}><Text style={styles.tableCellHeader}>Total</Text></View>
         </View>
-        {data.items.map((item: any, i: number) => (
-          <View style={styles.tableRow} key={i}>
-            <View style={{...styles.tableCol, width: '60%'}}><Text style={styles.tableCell}>{item.description}</Text></View>
-            <View style={{...styles.tableCol, width: '20%'}}><Text style={styles.tableCell}>{item.quantity}</Text></View>
-            <View style={{...styles.tableCol, width: '20%'}}><Text style={styles.tableCell}>${formatCurrency(item.total)}</Text></View>
+        {groupItemsBySpace(data.items).map(([space, items], g: number) => (
+          <View key={g}>
+            {space ? (
+              <View style={styles.spaceRow}>
+                <View style={styles.spaceCol}><Text style={styles.spaceCell}>{space}</Text></View>
+              </View>
+            ) : null}
+            {items.map((item: any, i: number) => (
+              <View style={styles.tableRow} key={i} wrap={false}>
+                <View style={{...styles.tableCol, width: '60%'}}>
+                  <View style={styles.tableCell}>
+                    {item.window ? <Text style={styles.windowLabel}>{item.window}</Text> : null}
+                    <Text style={{ fontSize: 10 }}>{item.description}</Text>
+                  </View>
+                </View>
+                <View style={{...styles.tableCol, width: '20%'}}><Text style={styles.tableCell}>{item.quantity}</Text></View>
+                <View style={{...styles.tableCol, width: '20%'}}><Text style={styles.tableCell}>${formatCurrency(item.total)}</Text></View>
+              </View>
+            ))}
           </View>
         ))}
       </View>

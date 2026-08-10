@@ -28,9 +28,10 @@ REGLAS CRÍTICAS:
 1. Para la "quantity" (cantidad): Ten MUCHO CUIDADO. A veces está en metros cuadrados (m2), metros (m) o unidades. Asegúrate de extraer el número exacto correspondiente a la cantidad o área.
 2. Descuentos: Revisa minuciosamente si hay algún descuento aplicado al subtotal o a los ítems. Si hay un descuento total, ponlo en la propiedad "discount". Si no hay, pon 0.
 3. Descripciones Largas: Extrae TODO el bloque de texto descriptivo completo y concaténalo en el campo "description" usando saltos de línea (\n).
-4. OMITIR MEDIDAS: Bajo ninguna circunstancia debes incluir las medidas específicas (ancho, alto, ancho x alto) en la descripción del ítem. Al cliente final solo se le factura por metros cuadrados totales o unidades. Ignora cualquier medida técnica específica.
+4. OMITIR MEDIDAS: Bajo ninguna circunstancia debes incluir las medidas específicas (ancho, alto, ancho x alto, cm) en la descripción del ítem. Al cliente final solo se le factura por metros cuadrados totales o unidades. Ignora cualquier medida técnica específica. ESTA REGLA NO APLICA al nombre del espacio ni al de la ventana: esos SÍ se conservan (ver regla 7).
 5. EXTRACCIÓN LITERAL DE TOTALES: NO INVENTES NI CALCULES VALORES. Extrae el subtotal, impuestos, descuentos y el TOTAL FINAL exactamente como aparecen impresos en el documento. Si el documento tiene un gran total impreso, úsalo sin alterarlo, sin importar si la suma matemática de los ítems parece diferir. JAMÁS sumes o multipliques por tu cuenta; tu tarea es leer y extraer, no calcular.
 6. MANTENIMIENTOS: CRITICO Y OBLIGATORIO. Si ves palabras como "Mantenimiento", "Servicios", "Lavado", "Cambio", DEBES registrar cada uno como un item en el JSON final. Su precio DEBE ser extraído de la tabla.
+7. UBICACIÓN — CRITICO Y OBLIGATORIO. Cada ítem pertenece a un ESPACIO (ambiente: Sala, Cocina, Habitación Principal, Estudio...) y normalmente a una VENTANA dentro de ese espacio (Ventana 1, Ventana Balcón...). En el documento suelen aparecer como encabezados: el espacio en MAYÚSCULAS o entre "==" (ej: "== SALA ==") y la ventana como una viñeta debajo (ej: "- Ventana 1"). DEBES copiar esos nombres en los campos "space" y "window" de CADA ítem que cuelgue de ese encabezado, respetando la jerarquía: todos los ítems que aparecen después de un encabezado de espacio pertenecen a ese espacio hasta que aparezca el siguiente. Escribe el espacio tal como está en el documento pero con capitalización normal (ej: "SALA" → "Sala"). Si un ítem realmente no tiene espacio o ventana (ej: un servicio general de todo el proyecto), deja el campo como cadena vacía "". NUNCA inventes un espacio que no aparezca en el documento.
 
 Estructura obligatoria:
 {
@@ -42,6 +43,8 @@ Estructura obligatoria:
   "date": "string", (Formato YYYY-MM-DD)
   "items": [
     {
+      "space": "string", (Espacio/ambiente al que pertenece el ítem. "" si no aplica)
+      "window": "string", (Ventana dentro de ese espacio. "" si no aplica)
       "description": "string",
       "quantity": "string or number",
       "total": "number" (Sin símbolos de moneda)
