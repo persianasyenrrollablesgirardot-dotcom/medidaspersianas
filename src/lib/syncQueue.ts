@@ -115,8 +115,11 @@ async function procesar(item: SyncQueueItem): Promise<void> {
 
   // Queda anotado QUÉ versión está en la nube. Es lo que le permite al
   // reconciliador saber, sin preguntarle a la nube, qué falta subir.
-  subidosEnEstaSesion.add(fresco.cloudDocId || fresco.code);
-  const anotados = await db.projects.update(id, { cloudSyncedUpdatedAt: fresco.updatedAt });
+  subidosEnEstaSesion.add(documentoDe(fresco));
+  const anotados = await db.projects.update(id, {
+    cloudSyncedUpdatedAt: fresco.updatedAt,
+    cloudSyncedDocId: documentoDe(fresco),
+  });
   if (!anotados) {
     // Se subió bien pero no se pudo dejar la marca. No se pierde nada (el
     // candado de sesión evita resubirlo), pero conviene verlo si se repite.
@@ -135,6 +138,28 @@ async function procesar(item: SyncQueueItem): Promise<void> {
  * sesión, aunque la marca falle.
  */
 const subidosEnEstaSesion = new Set<string>();
+
+/** Nombre del documento en la nube de un proyecto. */
+function documentoDe(p: TechnicalProject): string {
+  return p.cloudDocId || p.code;
+}
+
+/**
+ * ¿Este proyecto está respaldado, de verdad?
+ *
+ * No alcanza con "la versión coincide": tiene que coincidir **y bajo el mismo
+ * nombre de documento**. Una copia subida con el código pelado que después
+ * recibió nombre propio figuraba como respaldada sin estarlo — verificado
+ * contra Firestore: 36 documentos `CODE__2`/`CODE__3` no existían.
+ *
+ * Si `cloudSyncedDocId` falta (marcas viejas), se asume el `code`, que es bajo
+ * lo que se subía antes: así no se re-suben los 119 que ya están bien.
+ */
+export function estaRespaldado(p: TechnicalProject): boolean {
+  if (typeof p.cloudSyncedUpdatedAt !== 'number') return false;
+  return p.cloudSyncedUpdatedAt === p.updatedAt
+    && (p.cloudSyncedDocId || p.code) === documentoDe(p);
+}
 
 /**
  * RECONCILIADOR — la sincronización pasa SOLA, sin botones.
@@ -192,10 +217,10 @@ export async function reconciliar(): Promise<number> {
     for (const proyecto of proyectos) {
       if (proyecto.deletedAt) continue;
       if (!proyecto.code || typeof proyecto.id !== 'number') continue;
-      if (proyecto.cloudSyncedUpdatedAt === proyecto.updatedAt) continue;
+      if (estaRespaldado(proyecto)) continue;
       // El refId es el documento, NO el código: si fuera el código, dos copias
       // se pisarían tambien en la cola y una nunca se subiría.
-      const documento = proyecto.cloudDocId || proyecto.code;
+      const documento = documentoDe(proyecto);
       if (subidosEnEstaSesion.has(documento)) continue;
       await enqueue('upsert_project', documento, {
         code: proyecto.code,
@@ -217,9 +242,7 @@ export async function reconciliar(): Promise<number> {
 export async function sinCopiaEnLaNube(): Promise<number> {
   try {
     const proyectos = await db.projects.toArray();
-    return proyectos.filter(
-      p => !p.deletedAt && p.cloudSyncedUpdatedAt !== p.updatedAt,
-    ).length;
+    return proyectos.filter(p => !p.deletedAt && !estaRespaldado(p)).length;
   } catch {
     return 0;
   }

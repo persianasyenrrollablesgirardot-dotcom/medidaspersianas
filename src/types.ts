@@ -40,6 +40,13 @@ export interface TechnicalProject {
    * un nombre propio (`CODE__2`, `CODE__3`…) para que ninguna quede afuera.
    */
   cloudDocId?: string;
+  /**
+   * Bajo QUÉ nombre de documento se confirmó la última subida. Sin esto, una
+   * copia que ya se había subido con el código pelado y después recibió nombre
+   * propio quedaba marcada como "respaldada" bajo un nombre que nunca se
+   * escribió. Si falta, se asume el `code` (que es lo que hacía antes).
+   */
+  cloudSyncedDocId?: string;
   catalogSnapshot?: {
     customWindowFields?: Array<{ id: string; label: string; options: string[] }>;
   };
