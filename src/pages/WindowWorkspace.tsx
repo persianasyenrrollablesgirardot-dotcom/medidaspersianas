@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useParams } from 'react-router-dom';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -18,6 +19,7 @@ import type { TechnicalCatalog } from '../types';
 import { isFallbackId, saveFallbackCatalog, useFallbackCatalog, useFallbackProject } from '../lib/localFallbackStore';
 import { EvidenceImage } from '../components/EvidenceImage';
 import { evidenceUrl, useEvidenceUrl } from '../lib/photoStore';
+import { trashEvidence, trashSolution } from '../lib/trashStore';
 
 type Tab = 'quick' | 'maintenance' | 'evidence';
 
@@ -154,12 +156,42 @@ export function WindowWorkspace() {
     }));
   };
 
-  const deleteActiveSolution = () => {
+  /** Copia a la papelera antes de sacar la persiana. Ver `trashStore`. */
+  const deleteActiveSolution = async () => {
     if (!activeSolution) return;
-    if (!confirm(`Borrar ${activeSolution.name}?`)) return;
+    if (!confirm(`¿Mover "${activeSolution.name}" a la papelera?\n\nPodés recuperarla desde Papelera › Elementos.`)) return;
+    const copiado = await trashSolution(project, space, win, activeSolution);
+    if (!copiado) {
+      toast.error('No se pudo guardar la copia de seguridad. No se borró nada.');
+      return;
+    }
     const remaining = win.solutions.filter(solution => solution.id !== activeSolution.id);
-    updateWindow(project, space.id, win.id, current => ({ ...current, solutions: remaining }));
+    await updateWindow(project, space.id, win.id, current => ({ ...current, solutions: current.solutions.filter(s => s.id !== activeSolution.id) }));
     setActiveSolutionId(remaining[0]?.id);
+    toast.success('Persiana movida a la papelera');
+  };
+
+  /**
+   * Las fotos también van a la papelera. El archivo en sí (tabla `photos`) NO
+   * se toca: se borra recién cuando se vacía la papelera de verdad, y solo si
+   * ningún proyecto la sigue usando.
+   */
+  const deleteEvidence = async (evidenceId: string) => {
+    const ev = win.evidence.find(item => item.id === evidenceId);
+    if (!ev) return;
+    if (!confirm('¿Mover esta foto a la papelera?\n\nPodés recuperarla desde Papelera › Elementos.')) return;
+    const copiado = await trashEvidence(project, space, win, ev);
+    if (!copiado) {
+      toast.error('No se pudo guardar la copia de seguridad. No se borró nada.');
+      return;
+    }
+    // Sobre la copia MÁS FRESCA, no sobre el snapshot de React: si hay una foto
+    // comprimiéndose en paralelo, un patch con `win` viejo la pisaría.
+    await updateWindow(project, space.id, win.id, current => ({
+      ...current,
+      evidence: current.evidence.filter(e => e.id !== evidenceId),
+    }));
+    toast.success('Foto movida a la papelera');
   };
 
   const handleAddEvidence = (file: File, kind: EvidenceKind) => {
@@ -235,7 +267,7 @@ export function WindowWorkspace() {
 
       {tab === 'evidence' && (
         <section className="panel focus-panel">
-          <EvidenceForm win={win} onAdd={handleAddEvidence} onDelete={(evidenceId: string) => patchWindow({ evidence: win.evidence.filter(e => e.id !== evidenceId) })} />
+          <EvidenceForm win={win} onAdd={handleAddEvidence} onDelete={deleteEvidence} />
         </section>
       )}
 

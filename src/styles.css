@@ -334,6 +334,14 @@ button { cursor: pointer; }
 .trash-card strong { display: block; font-size: 16px; }
 .trash-card span { display: block; color: #888; font-size: 12px; margin-top: 3px; }
 .trash-card em { display: block; color: #f4b86a; font-size: 11px; font-style: normal; font-weight: 900; margin-top: 8px; text-transform: uppercase; }
+.trash-card .trash-kind {
+  display: inline-block; margin: 0 0 6px; padding: 2px 8px; border-radius: 10px;
+  font-size: 10px; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; color: #0d0a0a;
+}
+.trash-kind-space { background: #7dd3fc; }
+.trash-kind-window { background: #a5b4fc; }
+.trash-kind-solution { background: #86efac; }
+.trash-kind-evidence { background: #fcd34d; }
 .trash-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .window-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; align-items: stretch; }
 .window-tile { min-height: 156px; border: 1px solid var(--line-soft); background: var(--surface); border-radius: 8px; padding: 10px; display: grid; grid-template-rows: 1fr 36px; gap: 10px; }

@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { ProjectSummary, TechnicalCatalog, TechnicalProject, SyncQueueItem, InvoiceRecord, ReceiptRecord, PhotoRecord, BackupRecord } from './types';
+import type { ProjectSummary, TechnicalCatalog, TechnicalProject, SyncQueueItem, InvoiceRecord, ReceiptRecord, PhotoRecord, BackupRecord, TrashedItem } from './types';
 import { DEFAULT_MAINTENANCE_CATALOG } from './lib/defaultTasks';
 
 const DB_NAME = 'AppCampoJunoMobileV3DB';
@@ -35,6 +35,7 @@ class TechnicalFieldDB extends Dexie {
   receipts!: Table<ReceiptRecord, number>;
   photos!: Table<PhotoRecord, string>;
   backups!: Table<BackupRecord, number>;
+  trash!: Table<TrashedItem, number>;
 
   constructor() {
     super(DB_NAME);
@@ -65,6 +66,20 @@ class TechnicalFieldDB extends Dexie {
       receipts: '++id, projectId, projectCode, clientName, date, status',
       photos: 'id, projectId, projectCode, createdAt, uploadedAt',
       backups: '++id, createdAt, reason',
+    });
+    // v5: papelera de SUB-elementos (espacio / ventana / persiana / foto).
+    // Antes borrar un espacio o una ventana era definitivo y sin aviso: el
+    // filter() los sacaba del proyecto y no quedaba copia en ningun lado.
+    this.version(5).stores({
+      projects: '++id, code, clientName, status, createdAt, updatedAt, deletedAt, synced',
+      projectSummaries: '++id, &projectId, code, clientName, status, updatedAt, deletedAt, synced',
+      catalog: '++id',
+      syncQueue: '++id, type, refId, status, nextAttemptAt, createdAt',
+      invoices: '++id, type, documentNumber, clientName, date',
+      receipts: '++id, projectId, projectCode, clientName, date, status',
+      photos: 'id, projectId, projectCode, createdAt, uploadedAt',
+      backups: '++id, createdAt, reason',
+      trash: '++id, projectId, kind, deletedAt',
     });
   }
 }

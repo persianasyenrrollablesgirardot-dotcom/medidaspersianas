@@ -44,6 +44,17 @@ Vista: **`src/pages/SupplierProjectView.tsx`** — "Orden de Producción" plana,
 
 6. **Facturación IA usa Claude** (`src/lib/facturador/claude.ts`, modelo `claude-haiku-4-5` que SÍ lee PDF). Key en `localStorage.CUSTOM_CLAUDE_API_KEY` o `VITE_CLAUDE_API_KEY`. El `.env.local` tiene `VITE_GEMINI_API_KEY` que NO se usa (histórico).
 
+## Papelera — proyectos vs. SUB-elementos (dos mecanismos distintos, a propósito)
+
+- **Proyectos:** soft-delete en su propia tabla. `trashFallbackProject` pone `deletedAt` y las listas filtran por `deletedAt === 0`. Restaurar = poner `deletedAt: 0`.
+- **Sub-elementos (espacio / ventana / persiana / foto):** el elemento **SALE** del proyecto (igual que antes) y su **copia completa** va a la tabla Dexie **`trash`** (v5), con el contexto para reinsertarlo: `projectId`, `spaceId`, `windowId` e `index` original. `src/lib/trashStore.ts`.
+- **Por qué NO se marcan con `deletedAt` como los proyectos:** un espacio marcado seguiría dentro de `project.spaces` y habría que filtrarlo en las ~30 rutas que recorren el proyecto (totales, m², cotización, factura, PDF de fabricación, orden del proveedor, `cloudSync`, respaldos). Con que UNA se olvide, el cliente paga un espacio borrado o la fábrica lo produce. **No cambiar a soft-delete in-place.**
+- **Regla del flujo de borrado (respetarla en cualquier borrado nuevo):** `confirm()` que diga QUÉ se lleva → `trashX(...)` → si devuelve `false`, **no borrar nada** y avisar → recién ahí sacar el elemento del proyecto.
+- **Fotos:** el Blob de `photos` NO se borra al mandar algo a la papelera. Se borra recién en el borrado definitivo y **solo si ninguna otra copia lo usa** (`photoIdsEnUso`) — los proyectos duplicados comparten `photoId` a propósito.
+- **La purga automática a los 40 días está DESACTIVADA** (`cleanupExpiredProjects` no hace nada, ver la nota en `db.ts`). La Papelera decía "se elimina automaticamente en N dias" y era mentira: ese texto ya no está.
+- Caso borde ya cubierto: en **Cotización rápida**, borrar la última persiana de una ventana se lleva la ventana entera. Pasaba en silencio; ahora se avisa y lo que se guarda en la papelera es la **ventana completa**.
+- `src/pages/ProjectEditor.tsx` **no está ruteado** (código muerto). Sus botones de borrar siguen sin aviso ni papelera. Si alguna vez se vuelve a rutear, hay que wirearlo igual que las demás pantallas.
+
 ## Cómo trabajar acá (aprendizajes de sesión)
 
 - Cuando Jhon diga "esto funcionaba y se rompió / qué hiciste": **análisis forense de git PRIMERO** (`git log --follow`, `git show <commit>`, recuperar versión vieja con `git show <commit>~1:<ruta>`), y verificar despliegues con `vercel ls` antes de afirmar. NO interrogar para diagnosticar; solo preguntar decisiones de NEGOCIO (qué debe ver el proveedor, precios, garantías).
@@ -63,3 +74,5 @@ Vista: **`src/pages/SupplierProjectView.tsx`** — "Orden de Producción" plana,
 - `src/db.ts` — Dexie + `resetLocalAppData` (destructivo) / `clearPwaCacheOnly` (seguro).
 - `src/types.ts` — modelo de datos (TechnicalProject/Solution/Window, etc.).
 - `src/lib/facturador/claude.ts` — IA de facturación (Claude).
+- `src/lib/trashStore.ts` — papelera de sub-elementos (espacio/ventana/persiana/foto).
+- `src/pages/ProjectTrash.tsx` — Papelera con dos pestañas: Proyectos / Elementos.

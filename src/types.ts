@@ -168,6 +168,44 @@ export interface BackupRecord {
   bytes: number;
 }
 
+/**
+ * PAPELERA DE SUB-ELEMENTOS (espacio / ventana / persiana / foto).
+ *
+ * Los proyectos se mandan a la papelera marcándolos con `deletedAt` y
+ * dejándolos en su tabla. Con los sub-elementos NO se puede hacer lo mismo:
+ * un espacio "marcado como borrado" seguiría dentro de `project.spaces`, y
+ * habría que acordarse de filtrarlo en las ~30 rutas que recorren el
+ * proyecto (totales, m2, PDF de fabricación, orden del proveedor, nube,
+ * facturación...). Una sola que se olvide = un espacio borrado que se le
+ * factura al cliente o que la fábrica produce.
+ *
+ * Por eso el sub-elemento SALE del proyecto (como hasta ahora) y su copia
+ * completa se guarda acá, junto con el contexto para volver a insertarlo en
+ * el mismo lugar. El resto de la app no se entera de que existe la papelera.
+ */
+export interface TrashedItem {
+  id?: number;
+  kind: 'space' | 'window' | 'solution' | 'evidence';
+  /** Proyecto del que salió. Puede ser negativo (proyecto local del admin). */
+  projectId: number;
+  projectCode: string;
+  projectName?: string;
+  /** Nombre visible del elemento borrado. */
+  label: string;
+  /** Ruta legible: "Sala > Ventana 1". */
+  context: string;
+  /** Padres necesarios para restaurar (según `kind`). */
+  spaceId?: string;
+  windowId?: string;
+  /** Posición original dentro del arreglo del padre. */
+  index: number;
+  /** Copia completa del elemento (con todo su contenido). */
+  payload: SpaceRecord | WindowRecord | TechnicalSolution | EvidenceItem;
+  /** Resumen para mostrar sin abrir el payload ("3 ventanas - 5 persianas"). */
+  detail?: string;
+  deletedAt: number;
+}
+
 export interface TechnicalSolution {
   id: string;
   itemType?: 'blind' | 'maintenance';

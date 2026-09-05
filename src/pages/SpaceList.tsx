@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -10,7 +11,8 @@ import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
 import { solutionTotal, solutionArea } from '../lib/metrics';
 import { useAuth } from '../components/AuthContext';
 import { supplierStatusDocId, useSupplierStatuses } from '../lib/supplierStatus';
-import type { TechnicalProject } from '../types';
+import { trashSpace } from '../lib/trashStore';
+import type { SpaceRecord, TechnicalProject } from '../types';
 
 export function SpaceList() {
   const { id } = useParams();
@@ -25,6 +27,34 @@ export function SpaceList() {
   if (!project) return <div className="page"><div className="empty">Cargando espacios...</div></div>;
 
   const add = () => saveProject({ ...project, spaces: [...project.spaces, newSpace(`Espacio ${project.spaces.length + 1}`)] });
+
+  /**
+   * Borrar un espacio se lleva sus ventanas, persianas y fotos. Antes era un
+   * `filter()` directo, sin aviso y sin copia. Ahora: aviso con lo que se va,
+   * y copia completa a la papelera ANTES de sacarlo. Si la copia falla no se
+   * borra nada — perder el elemento sin red es peor que no borrarlo.
+   */
+  const removeSpace = async (space: SpaceRecord) => {
+    const windows = space.windows.length;
+    const solutions = space.windows.reduce((sum, win) => sum + win.solutions.length, 0);
+    const photos = space.windows.reduce((sum, win) => sum + win.evidence.length, 0);
+    const contenido = [
+      windows ? `${windows} ventana${windows === 1 ? '' : 's'}` : null,
+      solutions ? `${solutions} persiana${solutions === 1 ? '' : 's'}` : null,
+      photos ? `${photos} foto${photos === 1 ? '' : 's'}` : null,
+    ].filter(Boolean).join(', ');
+
+    const detalle = contenido ? `\n\nSe va con ${contenido}.` : '';
+    if (!confirm(`¿Mover el espacio "${space.name}" a la papelera?${detalle}\n\nPodés recuperarlo desde Papelera › Elementos.`)) return;
+
+    const copiado = await trashSpace(project, space);
+    if (!copiado) {
+      toast.error('No se pudo guardar la copia de seguridad. No se borró nada.');
+      return;
+    }
+    await saveProject({ ...project, spaces: project.spaces.filter(s => s.id !== space.id) });
+    toast.success('Espacio movido a la papelera');
+  };
 
   return (
     <div className="page">
@@ -66,7 +96,7 @@ export function SpaceList() {
               {role === 'admin' && (
                 <div className="space-tile-edit">
                   <TextInput value={space.name} onChange={e => saveProject({ ...project, spaces: project.spaces.map(s => s.id === space.id ? { ...s, name: e.target.value } : s) })} aria-label={`Nombre de ${space.name}`} />
-                  <button className="mini-danger" onClick={() => saveProject({ ...project, spaces: project.spaces.filter(s => s.id !== space.id) })} aria-label={`Eliminar ${space.name}`}>
+                  <button className="mini-danger" onClick={() => removeSpace(space)} aria-label={`Eliminar ${space.name}`}>
                     <TrashIcon className="icon" />
                   </button>
                 </div>

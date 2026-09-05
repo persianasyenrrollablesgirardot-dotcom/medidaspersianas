@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import toast from 'react-hot-toast';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useParams } from 'react-router-dom';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -11,6 +12,7 @@ import { saveProject } from '../lib/projectStore';
 import { quoteArea, solutionTotal } from '../lib/metrics';
 import type { SpaceRecord, TechnicalCatalog, TechnicalProject, TechnicalSolution, WindowRecord } from '../types';
 import { isFallbackId, useFallbackCatalog, useFallbackProject } from '../lib/localFallbackStore';
+import { trashSolution, trashWindow } from '../lib/trashStore';
 
 interface QuoteLine {
   space: SpaceRecord;
@@ -94,20 +96,48 @@ export function QuickQuoteModule() {
     });
   };
 
-  const deleteLine = (spaceId: string, windowId: string, solutionId: string) => persist({
-    ...project,
-    spaces: project.spaces.map(space => {
-      if (space.id !== spaceId) return space;
-      return {
-        ...space,
-        windows: space.windows.flatMap(window => {
-          if (window.id !== windowId) return [window];
-          const nextSolutions = window.solutions.filter(solution => solution.id !== solutionId);
-          return nextSolutions.length ? [{ ...window, solutions: nextSolutions }] : [];
-        }),
-      };
-    }),
-  });
+  /**
+   * Ojo con el caso borde: si la persiana era la ÚLTIMA de su ventana, esta
+   * pantalla se lleva también la ventana entera (con sus medidas y sus fotos).
+   * Eso pasaba en silencio. Ahora se avisa y, en ese caso, lo que se guarda en
+   * la papelera es la VENTANA completa, para que restaurar devuelva todo.
+   */
+  const deleteLine = async (spaceId: string, windowId: string, solutionId: string) => {
+    const space = project.spaces.find(s => s.id === spaceId);
+    const window = space?.windows.find(w => w.id === windowId);
+    const solution = window?.solutions.find(sol => sol.id === solutionId);
+    if (!space || !window || !solution) return;
+
+    const eraLaUltima = window.solutions.length === 1;
+    const aviso = eraLaUltima
+      ? `¿Mover "${solution.name}" a la papelera?\n\nEra la única persiana de la ventana "${window.label}", así que la ventana también se va (con sus medidas y ${window.evidence.length} foto${window.evidence.length === 1 ? '' : 's'}).\n\nPodés recuperarla desde Papelera › Elementos.`
+      : `¿Mover "${solution.name}" a la papelera?\n\nPodés recuperarla desde Papelera › Elementos.`;
+    if (!confirm(aviso)) return;
+
+    const copiado = eraLaUltima
+      ? await trashWindow(project, space, window)
+      : await trashSolution(project, space, window, solution);
+    if (!copiado) {
+      toast.error('No se pudo guardar la copia de seguridad. No se borró nada.');
+      return;
+    }
+
+    await persist({
+      ...project,
+      spaces: project.spaces.map(current => {
+        if (current.id !== spaceId) return current;
+        return {
+          ...current,
+          windows: current.windows.flatMap(win => {
+            if (win.id !== windowId) return [win];
+            const nextSolutions = win.solutions.filter(sol => sol.id !== solutionId);
+            return nextSolutions.length ? [{ ...win, solutions: nextSolutions }] : [];
+          }),
+        };
+      }),
+    });
+    toast.success(eraLaUltima ? 'Ventana movida a la papelera' : 'Persiana movida a la papelera');
+  };
 
   const grandArea = lines.reduce((sum, line) => sum + quoteArea(line.solution.quickQuote), 0);
   const grandTotal = lines.reduce((sum, line) => sum + solutionTotal(line.solution), 0);

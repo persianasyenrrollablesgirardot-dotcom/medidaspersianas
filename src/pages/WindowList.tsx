@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -10,7 +11,8 @@ import { isFallbackId, useFallbackProject } from '../lib/localFallbackStore';
 import { solutionTotal, solutionArea } from '../lib/metrics';
 import { useAuth } from '../components/AuthContext';
 import { supplierStatusDocId, useSupplierStatuses } from '../lib/supplierStatus';
-import type { TechnicalProject } from '../types';
+import { trashWindow } from '../lib/trashStore';
+import type { TechnicalProject, WindowRecord } from '../types';
 
 export function WindowList() {
   const { id, spaceId } = useParams();
@@ -26,6 +28,27 @@ export function WindowList() {
   if (!project || !space) return <div className="page"><div className="empty">Cargando ventanas...</div></div>;
 
   const add = () => updateSpace(project, space.id, current => ({ ...current, windows: [...current.windows, newWindow(`Ventana ${current.windows.length + 1}`)] }));
+
+  /** Aviso + copia a la papelera antes de sacar la ventana. Ver `trashStore`. */
+  const removeWindow = async (win: WindowRecord) => {
+    const solutions = win.solutions.length;
+    const photos = win.evidence.length;
+    const contenido = [
+      solutions ? `${solutions} persiana${solutions === 1 ? '' : 's'}` : null,
+      photos ? `${photos} foto${photos === 1 ? '' : 's'}` : null,
+    ].filter(Boolean).join(' y ');
+
+    const detalle = contenido ? `\n\nSe va con ${contenido}.` : '';
+    if (!confirm(`¿Mover la ventana "${win.label}" a la papelera?${detalle}\n\nPodés recuperarla desde Papelera › Elementos.`)) return;
+
+    const copiado = await trashWindow(project, space, win);
+    if (!copiado) {
+      toast.error('No se pudo guardar la copia de seguridad. No se borró nada.');
+      return;
+    }
+    await updateSpace(project, space.id, current => ({ ...current, windows: current.windows.filter(w => w.id !== win.id) }));
+    toast.success('Ventana movida a la papelera');
+  };
 
   return (
     <div className="page">
@@ -68,7 +91,7 @@ export function WindowList() {
                 <em className={blockers ? 'bad' : warnings ? 'warn' : 'ok'} style={{ marginTop: '4px' }}>{badge}</em>
               </button>
               {role === 'admin' && (
-                <button className="mini-danger" onClick={() => updateSpace(project, space.id, current => ({ ...current, windows: current.windows.filter(w => w.id !== win.id) }))} aria-label={`Eliminar ${win.label}`}>
+                <button className="mini-danger" onClick={() => removeWindow(win)} aria-label={`Eliminar ${win.label}`}>
                   <TrashIcon className="icon" />
                 </button>
               )}

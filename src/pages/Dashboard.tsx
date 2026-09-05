@@ -98,6 +98,8 @@ export function Dashboard() {
   // Set de projectId que YA tienen al menos un recibo guardado (Dexie db.receipts).
   // Sirve para alertar los pedidos enviados a proveedor que aún no tienen recibo.
   const receiptProjectIds = useLiveQuery(() => db.receipts.toArray().then(rs => new Set(rs.map(r => r.projectId))), []);
+  // Cuántos espacios/ventanas/persianas/fotos hay esperando en la papelera.
+  const trashedCount = useLiveQuery(() => db.trash.count(), [], 0) || 0;
 
   const openReceiptFor = (projectId: number) => {
     const full = getFallbackProject(projectId);
@@ -249,7 +251,7 @@ export function Dashboard() {
               <PlusIcon className="icon" /> {creating ? 'Creando...' : 'Nuevo proyecto'}
             </button>
             <button className="secondary" onClick={() => navigate('/papelera')}>
-              <TrashIcon className="icon" /> Papelera
+              <TrashIcon className="icon" /> Papelera{trashedCount > 0 ? ` (${trashedCount})` : ''}
             </button>
           </div>
         )}
