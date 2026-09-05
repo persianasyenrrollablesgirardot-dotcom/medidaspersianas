@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
@@ -223,6 +224,10 @@ export function SupplierProjectView() {
 
   const docId = supplierStatusDocId(project?.id, project?.code);
   const statuses = useSupplierStatuses(project ? docId : undefined);
+  // En un pedido de 40 persianas, lo que el taller necesita ver es lo que le
+  // FALTA. Es un filtro de vista del proveedor: no le esconde nada (arranca en
+  // "Todos" y el conmutador esta siempre a la vista).
+  const [soloPendientes, setSoloPendientes] = useState(false);
 
   if (!project) return <div className="page"><div className="empty">Cargando proyecto para producción...</div></div>;
 
@@ -240,6 +245,10 @@ export function SupplierProjectView() {
   const allDone = totalSolutions > 0 && gestionadas === totalSolutions;
 
   const toggle = async (solutionId: string) => { await setSupplierStatus(docId, solutionId, !statuses[solutionId]); };
+
+  const visibles = (solutions: TechnicalSolution[]) =>
+    soloPendientes ? solutions.filter(sol => !statuses[sol.id]) : solutions;
+  const pendientes = totalSolutions - gestionadas;
 
   return (
     <div className="page" style={{ paddingBottom: '100px' }}>
@@ -262,12 +271,25 @@ export function SupplierProjectView() {
         </div>
       </section>
 
+      {totalSolutions > 0 && (
+        <div className="segmented" style={{ marginBottom: '20px' }}>
+          <button type="button" className={soloPendientes ? '' : 'selected'} onClick={() => setSoloPendientes(false)}>
+            Todos ({totalSolutions})
+          </button>
+          <button type="button" className={soloPendientes ? 'selected' : ''} onClick={() => setSoloPendientes(true)}>
+            Solo pendientes ({pendientes})
+          </button>
+        </div>
+      )}
+
       {totalSolutions === 0 ? (
         <div className="empty">No hay ítems a fabricar en este proyecto.</div>
+      ) : soloPendientes && pendientes === 0 ? (
+        <div className="empty">No queda nada pendiente en este pedido.</div>
       ) : (
         <div className="supplier-spaces-container">
           {activeSpaces.map((space, i) => {
-            const count = space.windows.reduce((acc, win) => acc + win.solutions.length, 0);
+            const count = space.windows.reduce((acc, win) => acc + visibles(win.solutions).length, 0);
             if (count === 0) return null;
             return (
               <div key={space.id} style={{ marginBottom: '32px' }}>
@@ -275,6 +297,8 @@ export function SupplierProjectView() {
                   {i + 1}. {space.name}
                 </h2>
                 {space.windows.map(win => {
+                  const solucionesVisibles = visibles(win.solutions);
+                  if (solucionesVisibles.length === 0) return null;
                   const w = catSnap ? { ...win, projectCatalogSnapshot: catSnap } as WindowRecord : win;
                   return (
                     <div key={win.id}>
@@ -284,7 +308,7 @@ export function SupplierProjectView() {
                           <p style={{ margin: 0, fontSize: '14px', color: '#e5e7eb', lineHeight: '1.5' }}>{win.notes}</p>
                         </div>
                       )}
-                      {win.solutions.map(sol => (
+                      {solucionesVisibles.map(sol => (
                         <ProductCard
                           key={sol.id}
                           solution={sol}

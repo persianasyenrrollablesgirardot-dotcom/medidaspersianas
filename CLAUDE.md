@@ -55,6 +55,16 @@ Vista: **`src/pages/SupplierProjectView.tsx`** — "Orden de Producción" plana,
 - Caso borde ya cubierto: en **Cotización rápida**, borrar la última persiana de una ventana se lleva la ventana entera. Pasaba en silencio; ahora se avisa y lo que se guarda en la papelera es la **ventana completa**.
 - `src/pages/ProjectEditor.tsx` **no está ruteado** (código muerto). Sus botones de borrar siguen sin aviso ni papelera. Si alguna vez se vuelve a rutear, hay que wirearlo igual que las demás pantallas.
 
+## Dashboard del PROVEEDOR (qué es suyo y qué es del admin)
+
+- El proveedor lee `cloud_projects` y esos docs son **`TechnicalProject` crudos**, NO `ProjectSummary`: **no traen** `spacesCount`, `windowsCount`, `solutionsCount`, `totalAreaM2`, `systemTotals`, `totalEstimate`. Cualquier cosa del Dashboard que use esos campos sale vacía para él. Por eso existe `projectCounts()`, que los calcula del árbol cuando no vienen.
+- **Firestore devuelve los documentos ordenados por su ID (el `code`)** — un orden sin sentido para el proveedor. `Dashboard` los ordena por `updatedAt` desc al recibirlos. **No quitar ese `.sort()`**, o los pedidos nuevos vuelven a aparecer mezclados entre los viejos.
+- **El `status` del proyecto (`ready_for_fabrication`) es del ADMIN, no del proveedor.** Para él "pendiente/completado" se calcula de `supplier_statuses` (`supplierProgress()`). Las estadísticas y el filtro de avance del proveedor usan eso.
+- `supplierProgress()` **debe ignorar espacios/ventanas excluidos**, con el mismo criterio que `SupplierProjectView`: lo excluido no se le muestra al proveedor, así que no lo puede marcar. Si se cuenta, el pedido queda "3/5 gestionadas" para siempre y clavado en el filtro "Pendientes" sin nada que marcar.
+- `useAllSupplierStatuses(enabled)` abre **un** listener para toda la colección `supplier_statuses`. Antes se abría uno por tarjeta (`useSupplierStatuses` dentro del badge) y solo servía para pintar el badge — no se podía ordenar ni filtrar por avance. `useSupplierStatuses` sigue existiendo para la vista de un pedido.
+- **Búsqueda:** al proveedor NO se le busca por teléfono ni dirección (datos personales; del cliente solo ve el nombre). Se le busca por cliente, código, nombre de espacio, ventana y sistema.
+- **PENDIENTE / decisión de Jhon:** `cloudSync` sube el proyecto entero, así que el documento de `cloud_projects` **sí contiene** `address`, `contactPhone` y `clientDocument`, y el Dashboard del proveedor lo cachea completo en `localStorage 'cloud_projects_cache'`. No se muestran en pantalla, pero están en su dispositivo. **No se limpió** porque `rescue.ts::scanNube()` usa `cloud_projects` como fuente de rescate del admin y perdería esos campos. Si se decide limpiarlo, hay que mover el rescate a `admin_projects` primero.
+
 ## Cómo trabajar acá (aprendizajes de sesión)
 
 - Cuando Jhon diga "esto funcionaba y se rompió / qué hiciste": **análisis forense de git PRIMERO** (`git log --follow`, `git show <commit>`, recuperar versión vieja con `git show <commit>~1:<ruta>`), y verificar despliegues con `vercel ls` antes de afirmar. NO interrogar para diagnosticar; solo preguntar decisiones de NEGOCIO (qué debe ver el proveedor, precios, garantías).

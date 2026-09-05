@@ -9,14 +9,14 @@ import { hydrateProjectPhotos } from '../lib/photoStore';
 import { PdfPreviewModal } from '../components/PdfPreviewModal';
 import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
 import type { TechnicalProject, ProjectSummary, TechnicalCatalog } from '../types';
-import { solutionTotal } from '../lib/metrics';
+import { solutionArea, solutionTotal } from '../lib/metrics';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { DEFAULT_CATALOG, db } from '../db';
 import { useAuth } from '../components/AuthContext';
 import { collection, getDocs } from 'firebase/firestore';
 import { dbFirestore } from '../lib/firebase';
 import { useEffect } from 'react';
-import { supplierStatusDocId, useSupplierStatuses } from '../lib/supplierStatus';
+import { supplierStatusDocId, useAllSupplierStatuses, type SupplierStatuses } from '../lib/supplierStatus';
 
 // Quita tildes/diacríticos y pasa a minúsculas para que la búsqueda sea "congruente":
 // "José" == "jose", "Girardot" == "girardot". Base de la búsqueda por palabras.
@@ -27,17 +27,58 @@ function normalizeText(value?: string) {
     .replace(/\p{Diacritic}/gu, '');
 }
 
-function ProjectSupplierBadge({ project }: { project: any }) {
-  const docId = supplierStatusDocId(project.projectId, project.code);
-  const statuses = useSupplierStatuses(docId);
-  
+/**
+ * Los docs de `cloud_projects` son proyectos CRUDOS (`cloudSync` sube el
+ * `TechnicalProject` tal cual), no `ProjectSummary`: no traen `spacesCount`,
+ * `windowsCount`, `solutionsCount` ni `totalAreaM2`. Por eso al proveedor la
+ * meta de cada tarjeta le salia vacia (" espacios  ventanas  soluciones").
+ * Si los contadores no vienen, se calculan del arbol, con el mismo criterio
+ * que `buildProjectSummary` (ignorando lo marcado como excluido).
+ */
+function projectCounts(project: any) {
+  if (typeof project.spacesCount === 'number') {
+    return {
+      spaces: project.spacesCount,
+      windows: project.windowsCount || 0,
+      solutions: project.solutionsCount || 0,
+      areaM2: project.totalAreaM2 || 0,
+    };
+  }
+  const spaces = (project.spaces || []).filter((s: any) => !s.isExcluded);
+  const windows = spaces.flatMap((s: any) => (s.windows || []).filter((w: any) => !w.isExcluded));
+  const solutions = windows.flatMap((w: any) => w.solutions || []);
+  return {
+    spaces: spaces.length,
+    windows: windows.length,
+    solutions: solutions.length,
+    areaM2: solutions.reduce((sum: number, sol: any) => sum + (sol.itemType !== 'maintenance' ? solutionArea(sol) : 0), 0),
+  };
+}
+
+/**
+ * Cuantas persianas de un pedido ya marco el proveedor como gestionadas.
+ *
+ * Ignora lo excluido con el MISMO criterio que la Orden de Produccion
+ * (`SupplierProjectView`): si un espacio o una ventana esta excluido, sus
+ * persianas no se le muestran al proveedor y no las puede marcar. Contarlas
+ * aca dejaba el pedido en "3/5" para siempre — y ahora que el avance manda el
+ * filtro y las estadisticas, lo dejaria clavado en "Pendientes" sin nada que
+ * marcar.
+ */
+function supplierProgress(project: any, statuses: SupplierStatuses) {
+  const blinds = (project.spaces || [])
+    .filter((s: any) => !s.isExcluded)
+    .flatMap((s: any) => (s.windows || []).filter((w: any) => !w.isExcluded).flatMap((w: any) => w.solutions || []));
+  const total = blinds.length;
+  const done = blinds.filter((sol: any) => statuses[sol.id]).length;
+  return { total, done, allDone: total > 0 && done === total };
+}
+
+function ProjectSupplierBadge({ project, statuses }: { project: any; statuses: SupplierStatuses }) {
   if (!project.spaces) return null; // We need the full project data to count solutions
-  
-  const allBlinds = project.spaces.flatMap((s: any) => s.windows.flatMap((w: any) => w.solutions));
-  const total = allBlinds.length;
-  const done = allBlinds.filter((s: any) => statuses[s.id]).length;
-  const allDone = total > 0 && done === total;
-  
+
+  const { total, done, allDone } = supplierProgress(project, statuses);
+
   if (total === 0) return null;
   
   return (
@@ -66,7 +107,13 @@ export function Dashboard() {
   useEffect(() => {
     if (role === 'proveedor') {
       getDocs(collection(dbFirestore, 'cloud_projects')).then(snapshot => {
-        const projs = snapshot.docs.map(doc => ({ ...doc.data(), projectId: doc.data().id || doc.data().projectId } as unknown as ProjectSummary));
+        const projs = snapshot.docs
+          .map(doc => ({ ...doc.data(), projectId: doc.data().id || doc.data().projectId } as unknown as ProjectSummary))
+          // Firestore devuelve los documentos ordenados por su ID (el codigo),
+          // que para el proveedor es un orden sin sentido: los pedidos nuevos
+          // le aparecian mezclados entre los viejos. Por defecto, lo mas
+          // reciente primero — igual que la lista del admin.
+          .sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
         setCloudProjects(projs);
         window.localStorage.setItem('cloud_projects_cache', JSON.stringify(projs));
       }).catch(e => {
@@ -130,6 +177,19 @@ export function Dashboard() {
   const [expandedActions, setExpandedActions] = useState<number | null>(null);
   const [supplierFilter, setSupplierFilter] = useState<'all' | 'sent' | 'unsent' | 'sent_no_receipt' | 'receipt_not_sent'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'ready'>('all');
+  // Filtro y orden del PROVEEDOR. Los dos filtros de arriba son del admin y no
+  // le sirven de nada: lo unico que le importa es que le falta por gestionar.
+  const [progressFilter, setProgressFilter] = useState<'all' | 'pending' | 'done'>('all');
+  const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'client' | 'pending'>('recent');
+
+  // Un solo listener para el avance de TODOS los pedidos (antes era uno por
+  // tarjeta, y solo servia para pintar el badge: no se podia ni ordenar ni
+  // filtrar por avance).
+  const allStatuses = useAllSupplierStatuses(role === 'proveedor');
+  const statusesOf = useMemo(
+    () => (project: any): SupplierStatuses => allStatuses[supplierStatusDocId(project.projectId, project.code)] || {},
+    [allStatuses],
+  );
 
   const filteredProjects = useMemo(() => {
     let result = visibleProjects;
@@ -163,24 +223,70 @@ export function Dashboard() {
       result = result.filter(p => statusFilter === 'ready' ? p.status === 'ready_for_fabrication' : p.status !== 'ready_for_fabrication');
     }
 
+    // Avance del pedido (solo proveedor): pendientes vs completados.
+    if (progressFilter !== 'all') {
+      result = result.filter(p => {
+        const { total, allDone } = supplierProgress(p, statusesOf(p));
+        if (total === 0) return progressFilter === 'pending';
+        return progressFilter === 'done' ? allDone : !allDone;
+      });
+    }
+
     // Búsqueda insensible a tildes/mayúsculas y por PALABRAS (tokens): "juan perez"
     // encuentra "Juan Pérez Gómez" aunque las palabras no estén pegadas ni acentuadas.
     const tokens = normalizeText(searchTerm).split(/\s+/).filter(Boolean);
     if (tokens.length) {
       result = result.filter(p => {
-        const haystack = normalizeText([p.clientName, p.contactPhone, p.siteName, p.address, p.code].filter(Boolean).join(' '));
+        // El proveedor NO busca por telefono ni direccion: son datos personales
+        // del cliente que no le corresponden (del cliente solo ve el nombre).
+        // A cambio busca por lo que a el le sirve: espacio y tipo de persiana.
+        const campos = role === 'proveedor'
+          ? [p.clientName, p.code, ...((p as any).spaces || []).flatMap((space: any) => [
+              space.name,
+              ...(space.windows || []).flatMap((win: any) => [win.label, ...(win.solutions || []).map((sol: any) => sol.system)]),
+            ])]
+          : [p.clientName, p.contactPhone, p.siteName, p.address, p.code];
+        const haystack = normalizeText(campos.filter(Boolean).join(' '));
         return tokens.every(token => haystack.includes(token));
       });
     }
 
-    return result;
-  }, [visibleProjects, searchTerm, dateFilter, supplierFilter, statusFilter, receiptProjectIds]);
+    // El orden va SIEMPRE al final, sobre lo ya filtrado.
+    const ordered = [...result];
+    if (sortBy === 'oldest') {
+      ordered.sort((a, b) => (a.updatedAt || a.createdAt || 0) - (b.updatedAt || b.createdAt || 0));
+    } else if (sortBy === 'client') {
+      ordered.sort((a, b) => normalizeText(a.clientName).localeCompare(normalizeText(b.clientName)));
+    } else if (sortBy === 'pending') {
+      // Lo que mas le falta al proveedor, primero.
+      ordered.sort((a, b) => {
+        const pa = supplierProgress(a, statusesOf(a));
+        const pb = supplierProgress(b, statusesOf(b));
+        return (pb.total - pb.done) - (pa.total - pa.done);
+      });
+    } else {
+      ordered.sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+    }
+
+    return ordered;
+  }, [visibleProjects, searchTerm, dateFilter, supplierFilter, statusFilter, receiptProjectIds, progressFilter, sortBy, statusesOf, role]);
 
   // Cuántos pedidos enviados a proveedor NO tienen recibo (la alarma).
   const sentWithoutReceiptCount = useMemo(() => {
     if (!receiptProjectIds) return 0;
     return visibleProjects.filter(p => p.sentToSupplier && !receiptProjectIds.has(p.projectId)).length;
   }, [visibleProjects, receiptProjectIds]);
+
+  // Pedidos del proveedor por avance real (persianas marcadas como gestionadas),
+  // que es lo unico que le dice algo. El `status` del proyecto es del admin.
+  const pendingOrdersCount = useMemo(
+    () => visibleProjects.filter(p => !supplierProgress(p, statusesOf(p)).allDone).length,
+    [visibleProjects, statusesOf],
+  );
+  const doneOrdersCount = useMemo(
+    () => visibleProjects.filter(p => supplierProgress(p, statusesOf(p)).allDone).length,
+    [visibleProjects, statusesOf],
+  );
 
   // Cuántos pedidos tienen recibo generado pero NO se enviaron a proveedor.
   const receiptNotSentCount = useMemo(() => {
@@ -258,15 +364,24 @@ export function Dashboard() {
       </header>
 
       <section className="stats-row">
-        <Stat label="Proyectos" value={visibleProjects.length} tone="blue" />
-        <Stat label="Pendientes" value={visibleProjects.filter(p => p.status !== 'ready_for_fabrication').length} tone="amber" />
-        <Stat label="Listos" value={visibleProjects.filter(p => p.status === 'ready_for_fabrication').length} tone="green" />
+        <Stat label={role === 'proveedor' ? 'Pedidos' : 'Proyectos'} value={visibleProjects.length} tone="blue" />
+        {role === 'proveedor' ? (
+          <>
+            <Stat label="Pendientes" value={pendingOrdersCount} tone="amber" />
+            <Stat label="Completados" value={doneOrdersCount} tone="green" />
+          </>
+        ) : (
+          <>
+            <Stat label="Pendientes" value={visibleProjects.filter(p => p.status !== 'ready_for_fabrication').length} tone="amber" />
+            <Stat label="Listos" value={visibleProjects.filter(p => p.status === 'ready_for_fabrication').length} tone="green" />
+          </>
+        )}
       </section>
 
       <div className="section-title list-title">
         <div>
-          <h2>Proyectos activos</h2>
-          <p className="muted">Mostrando {filteredProjects.length} de {visibleProjects.length} proyectos</p>
+          <h2>{role === 'proveedor' ? 'Pedidos recibidos' : 'Proyectos activos'}</h2>
+          <p className="muted">Mostrando {filteredProjects.length} de {visibleProjects.length} {role === 'proveedor' ? 'pedidos' : 'proyectos'}</p>
         </div>
       </div>
 
@@ -277,7 +392,7 @@ export function Dashboard() {
             <input
               className="search-input"
               type="search"
-              placeholder="Buscar cliente, teléfono, dirección..."
+              placeholder={role === 'proveedor' ? 'Buscar cliente, codigo, espacio, sistema...' : 'Buscar cliente, teléfono, dirección...'}
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
@@ -291,6 +406,28 @@ export function Dashboard() {
             <option value="week">Esta semana</option>
             <option value="month">Este mes</option>
           </select>
+        </div>
+
+        <div className="filters-select-row">
+          <div className="filter-group">
+            <span className="filter-label">Ordenar por</span>
+            <select className="filter-select wide" value={sortBy} onChange={e => setSortBy(e.target.value as any)}>
+              <option value="recent">Mas recientes primero</option>
+              <option value="oldest">Mas antiguos primero</option>
+              <option value="client">Cliente (A-Z)</option>
+              {role === 'proveedor' && <option value="pending">Con mas pendientes primero</option>}
+            </select>
+          </div>
+          {role === 'proveedor' && (
+            <div className="filter-group">
+              <span className="filter-label">Avance del pedido</span>
+              <select className="filter-select wide" value={progressFilter} onChange={e => setProgressFilter(e.target.value as any)}>
+                <option value="all">Todos</option>
+                <option value="pending">Pendientes ({pendingOrdersCount})</option>
+                <option value="done">Completados ({doneOrdersCount})</option>
+              </select>
+            </div>
+          )}
         </div>
 
         {role === 'admin' && (
@@ -323,6 +460,7 @@ export function Dashboard() {
 
       <section className="list">
         {filteredProjects.map(project => {
+          const counts = projectCounts(project);
           return (
             <article key={project.projectId} className={`project-card ${project.isClone ? 'is-clone' : ''}`}>
               <button 
@@ -370,15 +508,15 @@ export function Dashboard() {
                   )}
                 </div>
                 <div className="card-meta">
-                  <span>{project.spacesCount} espacios</span>
-                  <span>{project.windowsCount} ventanas</span>
-                  <span>{project.solutionsCount} soluciones</span>
-                  {project.totalAreaM2 ? <span style={{ color: 'var(--blue)', fontWeight: 'bold' }}>{project.totalAreaM2.toFixed(2)} m²</span> : null}
+                  <span>{counts.spaces} espacios</span>
+                  <span>{counts.windows} ventanas</span>
+                  <span>{counts.solutions} soluciones</span>
+                  {counts.areaM2 ? <span style={{ color: 'var(--blue)', fontWeight: 'bold' }}>{counts.areaM2.toFixed(2)} m²</span> : null}
                   {role === 'admin' && project.totalEstimate !== undefined && (
                     <span className="price">$ {project.totalEstimate.toLocaleString('es-CO')}</span>
                   )}
                 </div>
-                {role === 'proveedor' && <ProjectSupplierBadge project={project} />}
+                {role === 'proveedor' && <ProjectSupplierBadge project={project} statuses={statusesOf(project)} />}
                 {project.systemTotals && Object.keys(project.systemTotals).length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
                     {Object.entries(project.systemTotals as Record<string, { area: number; price: number }>).map(([sys, totals]) => totals.area > 0 && (

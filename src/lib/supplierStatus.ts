@@ -1,4 +1,4 @@
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { dbFirestore } from './firebase';
 import { useState, useEffect } from 'react';
 
@@ -29,4 +29,36 @@ export function useSupplierStatuses(docId: string | undefined): SupplierStatuses
   }, [docId]);
 
   return statuses;
+}
+
+/**
+ * Igual que `useSupplierStatuses` pero para TODOS los pedidos de una sola vez:
+ * `{ docId: { solutionId: true } }`.
+ *
+ * El Dashboard del proveedor necesita saber cuánto lleva gestionado CADA
+ * pedido para poder ordenarlos y filtrarlos. Hacerlo con el hook de a uno
+ * abría un listener de Firestore por tarjeta; este abre uno solo para la
+ * colección entera.
+ */
+export function useAllSupplierStatuses(enabled: boolean): Record<string, SupplierStatuses> {
+  const [all, setAll] = useState<Record<string, SupplierStatuses>>({});
+
+  useEffect(() => {
+    if (!enabled) return;
+    const ref = collection(dbFirestore, 'supplier_statuses');
+    const unsub = onSnapshot(
+      ref,
+      snap => {
+        const next: Record<string, SupplierStatuses> = {};
+        snap.forEach(document => {
+          next[document.id] = document.data() as SupplierStatuses;
+        });
+        setAll(next);
+      },
+      error => console.error('No se pudo leer el avance de los pedidos', error),
+    );
+    return unsub;
+  }, [enabled]);
+
+  return all;
 }
