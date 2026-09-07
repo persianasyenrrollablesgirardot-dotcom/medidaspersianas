@@ -818,3 +818,26 @@ body { color: var(--text); background: var(--bg); }
   -moz-appearance: none;
   -webkit-appearance: none;
 }
+
+/*
+ * EXCEPCION: los filtros del Dashboard NO son campos de edicion.
+ *
+ * La regla de arriba apaga TODOS los input/select/textarea del proveedor para
+ * que no pueda editar el proyecto (viene de cuando su pantalla era la del
+ * admin disfrazada). El problema es que barre tambien la caja de busqueda y
+ * los selects de "Todas las fechas", "Ordenar por" y "Avance del pedido":
+ * `pointer-events: none` los deja VISIBLES pero muertos al toque — se ven
+ * bien, se tocan, y no pasa nada. Ademas los dejaba sin fondo ni borde.
+ *
+ * Los filtros son controles de CONSULTA, no de edicion: no escriben nada en
+ * el pedido. Se les devuelve el toque y su aspecto normal.
+ */
+.role-proveedor .filters-panel input,
+.role-proveedor .filters-panel select {
+  pointer-events: auto;
+  background-color: var(--surface-2) !important;
+  border-color: var(--line) !important;
+  appearance: auto;
+  -moz-appearance: auto;
+  -webkit-appearance: auto;
+}
