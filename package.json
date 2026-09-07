@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "probar:safra": "node scripts/probar-ingesta-safra.mjs"
+    "probar:safra": "node scripts/probar-ingesta-safra.mjs",
+    "migrar": "node scripts/aplicar-migracion.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.2",
@@ -38,6 +39,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "pg": "^8.23.0",
     "tailwindcss": "^4.3.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
