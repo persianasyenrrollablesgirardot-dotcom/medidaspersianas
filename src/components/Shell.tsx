@@ -7,7 +7,11 @@ import { useAuth } from './AuthContext';
 
 // Sello de versión: si al abrir la app NO ves este número, tu app está cacheada
 // (versión vieja) → usá "Limpiar Caché" en Ajustes. NUNCA "borrar datos".
-const APP_VERSION = 'v2026.09.07-filtros';
+//
+// El PROVEEDOR no tiene Ajustes (ruta admin-only): su equivalente es el botón
+// "Actualizar app" del Dashboard, que muestra este mismo sello. Por eso la
+// constante se exporta.
+export const APP_VERSION = 'v2026.09.07-actualizar';
 
 export function Shell({ children }: { children: ReactNode }) {
   const { role, logout } = useAuth();

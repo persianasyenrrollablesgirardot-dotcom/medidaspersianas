@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { newProject } from '../lib/projectFactory';
-import { CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, IdentificationIcon, PlusIcon, TrashIcon, SparklesIcon, DocumentDuplicateIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, IdentificationIcon, PlusIcon, TrashIcon, SparklesIcon, DocumentDuplicateIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { APP_VERSION } from '../components/Shell';
 import { generateReportHtml, technicalSummary, type PdfReportProfile } from '../lib/exporters';
 import { addFallbackProject, duplicateFallbackProject, getFallbackProject, saveFallbackProject, trashFallbackProject, useFallbackSummaries, useFallbackCatalog } from '../lib/localFallbackStore';
 import { hydrateProjectPhotos } from '../lib/photoStore';
@@ -358,6 +359,35 @@ export function Dashboard() {
             </button>
             <button className="secondary" onClick={() => navigate('/papelera')}>
               <TrashIcon className="icon" /> Papelera{trashedCount > 0 ? ` (${trashedCount})` : ''}
+            </button>
+          </div>
+        )}
+        {/*
+          El proveedor NO tiene Ajustes (esa ruta es admin-only), asi que no
+          tenia forma de salir de una version cacheada: si su PWA se quedaba
+          pegada en un build viejo, quedaba atrapado y no se podia arreglar a
+          distancia. Este boton le da lo mismo que el admin tiene en Ajustes.
+
+          Usa `clearPwaCacheOnly`, que SOLO desregistra el service worker y
+          borra Cache Storage. NO toca IndexedDB ni localStorage — no le
+          borra ni los pedidos cacheados ni lo que marco como gestionado.
+          Nunca reemplazar esto por `resetLocalAppData`, que si borra todo.
+        */}
+        {role === 'proveedor' && (
+          <div className="hero-actions">
+            <button
+              className="secondary"
+              onClick={() => {
+                if (confirm(`Version instalada: ${APP_VERSION}
+
+¿Buscar la ultima version de la app?
+
+Solo se limpia el cache del navegador. NO se pierde ningun pedido ni lo que ya marcaste como gestionado.`)) {
+                  import('../db').then(m => m.clearPwaCacheOnly());
+                }
+              }}
+            >
+              <ArrowPathIcon className="icon" /> Actualizar app · {APP_VERSION}
             </button>
           </div>
         )}
