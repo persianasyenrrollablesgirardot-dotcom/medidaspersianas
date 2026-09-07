@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { newProject } from '../lib/projectFactory';
-import { ArrowPathIcon, CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, IdentificationIcon, PlusIcon, TrashIcon, SparklesIcon, DocumentDuplicateIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, BuildingStorefrontIcon, CalculatorIcon, DocumentArrowDownIcon, DocumentMagnifyingGlassIcon, IdentificationIcon, PlusIcon, TrashIcon, SparklesIcon, DocumentDuplicateIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { APP_VERSION } from '../components/Shell';
 import { generateReportHtml, technicalSummary, type PdfReportProfile } from '../lib/exporters';
 import { addFallbackProject, duplicateFallbackProject, getFallbackProject, saveFallbackProject, trashFallbackProject, useFallbackSummaries, useFallbackCatalog } from '../lib/localFallbackStore';
@@ -359,6 +359,11 @@ export function Dashboard() {
             </button>
             <button className="secondary" onClick={() => navigate('/papelera')}>
               <TrashIcon className="icon" /> Papelera{trashedCount > 0 ? ` (${trashedCount})` : ''}
+            </button>
+            {/* La barra de abajo ya tiene 6 columnas ocupadas: la entrada al
+                modulo de Safra va aca para no romper esa grilla. */}
+            <button className="secondary" onClick={() => navigate('/safra')}>
+              <BuildingStorefrontIcon className="icon" /> Facturas Safra
             </button>
           </div>
         )}

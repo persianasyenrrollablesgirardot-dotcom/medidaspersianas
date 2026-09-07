@@ -14,6 +14,7 @@ import { ProjectTrash } from './pages/ProjectTrash';
 import { ProjectDetail } from './pages/ProjectDetail';
 import { QuickQuoteModule } from './pages/QuickQuoteModule';
 import { Facturacion } from './pages/Facturacion';
+import { FacturasSafra } from './pages/FacturasSafra';
 import { Settings } from './pages/Settings';
 import { Contabilidad } from './pages/Contabilidad';
 import { AdminPanel } from './pages/AdminPanel';
@@ -69,6 +70,7 @@ export default function App() {
                   <Route path="/project/:id/space/:spaceId/window/:windowId" element={<ProtectedRoute allowedRoles={['admin']}><WindowWorkspace /></ProtectedRoute>} />
                   <Route path="/exports" element={<ProtectedRoute allowedRoles={['admin']}><ExportCenter /></ProtectedRoute>} />
                   <Route path="/facturacion" element={<ProtectedRoute allowedRoles={['admin']}><Facturacion /></ProtectedRoute>} />
+                  <Route path="/safra" element={<ProtectedRoute allowedRoles={['admin']}><FacturasSafra /></ProtectedRoute>} />
                   <Route path="/contabilidad" element={<ProtectedRoute allowedRoles={['admin']}><Contabilidad /></ProtectedRoute>} />
                   <Route path="/papelera" element={<ProtectedRoute allowedRoles={['admin']}><ProjectTrash /></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute allowedRoles={['admin']}><Settings /></ProtectedRoute>} />
