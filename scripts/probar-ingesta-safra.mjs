@@ -130,5 +130,30 @@ ok(!!premium.extra.cover_light, `Premium conserva cover_light (${premium.extra.c
 ok(!!panel.extra.cenefa, `Panel Japones conserva cenefa (${panel.extra.cenefa})`);
 ok(vertical.ubicacion === 'vertical', 'los campos comunes van en columnas propias');
 
-console.log('\n' + (fallos === 0 ? '*** TODO OK — ' + 0 + ' fallos ***' : `*** ${fallos} FALLOS ***`));
+
+console.log('\n=== 10. Varios reportes de un tiron: gana el MAS NUEVO ===');
+// El script de Google sube del mas nuevo al mas viejo. Si se aplicaran en ese
+// orden, el viejo escribiria ultimo y ganaria. Por eso la app los ordena por
+// fecha_reporte. Aca se comprueba el efecto: aplicados en orden cronologico,
+// el precio del reporte mas nuevo es el que queda.
+{
+  const viejo = JSON.parse(fs.readFileSync(RUTA, 'utf8'));
+  viejo.fecha_reporte = '2026-09-07';
+  viejo.pedidos.find(p => p.pedido_id === 'P-1153104').facturacion.total = 111111;
+
+  const nuevo = JSON.parse(fs.readFileSync(RUTA, 'utf8'));
+  nuevo.fecha_reporte = '2026-09-08';
+  nuevo.pedidos.find(p => p.pedido_id === 'P-1153104').facturacion.total = 222222;
+
+  // Orden cronologico por fecha_reporte, que es lo que hace reportesSinProcesar.
+  const enOrden = [viejo, nuevo].sort((a, b) => a.fecha_reporte.localeCompare(b.fecha_reporte));
+  let est = { pedidos: new Map(), productos: new Map(), cambios: [] };
+  for (const r of enOrden) est = aplicar(est, prepararIngesta(r, guardadosDe(est), r.fecha_reporte));
+
+  const queda = est.pedidos.get('P-1153104').total;
+  ok(queda === 222222, `queda el total del reporte del 8-sep (${queda}), no el del 7`);
+  ok(enOrden[0].fecha_reporte === '2026-09-07', 'se aplican del mas viejo al mas nuevo');
+}
+
+console.log('\n' + (fallos === 0 ? '*** TODO OK ***' : `*** ${fallos} FALLOS ***`));
 process.exit(fallos ? 1 : 0);

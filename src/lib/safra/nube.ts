@@ -97,8 +97,26 @@ export async function guardarReporteCrudo(
   }
 }
 
+/**
+ * Los reportes que llegaron pero todavia no se volcaron a pedidos/piezas.
+ *
+ * El orden es por `fecha_reporte`, NO por hora de subida, y no es un detalle:
+ * cuando se aplican varios de una vez, el ULTIMO en escribir es el que manda.
+ * El script de Google sube los archivos del mas nuevo al mas viejo (para que
+ * lo urgente entre primero), asi que ordenar por hora de subida hacia que el
+ * reporte MAS VIEJO se aplicara al final y le ganara al mas nuevo. Con
+ * reportes acumulativos casi no se nota, pero si Gemini corrige un precio, el
+ * valor viejo pisaba al corregido.
+ *
+ * Ordenando por la fecha del reporte, el mas reciente escribe ultimo y gana,
+ * sin importar en que orden hayan llegado. Los que no traen fecha van primero,
+ * porque no se puede saber a que dia pertenecen.
+ */
 export const reportesSinProcesar = () =>
-  json<ReporteGuardado[]>('safra_reportes?procesado_en=is.null&order=subido_en.asc&limit=30');
+  json<ReporteGuardado[]>(
+    'safra_reportes?procesado_en=is.null' +
+    '&order=fecha_reporte.asc.nullsfirst,subido_en.asc&limit=30',
+  );
 
 export const marcarProcesado = (id: number) =>
   pedir(`safra_reportes?id=eq.${id}`, {
