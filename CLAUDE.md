@@ -88,8 +88,134 @@ en que se genera el dato, antes de culpar al parser. El disparador quedo a las *
   alarma roja permanente, y a la semana Jhon dejaría de mirarla. Peor que no avisar es avisar
   siempre.
 
-Los tres archivos reales viven en `src/lib/safra/ejemplos/` y `npm run probar:safra` corre
-contra ellos. **Si aparece un cuarto formato, se agrega el archivo ahí y se ve qué se rompe.**
+Los archivos reales viven en `src/lib/safra/ejemplos/` y `npm run probar:safra` corre contra
+ellos (el test los lee por NOMBRE, no recorre la carpeta: agregar uno no rompe las pruebas que
+ya están). **Si aparece un formato nuevo, se agrega el archivo ahí y se ve qué se rompe.**
+
+> **Y apareció un cuarto formato el 10-sep** — que ni siquiera trae pedidos. Ver la sección
+> siguiente: el script de Google funcionó, el archivo llegó, y aun así no entró nada.
+
+## Facturas Safra — investigacion del 10-sep-2026 (SIN ARREGLAR, a proposito)
+
+Jhon: "no me suben la actualizacion de las facturas y el script de Google se esta ejecutando
+correctamente". Tenia razon en las dos mitades: **el script anda bien y aun asi no entro nada.**
+Se investigo y NO se toco codigo — se espera al archivo de manana, con pedidos de verdad, para
+confirmar cual de los dos problemas de abajo es el que hay que resolver.
+
+### Lo que se verifico (datos reales de Supabase, 10-sep 15:10)
+
+| eslabon | estado |
+|---|---|
+| Disparador 11 a.m. | OK, corrio |
+| Apps Script lee Drive y sube el crudo | OK, subio `id=10` |
+| `safra_reportes` guarda el archivo | OK, intacto |
+| `validarReporte` / `normalizarReporte` | **FALLA: 0 pedidos** |
+| Volcado a `safra_pedidos` | no corrio |
+| Aviso a Jhon | **silencio total** |
+
+La fila subida: `id=10`, `reporte_safra_2026-09-10.json`, `fecha_reporte=2026-09-10`,
+`subido_en` 16:50 UTC = **11:50 a.m. COT**, `procesado_en=null`, `pedidos_en_archivo=null`.
+El archivo dice `corte_hora: "10:55:00-05:00"`. **El arreglo del horario funciono**: Gemini
+genero a las 10:55, el script corrio a las 11:50.
+
+> **Como saber quien subio una fila:** `pedidos_en_archivo` en `null` = la puso el **Apps
+> Script** (no sabe donde estan los pedidos, ver el comentario en `docs/apps-script-safra.js`).
+> Con numero = la puso la **app** (importacion manual). Por eso se sabe que `id=10` es la
+> primera fila que el script metio solo, y que las de los dias 7, 8 y 9 (7/12/13) las habia
+> metido Jhon a mano. Ese campo es el unico testigo del origen — no quitarlo.
+
+### Causa 1 — el archivo del 10-sep no tiene NI UN `pedido_id`
+
+Gemini volvio a cambiar, pero esta vez **no cambio el nombre de la clave: cambio de que se
+trata el informe**. El 10-sep mando otra cosa:
+
+```
+{ fecha_reporte, corte_hora, cliente, nit_cliente, empresa_proveedor,
+  auditoria_abonos_pse:                  { detalle_transacciones: [3 pagos PSE], total 6.800.000 },
+  balance_general_septiembre:            { total_facturado, total_abonos, total_pendiente, ... },
+  inconsistencias_facturacion_y_pedidos: [ { tipo, descripcion } ] }
+```
+
+Cero pedidos. `normalizarReporte()` busca por FORMA (todo objeto con `pedido_id`) y no hay
+ninguno, asi que `validarReporte()` devuelve:
+
+```
+{"ok":false,"motivo":"No encontre ningun pedido con `pedido_id` en el archivo."}
+```
+
+`procesarPendientes()` entonces hace `console.warn` + `continue` y **no lo marca procesado**,
+que es lo correcto: el crudo queda intacto y a la vista para reprocesarlo. **Buscar por forma
+no fallo — el archivo de verdad no traia pedidos.**
+
+El archivo esta guardado en `src/lib/safra/ejemplos/2026-09-10.json`. **OJO:** es la
+reconstruccion desde el `jsonb` de Supabase, no los bytes originales, asi que su `huella()`
+NO coincide con el `hash` de la fila (`a6bbe05f-7e7`). Sirve para probar el parser, no para
+probar la deduplicacion.
+
+### Causa 2 — la actualizacion de factura SI vino, pero como prosa
+
+Lo que Jhon estaba esperando estaba en el archivo. Adentro de
+`inconsistencias_facturacion_y_pedidos[0].descripcion`:
+
+> "Safra emitio hoy 10/09 la factura **PPAL16082682** por $435.055,67 para el pedido
+> **P-1156386** ('vanessa BOGOTA'). El pedido identico **P-1156381** quedo pendiente en el
+> sistema sin facturar. Requiere anulacion formal para evitar doble produccion."
+
+Y en la base `P-1156386` tiene `factura_numero: null`. O sea: **el dato existe, pero como frase
+adentro de un texto libre, no como campo.** Ningun parser que busque por forma lo puede sacar
+de ahi — habria que leerlo con un modelo, que es justo lo que este modulo evita a proposito.
+
+### Causa 3 — el fallo es MUDO, y esto es lo que lo hace caro
+
+Esta es la parte que hay que arreglar pase lo que pase manana. `procesarPendientes()` avisa por
+`console.warn`, y despues `FacturasSafra` lee `safra_pedidos`, encuentra las 13 filas viejas y
+hace `setAviso(null)` → origen "nube", todo verde. **Sin toast, sin banner, sin nada.** Desde
+afuera es identico a "hoy Safra no facturo nada".
+
+Por eso Jhon no supo que habia un archivo esperando desde las 11:50 de la manana, y por eso
+llego a pensar que el problema era el script de Google. Un reporte rechazado tiene que
+**verse en la pantalla**, con el nombre del archivo y el motivo.
+
+**Regla, hermana de la de la hora:** cuando algo automatico "no trae nada", **mirar primero si
+llego el dato** (`safra_reportes`) y recien despues por que no se aplico. Las dos veces que
+esto fallo, el sintoma fue el mismo — "no entra nada" — y la causa fue distinta.
+
+### Como repetir el diagnostico manana (3 consultas)
+
+```bash
+KEY=$(grep '^VITE_SUPABASE_ANON_KEY=' .env.local | cut -d= -f2- | tr -d '\r')
+URL=$(grep '^VITE_SUPABASE_URL='      .env.local | cut -d= -f2- | tr -d '\r')
+
+# 1. Llego el archivo? Quien lo subio? Se proceso?
+curl -s "$URL/rest/v1/safra_reportes?select=id,archivo,fecha_reporte,pedidos_en_archivo,subido_en,procesado_en&order=subido_en.desc&limit=10" \
+  -H "apikey: $KEY" -H "Authorization: Bearer $KEY"
+
+# 2. Que trae adentro (cambiar el id)
+curl -s "$URL/rest/v1/safra_reportes?id=eq.10&select=json_crudo" -H "apikey: $KEY" -H "Authorization: Bearer $KEY"
+
+# 3. Que hay guardado hoy
+curl -s "$URL/rest/v1/safra_pedidos?select=pedido_id,factura_numero,factura_fecha,total&order=factura_fecha.desc" \
+  -H "apikey: $KEY" -H "Authorization: Bearer $KEY"
+```
+
+Y para correr el validador real contra un crudo, sin levantar la app (`tsx` lee `.ts` directo,
+pero **el archivo tiene que estar en la raiz del repo** o el import relativo no resuelve):
+
+```js
+// probar.tmp.mjs en la raiz  ->  npx tsx probar.tmp.mjs
+import fs from 'fs';
+import { validarReporte } from './src/lib/safra/ingesta.ts';
+const v = validarReporte(JSON.parse(fs.readFileSync('src/lib/safra/ejemplos/2026-09-10.json', 'utf8')));
+console.log(v.ok ? v.reporte.pedidos.length + ' pedidos' : v.motivo);
+```
+
+### Lo que falta decidir (es de Jhon, no de Claude)
+
+1. Este informe de abonos/inconsistencias **reemplazo** al de pedidos, o Gemini ahora genera
+   **dos archivos distintos** y el de pedidos no se genero / esta en otro lado? Eso decide si
+   se le ensena a la app este formato nuevo o si se arregla el prompt de Gemini.
+2. Los abonos PSE y las inconsistencias, entran al modulo como informacion propia (plata que
+   se pago, pedidos duplicados que hay que anular) o eso se mira aparte?
 
 ## Correo al proveedor al enviar un pedido (09-sep-2026)
 

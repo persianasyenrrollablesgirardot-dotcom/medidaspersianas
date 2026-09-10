@@ -1,0 +1,52 @@
+{
+  "cliente": "CUBIDES MARTINEZ JOHN EDISON",
+  "corte_hora": "10:55:00-05:00",
+  "nit_cliente": "1014208880",
+  "fecha_reporte": "2026-09-10",
+  "empresa_proveedor": "PERSIANAS Y ENROLLABLES SAFRA S A S",
+  "auditoria_abonos_pse": {
+    "detalle_transacciones": [
+      {
+        "cus": "639653117",
+        "canal": "PSE / ACH Colombia",
+        "fecha": "2026-09-09T16:09:35Z",
+        "estado": "Aprobado / Aceptado",
+        "monto_cop": 2500000,
+        "epayco_ref": "385241961",
+        "descripcion": "Pago de Saldo a favor - Persianas y Enrollables Safra SAS"
+      },
+      {
+        "cus": "639614573",
+        "canal": "PSE / ACH Colombia",
+        "fecha": "2026-09-09T16:02:33Z",
+        "estado": "Aprobado / Aceptado",
+        "monto_cop": 3000000,
+        "epayco_ref": "385239979",
+        "descripcion": "Pago de Saldo a favor - Persianas y Enrollables Safra SAS"
+      },
+      {
+        "cus": "636307646",
+        "canal": "PSE / ACH Colombia",
+        "fecha": "2026-09-08T15:14:34Z",
+        "estado": "Aprobado / Aceptado",
+        "monto_cop": 1300000,
+        "descripcion": "Pago de Saldo a favor - Persianas y Enrollables Safra SAS"
+      }
+    ],
+    "inconsistencia_abonos": "Safra no ha remitido al correo recibos de caja oficiales ni relación de cartera que cruce estos $6,800,000 COP contra las facturas emitidas.",
+    "total_abonos_septiembre_cop": 6800000
+  },
+  "balance_general_septiembre": {
+    "total_facturado_cop": 7525570.71,
+    "total_abonos_pse_cop": 6800000,
+    "total_piezas_activas": 39,
+    "total_pedidos_activos": 17,
+    "total_pendiente_facturacion_cop": 7043164.94
+  },
+  "inconsistencias_facturacion_y_pedidos": [
+    {
+      "tipo": "Pedido duplicado / Facturación parcial",
+      "descripcion": "Safra emitió hoy 10/09 la factura PPAL16082682 por $435,055.67 para el pedido P-1156386 ('vanessa BOGOTA'). El pedido idéntico P-1156381 quedó pendiente en el sistema sin facturar. Requiere anulación formal para evitar doble producción."
+    }
+  ]
+}
