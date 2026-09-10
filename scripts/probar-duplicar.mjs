@@ -158,6 +158,16 @@ ok(vCopia.label === 'Ventana 2' && vCopia.id !== ventana.id, 'La ventana copiada
 ok(vCopia.solutions.length === 2 && vCopia.solutions[0].id !== solucion.id, 'Se lleva sus persianas, con ids nuevos');
 ok(vCopia.evidence.length === 0, 'La ventana copiada tampoco se lleva las fotos');
 
+// ── 9. La forma que usa Cotizacion rapida: una linea = UNA persiana ─────────
+// Ahi cada linea vive en su propia ventana. Al duplicar una linea de una
+// ventana que tiene DOS persianas, la copia tiene que llevarse solo la que se
+// duplico: copiar la hermana seria cotizarle al cliente una persiana de mas.
+const linea = copiarVentana({ ...ventana, solutions: [mantenimiento] }, 'Persiana rapida 2');
+ok(linea.solutions.length === 1, 'La copia de una linea se lleva UNA sola persiana');
+ok(linea.solutions[0].id !== mantenimiento.id, 'Con id nuevo');
+ok(linea.solutions[0].maintenance.tasks[0].id !== 'task-1', 'Y sus tareas también con ids nuevos');
+ok(ventana.solutions.length === 2, 'La ventana original sigue con sus 2 persianas');
+
 fs.unlinkSync(tmp);
 console.log(fallos === 0 ? '\nTodo bien.' : `\n${fallos} fallas.`);
 process.exit(fallos === 0 ? 0 : 1);

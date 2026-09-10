@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useParams } from 'react-router-dom';
-import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { DocumentDuplicateIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Field, SelectInput, TextInput } from '../components/Field';
 import { MeasureInput } from '../components/MeasureInput';
 import { PageHeader } from '../components/PageHeader';
@@ -13,6 +13,7 @@ import { quoteArea, solutionTotal } from '../lib/metrics';
 import type { SpaceRecord, TechnicalCatalog, TechnicalProject, TechnicalSolution, WindowRecord } from '../types';
 import { isFallbackId, useFallbackCatalog, useFallbackProject } from '../lib/localFallbackStore';
 import { trashSolution, trashWindow } from '../lib/trashStore';
+import { avisoDeCopias, copiarVentana, nombresDeCopia, pedirCantidadDeCopias } from '../lib/duplicar';
 
 interface QuoteLine {
   space: SpaceRecord;
@@ -97,6 +98,52 @@ export function QuickQuoteModule() {
   };
 
   /**
+   * Duplicar una linea. Acá una linea NO es un espacio ni una ventana: es UNA
+   * persiana, y `addLine` le arma a cada una su propia ventana. La copia sigue
+   * esa misma forma — ventana nueva con una sola persiana adentro — asi que si
+   * la ventana original tenia varias (viene del levantamiento tecnico, no de
+   * esta pantalla), la copia se lleva SOLO la persiana que se duplico. Copiar
+   * las hermanas seria cotizar de mas.
+   *
+   * La ventana copiada queda justo despues de la original, no al final: la
+   * lista es plana y una copia al final del listado no se encuentra.
+   */
+  const duplicateLine = async (spaceId: string, windowId: string, solutionId: string) => {
+    const space = project.spaces.find(s => s.id === spaceId);
+    const window = space?.windows.find(w => w.id === windowId);
+    const solution = window?.solutions.find(sol => sol.id === solutionId);
+    if (!space || !window || !solution) return;
+
+    const cantidad = pedirCantidadDeCopias('esta persiana');
+    if (!cantidad) return;
+
+    // Los nombres se comparan contra TODO el proyecto, no contra este espacio:
+    // la lista de cotizacion es plana y mezcla los espacios, asi que dos lineas
+    // con el mismo nombre visible se ven una al lado de la otra.
+    const todasLasVentanas = project.spaces.flatMap(sp => sp.windows);
+    const labels = nombresDeCopia(window.label, todasLasVentanas.map(w => w.label), cantidad);
+    const nombres = nombresDeCopia(solution.name, todasLasVentanas.flatMap(w => w.solutions.map(sol => sol.name)), cantidad);
+
+    const copias = labels.map((label, i) => {
+      // Se le pasa la ventana con UNA sola persiana: `copiarVentana` copia lo
+      // que le den, con ids nuevos y sin fotos.
+      const copia = copiarVentana({ ...window, solutions: [solution] }, label);
+      copia.solutions[0].name = nombres[i];
+      return copia;
+    });
+
+    const index = space.windows.findIndex(w => w.id === windowId);
+    const windows = [...space.windows];
+    windows.splice(index < 0 ? windows.length : index + 1, 0, ...copias);
+
+    await persist({
+      ...project,
+      spaces: project.spaces.map(sp => sp.id === spaceId ? { ...sp, windows } : sp),
+    });
+    toast.success(avisoDeCopias(labels, 'Persiana duplicada', 'persianas creadas'));
+  };
+
+  /**
    * Ojo con el caso borde: si la persiana era la ÚLTIMA de su ventana, esta
    * pantalla se lleva también la ventana entera (con sus medidas y sus fotos).
    * Eso pasaba en silencio. Ahora se avisa y, en ese caso, lo que se guarda en
@@ -178,6 +225,7 @@ export function QuickQuoteModule() {
             fabrics={catalog.fabrics}
             onWindowLabel={label => updateWindowLabel(line.space.id, line.window.id, label)}
             onChange={patch => updateSolution(line.space.id, line.window.id, line.solution.id, patch)}
+            onDuplicate={() => duplicateLine(line.space.id, line.window.id, line.solution.id)}
             onDelete={() => deleteLine(line.space.id, line.window.id, line.solution.id)}
           />
         ))}
@@ -192,6 +240,7 @@ function QuoteLineEditor({
   fabrics,
   onWindowLabel,
   onChange,
+  onDuplicate,
   onDelete,
 }: {
   line: QuoteLine;
@@ -199,6 +248,7 @@ function QuoteLineEditor({
   fabrics: string[];
   onWindowLabel: (label: string) => void;
   onChange: (patch: Partial<TechnicalSolution>) => void;
+  onDuplicate: () => void;
   onDelete: () => void;
 }) {
   const q = line.solution.quickQuote || { width: 0, height: 0, quantity: 1 };
@@ -221,9 +271,14 @@ function QuoteLineEditor({
           <span>{line.solution.system}</span>
           <span>{line.solution.layer === 'inside' ? 'Interna' : line.solution.layer === 'outside' ? 'Externa' : line.solution.layer}</span>
         </div>
-        <button className="mini-danger" type="button" onClick={onDelete} aria-label="Eliminar persiana">
-          <TrashIcon className="icon" />
-        </button>
+        <div className="tile-actions">
+          <button className="mini-action" type="button" onClick={onDuplicate} aria-label="Duplicar persiana" title="Duplicar persiana">
+            <DocumentDuplicateIcon className="icon" />
+          </button>
+          <button className="mini-danger" type="button" onClick={onDelete} aria-label="Eliminar persiana">
+            <TrashIcon className="icon" />
+          </button>
+        </div>
       </div>
 
       <div className="quote-context-strip">

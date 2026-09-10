@@ -265,9 +265,17 @@ Mientras no estén, el endpoint responde 503 diciendo exactamente eso.
 ## Duplicar espacios y ventanas (10-sep-2026)
 
 Jhon mide seguido habitaciones IGUALES — misma medida, mismo producto. Botón de duplicar en
-`SpaceList` (por espacio) y en `WindowList` (por ventana), admin-only; pregunta **cuántas
-copias** (tope 20) y las inserta **justo debajo del original**, no al final. Todo en
-`src/lib/duplicar.ts`, probado con `npm run probar:duplicar` (39 comprobaciones).
+`SpaceList` (por espacio), `WindowList` (por ventana) y `QuickQuoteModule` (por línea de
+cotización), admin-only; pregunta **cuántas copias** (tope 20) y las inserta **justo debajo
+del original**, no al final. Todo en `src/lib/duplicar.ts`, probado con
+`npm run probar:duplicar` (43 comprobaciones).
+
+- **En Cotización rápida una línea NO es una ventana: es UNA persiana**, y `addLine` le arma
+  a cada una su propia ventana. La copia sigue esa misma forma, así que si la ventana tenía
+  varias persianas (viene del levantamiento técnico, no de esa pantalla) la copia se lleva
+  **solo la que se duplicó** — copiar las hermanas sería cotizarle de más al cliente. Los
+  nombres se comparan contra TODO el proyecto, no contra el espacio: esa lista es plana y
+  mezcla espacios, así que dos líneas con el mismo nombre quedarían una al lado de la otra.
 
 - **TODO id se vuelve a generar** — espacio, ventana, condiciones del sitio, persiana,
   divisiones, accesorios, alertas y tareas de mantenimiento. No es cosmético: el id de la
