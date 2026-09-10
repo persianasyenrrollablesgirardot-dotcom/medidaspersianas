@@ -51,12 +51,23 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const clave = process.env.RESEND_API_KEY;
+  /**
+   * DOS PROVEEDORES DE CORREO, elegidos por cual clave este cargada.
+   *
+   * Brevo primero porque es el que Jhon eligio: alcanza con verificar UNA DIRECCION por
+   * mail, sin tocar los DNS del dominio. Resend manda desde el dominio propio (mejor
+   * entregabilidad) pero exige registros DNS.
+   *
+   * Se soportan los dos a proposito: si algun dia verifica `persianasgirardot.com`, se
+   * cambia de uno a otro cargando una variable en Vercel, sin volver a tocar codigo.
+   */
+  const claveBrevo = process.env.BREVO_API_KEY;
+  const claveResend = process.env.RESEND_API_KEY;
   const remitente = process.env.CORREO_REMITENTE;
-  if (!clave || !remitente) {
+  if ((!claveBrevo && !claveResend) || !remitente) {
     // Falla CERRADA y lo dice: sin esto configurado no se manda nada, pero que quede claro
     // que el problema es la configuracion y no el pedido.
-    res.status(503).json({ error: 'Falta configurar RESEND_API_KEY o CORREO_REMITENTE en Vercel.' });
+    res.status(503).json({ error: 'Falta configurar BREVO_API_KEY (o RESEND_API_KEY) y CORREO_REMITENTE en Vercel.' });
     return;
   }
 
@@ -86,22 +97,35 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const envio = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${clave}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: remitente,
-        to: destinos,
-        ...(copias.length ? { cc: copias } : {}),
-        // `reply_to` para que el proveedor conteste al correo de Jhon y no al remitente
-        // tecnico del dominio.
-        reply_to: OWNER_EMAIL,
-        subject: asunto,
-        // Texto plano a proposito: Jhon lo pidio "escrito, en ningun formato". Ademas el
-        // texto plano entra en cualquier cliente de correo y nunca se rompe.
-        text: texto,
-      }),
-    });
+    // Texto plano a proposito en los dos casos: Jhon lo pidio "escrito, en ningun
+    // formato". Ademas el texto plano entra en cualquier cliente de correo y no se rompe.
+    // Y `replyTo` al correo de Jhon, para que el proveedor le conteste a el y no al
+    // remitente tecnico.
+    const envio = claveBrevo
+      ? await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: { 'api-key': claveBrevo, 'Content-Type': 'application/json', accept: 'application/json' },
+          body: JSON.stringify({
+            sender: { email: remitente, name: 'Fábrica de Cortinas Girardot' },
+            to: destinos.map(email => ({ email })),
+            ...(copias.length ? { cc: copias.map(email => ({ email })) } : {}),
+            replyTo: { email: OWNER_EMAIL },
+            subject: asunto,
+            textContent: texto,
+          }),
+        })
+      : await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${claveResend}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: remitente,
+            to: destinos,
+            ...(copias.length ? { cc: copias } : {}),
+            reply_to: OWNER_EMAIL,
+            subject: asunto,
+            text: texto,
+          }),
+        });
 
     const detalle = await envio.text();
     if (!envio.ok) {
