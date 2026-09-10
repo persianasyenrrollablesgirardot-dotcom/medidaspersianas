@@ -27,7 +27,9 @@ export interface CorreoEnCola {
  * La copia no es cortesia: es su comprobante de QUE mando y CUANDO. Si mañana el proveedor
  * dice que nunca le llego, o que decia otra cosa, el correo esta en su bandeja.
  */
-export async function destinatarios(): Promise<{ para: string[]; copia: string[]; nombre?: string }> {
+export async function destinatarios(): Promise<{
+  destino: string[]; enCopia: string[]; proveedores: string[]; nombre?: string;
+}> {
   const yo = auth.currentUser?.email;
   const config = await leerConfigProveedor();
 
@@ -45,10 +47,22 @@ export async function destinatarios(): Promise<{ para: string[]; copia: string[]
       .map(u => u.email!.trim());
   }
 
-  // Que Jhon no se mande el pedido a si mismo como destinatario principal: el va en copia.
+  // Que no aparezca dos veces si Jhon se puso a si mismo en la lista.
   para = para.filter(correo => correo.toLowerCase() !== (yo ?? '').toLowerCase());
 
-  return { para, copia: yo ? [yo] : [], nombre: config.nombre };
+  /**
+   * JHON VA COMO DESTINATARIO Y EL PROVEEDOR EN COPIA. Lo pidio asi:
+   *
+   *   "el ideal es que me llegue a mi y yo pueda ver en gmail que le llego copia
+   *    tambien a los que yo agregue en la app"
+   *
+   * Antes era al reves (proveedor en `to`, Jhon en `cc`). Llegaba igual a los dos, pero
+   * asi el correo le entra a Jhon como propio y ve de un vistazo, en la misma linea, a
+   * quien mas le llego. Es su comprobante de que salio y a donde.
+   *
+   * Para el proveedor no cambia nada: recibirlo en copia es recibirlo.
+   */
+  return { destino: yo ? [yo] : para, enCopia: yo ? para : [], proveedores: para, nombre: config.nombre };
 }
 
 /** Llama a la funcion de Vercel. Si tira, quien llama decide si reintenta o encola. */
@@ -85,8 +99,10 @@ export async function enviarPedidoPorCorreo(
   catalog?: TechnicalCatalog,
   opciones: { esReenvio?: boolean } = {},
 ): Promise<{ estado: 'enviado' | 'en_cola'; para: string[]; motivo?: string }> {
-  const { para, copia, nombre } = await destinatarios();
-  if (para.length === 0) {
+  const { destino, enCopia, proveedores, nombre } = await destinatarios();
+  if (proveedores.length === 0) {
+    // Se corta a proposito: mandarselo solo a Jhon daria la sensacion de que salio, y el
+    // proveedor no se enteraria de que hay trabajo.
     return {
       estado: 'en_cola',
       para: [],
@@ -98,11 +114,11 @@ export async function enviarPedidoPorCorreo(
     esReenvio: opciones.esReenvio,
     paraQuien: nombre || undefined,
   });
-  const correo: CorreoEnCola = { para, copia, asunto, cuerpo };
+  const correo: CorreoEnCola = { para: destino, copia: enCopia, asunto, cuerpo };
 
   try {
     await mandarCorreoPendiente(correo);
-    return { estado: 'enviado', para };
+    return { estado: 'enviado', para: proveedores };
   } catch (e) {
     // A la cola, con la misma mecanica que las fotos: reintenta sola al volver la señal.
     await db.syncQueue.add({
@@ -114,6 +130,6 @@ export async function enviarPedidoPorCorreo(
       nextAttemptAt: 0,
       createdAt: Date.now(),
     });
-    return { estado: 'en_cola', para, motivo: e instanceof Error ? e.message : String(e) };
+    return { estado: 'en_cola', para: proveedores, motivo: e instanceof Error ? e.message : String(e) };
   }
 }

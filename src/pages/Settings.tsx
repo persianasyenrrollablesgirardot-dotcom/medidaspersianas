@@ -831,8 +831,9 @@ function PanelCorreoProveedor() {
   return (
     <div className="panel settings-panel">
       <p className="muted settings-help">
-        Cuando enviás un pedido a proveedor, el correo con todos los datos técnicos le llega a
-        estas direcciones, <strong>con copia a vos</strong>. Podés poner más de una.
+        Cuando enviás un pedido a proveedor, el correo con todos los datos técnicos <strong>te
+        llega a vos</strong> y estas direcciones van <strong>en copia</strong>, así ves en tu
+        Gmail a quién más le llegó. Podés poner más de una. Tu correo no hace falta ponerlo acá.
       </p>
 
       {correos.length === 0 && (
