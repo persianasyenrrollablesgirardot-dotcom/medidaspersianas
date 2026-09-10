@@ -91,6 +91,40 @@ en que se genera el dato, antes de culpar al parser. El disparador quedo a las *
 Los tres archivos reales viven en `src/lib/safra/ejemplos/` y `npm run probar:safra` corre
 contra ellos. **Si aparece un cuarto formato, se agrega el archivo ahí y se ve qué se rompe.**
 
+## Correo al proveedor al enviar un pedido (09-sep-2026)
+
+Al tocar "Enviar a Proveedor" sale un correo **escrito**, no un adjunto ni una tabla, con
+todos los datos técnicos del pedido. Con copia a Jhon.
+
+- **Lo escribe código, no la IA.** `src/lib/correoProveedor.ts`. Jhon lo pidió "sin omitir
+  ninguna información", y en una orden de producción un dato que falta es una persiana mal
+  fabricada. Un modelo redacta más lindo pero a veces se saltea una línea; un generador
+  determinista recorre todo y siempre dice lo mismo. **No cambiarlo por IA.**
+- **Qué entra y qué no** es el mismo criterio que `SupplierProjectView`: todo el dato técnico,
+  y NINGÚN precio ni dato personal del cliente salvo el nombre. Lo `isExcluded` tampoco viaja.
+- **Lo que falta se dice.** Si una persiana no tiene ancho, el correo escribe
+  "ANCHO SIN REGISTRAR". Callarlo sería peor: la fabricaría con lo que le parezca.
+- `npm run probar:correo` comprueba **campo por campo** que cada valor aparece, y que la
+  dirección, el teléfono, el documento y todos los precios NO aparecen. Esa promesa hay que
+  poder demostrarla, no prometerla.
+- **El correo va DESPUÉS de subir a la nube y en su propio `try`.** Lo que hace que el
+  proveedor pueda trabajar es el pedido en la nube; si el correo falla, el pedido ya está y
+  lo ve al entrar. Y un problema de correo nunca se muestra como "error al enviar el pedido":
+  confundirlos hace que Jhon vuelva a apretar el botón creyendo que no se envió.
+- **Sin señal no es un error.** El correo entra en la MISMA cola que las fotos
+  (`syncQueue`, tipo `enviar_correo_proveedor`) y sale solo cuando vuelve internet. Jhon manda
+  pedidos desde la obra.
+- **La clave del correo vive SOLO en Vercel** (`api/enviar-pedido.ts`). Solo el DUEÑO puede
+  llamar al endpoint: se verifica el token de Firebase contra `accounts:lookup` y se compara
+  con `OWNER_EMAIL`. Sin eso, cualquiera con la URL mandaría correos desde la dirección del
+  negocio. Falla CERRADA si faltan las variables.
+- ⚠️ **`vercel.json` ahora excluye `/api` del comodín** (`/((?!assets/|api/).*)`). Sin eso
+  Vercel le devuelve a `/api/...` el HTML de la app en vez de ejecutar la función, y no se
+  entiende por qué. Es la misma trampa que causó la pantalla negra con `/assets`.
+
+**Falta para encenderlo:** `RESEND_API_KEY` y `CORREO_REMITENTE` en Vercel (Production).
+Mientras no estén, el endpoint responde 503 diciendo exactamente eso.
+
 ## Papelera — proyectos vs. SUB-elementos (dos mecanismos distintos, a propósito)
 
 - **Proyectos:** soft-delete en su propia tabla. `trashFallbackProject` pone `deletedAt` y las listas filtran por `deletedAt === 0`. Restaurar = poner `deletedAt: 0`.

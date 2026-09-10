@@ -333,7 +333,13 @@ export interface TechnicalCatalog {
 
 export interface SyncQueueItem {
   id?: number;
-  type: 'upsert_project' | 'delete_project' | 'upload_photo';
+  /**
+   * `enviar_correo_proveedor` entra en la MISMA cola que las fotos y los proyectos a
+   * proposito: Jhon manda pedidos desde la obra, donde a veces no hay senal. Un correo que
+   * se pierde en silencio es peor que uno que tarda — el proveedor no se entera de que hay
+   * trabajo y nadie lo nota hasta que el cliente llama.
+   */
+  type: 'upsert_project' | 'delete_project' | 'upload_photo' | 'enviar_correo_proveedor';
   /** Identidad estable del elemento: `code` del proyecto o id de la foto. */
   refId: string;
   payload: unknown;

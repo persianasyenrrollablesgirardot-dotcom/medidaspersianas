@@ -11,7 +11,7 @@ import { useAuth } from './AuthContext';
 // El PROVEEDOR no tiene Ajustes (ruta admin-only): su equivalente es el botón
 // "Actualizar app" del Dashboard, que muestra este mismo sello. Por eso la
 // constante se exporta.
-export const APP_VERSION = 'v2026.09.09-cuota';
+export const APP_VERSION = 'v2026.09.09-correo';
 
 export function Shell({ children }: { children: ReactNode }) {
   const { role, logout } = useAuth();

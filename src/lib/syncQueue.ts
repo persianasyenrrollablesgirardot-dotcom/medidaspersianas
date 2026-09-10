@@ -3,6 +3,7 @@ import { db } from '../db';
 import type { SyncQueueItem, TechnicalProject } from '../types';
 import { borrarProyectoDeLaNube, haySesion, subirProyecto } from './cloudBackup';
 import { subirFoto, supabaseConfigurado } from './supabasePhotos';
+import { mandarCorreoPendiente, type CorreoEnCola } from './enviarCorreo';
 
 /**
  * COLA DE SINCRONIZACIÓN
@@ -79,6 +80,11 @@ async function procesar(item: SyncQueueItem): Promise<void> {
 
   if (item.type === 'upload_photo') {
     await subirFoto(item.refId);
+    return;
+  }
+
+  if (item.type === 'enviar_correo_proveedor') {
+    await mandarCorreoPendiente(item.payload as CorreoEnCola);
     return;
   }
 

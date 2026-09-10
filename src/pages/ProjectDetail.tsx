@@ -14,6 +14,7 @@ import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
 import { quoteArea, solutionArea, solutionTotal } from '../lib/metrics';
 import { useAuth } from '../components/AuthContext';
 import { syncProjectToCloud } from '../lib/cloudSync';
+import { enviarPedidoPorCorreo } from '../lib/enviarCorreo';
 import type { TechnicalCatalog, TechnicalProject, TechnicalSolution } from '../types';
 
 export function ProjectDetail() {
@@ -47,6 +48,8 @@ export function ProjectDetail() {
       console.error('No se pudo verificar el recibo:', e);
     }
     try {
+      // Se lee antes de pisarlo: cambia el tono del correo (pedido nuevo vs correccion).
+      const yaEstabaEnviado = !!project.sentToSupplier;
       const updated = { ...project, sentToSupplier: true };
       if (fallbackMode) {
         saveFallbackProject(updated as TechnicalProject);
@@ -55,6 +58,38 @@ export function ProjectDetail() {
       }
       await syncProjectToCloud(updated as TechnicalProject, catalog);
       toast.success('Proyecto enviado a proveedor correctamente');
+
+      /**
+       * El correo va DESPUES de subirlo a la nube y en su propio try.
+       *
+       * Ese orden importa: lo que hace que el proveedor pueda trabajar es el pedido en la
+       * nube. Si el correo falla, el pedido igual esta subido y el proveedor lo ve al
+       * entrar. Al reves —correo primero— un fallo de la nube le avisaria de un pedido que
+       * no puede abrir.
+       *
+       * Y va aparte para que un problema de correo NUNCA se muestre como "error al enviar
+       * el pedido": son dos cosas distintas y confundirlas hace que Jhon vuelva a apretar
+       * el boton pensando que no se envio.
+       */
+      try {
+        const r = await enviarPedidoPorCorreo(
+          updated as TechnicalProject,
+          catalog,
+          { esReenvio: yaEstabaEnviado },
+        );
+        if (r.estado === 'enviado') {
+          toast.success(`Correo enviado a ${r.para.join(', ')}`, { duration: 7000 });
+        } else if (r.para.length === 0) {
+          toast(`El pedido se subió, pero no salió correo: ${r.motivo}`, { icon: 'ℹ️', duration: 9000 });
+        } else {
+          // Sin señal NO es un error: el correo queda en la cola y sale solo.
+          toast(`El pedido se subió. El correo quedó en cola y se manda solo cuando haya señal.`,
+            { icon: '📭', duration: 9000 });
+        }
+      } catch (e) {
+        console.error('Correo al proveedor', e);
+        toast('El pedido se subió, pero no se pudo preparar el correo.', { icon: 'ℹ️', duration: 8000 });
+      }
     } catch (e: any) {
       console.error(e);
       toast.error('Error al enviar: ' + (e?.code || e?.message || String(e)), { duration: 8000 });
