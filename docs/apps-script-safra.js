@@ -31,7 +31,14 @@
  *        Funcion:            subirReportesDeSafra
  *        Origen del evento:  Basado en tiempo
  *        Tipo:               Temporizador diario
- *        Hora:               entre 7 y 8 a.m.  (despues de que Gemini lo genere)
+ *        Hora:               entre 11 a.m. y 12 p.m.
+ *
+ *     OJO CON LA HORA. La primera version decia "entre 7 y 8 a.m." y estuvo MAL: Gemini
+ *     genera el archivo cerca de las 10 (los propios archivos lo dicen en `corte_hora`:
+ *     10:00 el 08-sep, 10:25 el 09-sep). Con el disparador a las 7, el script corria tres
+ *     horas ANTES de que existiera el archivo del dia y siempre miraba el de ayer.
+ *     Si Gemini alguna vez se atrasa, no se pierde nada: la corrida del dia siguiente mira
+ *     los 10 archivos mas recientes y lo levanta.
  *     Guardar. Listo, no lo tocas nunca mas.
  *
  *  SI ALGO FALLA

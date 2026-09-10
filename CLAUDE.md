@@ -61,6 +61,14 @@ días:
 Y además cambió QUÉ manda: hoy solo los del día vienen con detalle; los anteriores llegan
 resumidos (id, fecha, total y nada más).
 
+**Pero el formato era solo la MITAD.** La otra mitad era el horario: el disparador estaba a
+las **7-8 a.m.** y Gemini genera el archivo cerca de las **10** (`corte_hora` lo dice: 10:00 el
+08-sep, 10:25 el 09-sep). O sea que el script corria tres horas antes de que existiera el
+archivo del dia, y siempre miraba el de ayer. Las dos causas juntas dan "nunca entro nada".
+
+**Regla:** cuando algo automatico "no trae nada", mirar la HORA del disparador contra la hora
+en que se genera el dato, antes de culpar al parser. El disparador quedo a las **11 a.m.**
+
 **Reglas que salieron de esto:**
 
 - **Los pedidos se buscan por FORMA, no por nombre de clave.** `normalizarReporte()` recorre el
