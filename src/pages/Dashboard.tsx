@@ -120,6 +120,38 @@ const MOTIVOS: Record<string, string> = {
     'Se paso la cuota gratuita de Firebase por hoy. Se resuelve solo, o revisando el plan.',
 };
 
+/**
+ * Guarda la copia local de los pedidos SIN poder romper nada.
+ *
+ * ESTE ERA EL BUG. El `setItem` estaba dentro del `.then()` de la lectura de Firestore, asi
+ * que cuando localStorage se llenaba tiraba `QuotaExceededError` y esa excepcion caia en el
+ * `.catch()` de la NUBE. Resultado: "No pude leer los pedidos de la nube · motivo tecnico 22",
+ * cuando la nube habia respondido perfecto. El 22 es el codigo viejo de DOMException para
+ * "cuota excedida" — no es de Firebase.
+ *
+ * Por eso pasaba en el PC y no en el celular: en el PC quedo la copia vieja de los proyectos
+ * en localStorage (la migracion a IndexedDB la dejo ahi, ver `localFallbackStore`), llenando
+ * el limite de ~5 MB del origen. En el celular ese resto no esta.
+ *
+ * La copia es una COMODIDAD (deja ver los pedidos sin senal), no un dato: si no entra, la app
+ * sigue andando igual. Lo que no puede pasar es que no entre y encima parezca que fallo la nube.
+ */
+function guardarCopiaLocal(projs: ProjectSummary[]): void {
+  const escribir = () => window.localStorage.setItem('cloud_projects_cache', JSON.stringify(projs));
+  try {
+    escribir();
+  } catch {
+    // Segundo intento: se libera la copia anterior, que es lo mas grande que este modulo
+    // controla, y se vuelve a probar. Si tampoco entra, se sigue sin copia y ya.
+    try {
+      window.localStorage.removeItem('cloud_projects_cache');
+      escribir();
+    } catch {
+      console.warn('No hay lugar en este equipo para guardar la copia de los pedidos. Se sigue sin ella.');
+    }
+  }
+}
+
 export function Dashboard() {
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
@@ -157,7 +189,7 @@ export function Dashboard() {
         .sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
       setCloudProjects(projs);
       setFalloNube(null);
-      window.localStorage.setItem('cloud_projects_cache', JSON.stringify(projs));
+      guardarCopiaLocal(projs);
     }).catch(e => {
       if (!vigente) return;
       console.error(e);
@@ -165,9 +197,12 @@ export function Dashboard() {
 
       // La copia de la ultima vez que si cargo. Mejor eso que una pantalla en
       // blanco: los pedidos de ayer siguen siendo utiles para trabajar hoy.
+      // Solo si NO hay nada fresco: una copia vieja no puede pisar lo que si cargo.
       try {
         const guardado = window.localStorage.getItem('cloud_projects_cache');
-        if (guardado) setCloudProjects(JSON.parse(guardado) as ProjectSummary[]);
+        if (guardado) {
+          setCloudProjects(previo => (previo.length ? previo : (JSON.parse(guardado) as ProjectSummary[])));
+        }
       } catch { /* la copia esta rota: se queda vacio y el aviso lo explica */ }
     });
 
