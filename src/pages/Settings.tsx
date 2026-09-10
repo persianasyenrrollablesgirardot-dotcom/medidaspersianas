@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { correoValido, guardarConfigProveedor, leerConfigProveedor } from '../lib/configProveedor';
 import { ArrowPathIcon, ExclamationTriangleIcon, TrashIcon, PencilIcon, ChevronRightIcon, ChevronLeftIcon, ChevronDownIcon, PlusIcon, ArrowDownTrayIcon, MagnifyingGlassIcon, ArrowUturnLeftIcon, FolderOpenIcon, CloudArrowDownIcon } from '@heroicons/react/24/outline';
 import { DEFAULT_CATALOG, db, resetLocalAppData } from '../db';
 import { saveFallbackCatalog } from '../lib/localFallbackStore';
@@ -12,7 +13,7 @@ import { buildBackup } from '../lib/exporters';
 import { BackupPanel } from '../components/BackupPanel';
 import { descargarRespaldoCompleto } from '../lib/autoBackup';
 
-type SectionId = 'backups' | 'rescue' | 'catalog' | 'customFields' | 'maintenance' | 'ai' | 'updates' | 'danger';
+type SectionId = 'backups' | 'rescue' | 'catalog' | 'customFields' | 'maintenance' | 'proveedor' | 'ai' | 'updates' | 'danger';
 
 const SECTIONS: Array<{ id: SectionId; emoji: string; title: string; desc: string; danger?: boolean }> = [
   { id: 'backups', emoji: '🛡️', title: 'Respaldos y nube', desc: 'Estado del respaldo, copias automáticas y recuperación' },
@@ -20,6 +21,7 @@ const SECTIONS: Array<{ id: SectionId; emoji: string; title: string; desc: strin
   { id: 'catalog', emoji: '📋', title: 'Listas del catálogo', desc: 'Tipos de persiana, instalación, tela, colores y más' },
   { id: 'customFields', emoji: '🧩', title: 'Campos personalizados', desc: 'Listas extra que aparecen en la ventana del proyecto' },
   { id: 'maintenance', emoji: '🛠️', title: 'Mantenimientos y servicios', desc: 'Sistemas, servicios y precios sugeridos' },
+  { id: 'proveedor', emoji: '📧', title: 'Correo al proveedor', desc: 'A quién le llega el pedido cuando lo enviás' },
   { id: 'ai', emoji: '🤖', title: 'Inteligencia Artificial', desc: 'Clave API de Claude para PDFs y cotizaciones' },
   { id: 'updates', emoji: '🔄', title: 'Actualización de la app', desc: 'Buscar versión nueva o limpiar caché' },
   { id: 'danger', emoji: '⚠️', title: 'Opciones avanzadas', desc: 'Reiniciar datos locales (peligro)', danger: true },
@@ -419,6 +421,9 @@ export function Settings() {
           )}
 
           {/* ===== IA ===== */}
+          {/* ===== CORREO AL PROVEEDOR ===== */}
+          {activeSection === 'proveedor' && <PanelCorreoProveedor />}
+
           {activeSection === 'ai' && (
             <div className="panel settings-panel">
               <p className="muted settings-help">
@@ -778,6 +783,100 @@ function RescuePanel() {
         <p className="muted settings-help" style={{ marginTop: 6 }}>
           Baja el contenido exacto de la memoria del dispositivo. Envíalo por WhatsApp para analizarlo con la herramienta forense.
         </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A quien se le manda el pedido por correo.
+ *
+ * Va aca y NO se deduce de los usuarios de la app: quien recibe el pedido no tiene por que
+ * tener cuenta. La primera version lo sacaba de los usuarios con rol proveedor, y si nadie
+ * lo habia creado, el pedido se subia pero el correo no le llegaba a nadie — en silencio.
+ */
+function PanelCorreoProveedor() {
+  const [correos, setCorreos] = useState<string[]>([]);
+  const [nombre, setNombre] = useState('');
+  const [nuevo, setNuevo] = useState('');
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    leerConfigProveedor()
+      .then(c => { setCorreos(c.correos); setNombre(c.nombre ?? ''); })
+      .finally(() => setCargando(false));
+  }, []);
+
+  const guardar = async (lista: string[], quien: string) => {
+    try {
+      await guardarConfigProveedor({ correos: lista, nombre: quien });
+      setCorreos(lista);
+      setNombre(quien);
+      toast.success('Guardado');
+    } catch (e: any) {
+      toast.error('No se pudo guardar: ' + (e?.message || e));
+    }
+  };
+
+  const agregar = () => {
+    const c = nuevo.trim();
+    if (!correoValido(c)) return toast.error('Ese correo no parece válido');
+    if (correos.some(x => x.toLowerCase() === c.toLowerCase())) return toast.error('Ya está en la lista');
+    setNuevo('');
+    void guardar([...correos, c], nombre);
+  };
+
+  if (cargando) return <div className="panel settings-panel"><p className="muted">Cargando…</p></div>;
+
+  return (
+    <div className="panel settings-panel">
+      <p className="muted settings-help">
+        Cuando enviás un pedido a proveedor, el correo con todos los datos técnicos le llega a
+        estas direcciones, <strong>con copia a vos</strong>. Podés poner más de una.
+      </p>
+
+      {correos.length === 0 && (
+        <div className="aviso-mockup">
+          <strong>No hay ningún correo cargado.</strong> Mientras esté vacío, el pedido se sube a
+          la nube igual, pero el correo no le llega a nadie.
+        </div>
+      )}
+
+      {correos.map(c => (
+        <div key={c} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+          <div style={{ flex: 1, fontWeight: 600, overflowWrap: 'anywhere' }}>{c}</div>
+          <button
+            className="secondary"
+            onClick={() => void guardar(correos.filter(x => x !== c), nombre)}
+          >
+            Quitar
+          </button>
+        </div>
+      ))}
+
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: 8 }}>
+        <input
+          type="email"
+          value={nuevo}
+          onChange={e => setNuevo(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') agregar(); }}
+          placeholder="sorani@ejemplo.com"
+          style={{ flex: 1, minWidth: '200px' }}
+        />
+        <button className="primary" onClick={agregar}>Agregar</button>
+      </div>
+
+      <p className="muted settings-help" style={{ marginTop: 18 }}>
+        Cómo saludarlo en el correo. Si lo dejás vacío empieza con “Buenas.”
+      </p>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <input
+          value={nombre}
+          onChange={e => setNombre(e.target.value)}
+          placeholder="Sorani"
+          style={{ flex: 1, minWidth: '200px' }}
+        />
+        <button className="secondary" onClick={() => void guardar(correos, nombre)}>Guardar nombre</button>
       </div>
     </div>
   );

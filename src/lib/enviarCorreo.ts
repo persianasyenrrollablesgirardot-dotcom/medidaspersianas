@@ -4,6 +4,7 @@ import { dbFirestore } from './firebase';
 import { db } from '../db';
 import type { TechnicalCatalog, TechnicalProject } from '../types';
 import { armarCorreoPedido } from './correoProveedor';
+import { leerConfigProveedor } from './configProveedor';
 
 /**
  * El correo al proveedor: a quien va, y como se manda sin perderlo.
@@ -26,16 +27,28 @@ export interface CorreoEnCola {
  * La copia no es cortesia: es su comprobante de QUE mando y CUANDO. Si mañana el proveedor
  * dice que nunca le llego, o que decia otra cosa, el correo esta en su bandeja.
  */
-export async function destinatarios(): Promise<{ para: string[]; copia: string[] }> {
+export async function destinatarios(): Promise<{ para: string[]; copia: string[]; nombre?: string }> {
   const yo = auth.currentUser?.email;
-  const snapshot = await getDocs(collection(dbFirestore, 'users'));
-  const para = snapshot.docs
-    .map(d => d.data() as { email?: string; role?: string })
-    .filter(u => u.role === 'proveedor' && u.email)
-    .map(u => u.email!.trim())
-    // Que Jhon no se mande el pedido a si mismo como destinatario principal.
-    .filter(correo => correo.toLowerCase() !== (yo ?? '').toLowerCase());
-  return { para, copia: yo ? [yo] : [] };
+  const config = await leerConfigProveedor();
+
+  // 1) La lista que Jhon escribio en Ajustes. Es la buena: quien recibe el pedido no tiene
+  //    por que tener cuenta en la app.
+  let para = config.correos;
+
+  // 2) Si nunca la lleno, se cae a los usuarios con rol proveedor, que es como funcionaba
+  //    antes. Asi nadie se queda sin correo por no haber configurado nada todavia.
+  if (para.length === 0) {
+    const snapshot = await getDocs(collection(dbFirestore, 'users'));
+    para = snapshot.docs
+      .map(d => d.data() as { email?: string; role?: string })
+      .filter(u => u.role === 'proveedor' && u.email)
+      .map(u => u.email!.trim());
+  }
+
+  // Que Jhon no se mande el pedido a si mismo como destinatario principal: el va en copia.
+  para = para.filter(correo => correo.toLowerCase() !== (yo ?? '').toLowerCase());
+
+  return { para, copia: yo ? [yo] : [], nombre: config.nombre };
 }
 
 /** Llama a la funcion de Vercel. Si tira, quien llama decide si reintenta o encola. */
@@ -72,12 +85,19 @@ export async function enviarPedidoPorCorreo(
   catalog?: TechnicalCatalog,
   opciones: { esReenvio?: boolean } = {},
 ): Promise<{ estado: 'enviado' | 'en_cola'; para: string[]; motivo?: string }> {
-  const { para, copia } = await destinatarios();
+  const { para, copia, nombre } = await destinatarios();
   if (para.length === 0) {
-    return { estado: 'en_cola', para: [], motivo: 'No hay ningún usuario con rol proveedor cargado en la app.' };
+    return {
+      estado: 'en_cola',
+      para: [],
+      motivo: 'No hay ningún correo de proveedor cargado. Ponelo en Ajustes → Correo al proveedor.',
+    };
   }
 
-  const { asunto, cuerpo } = armarCorreoPedido(project, catalog, { esReenvio: opciones.esReenvio });
+  const { asunto, cuerpo } = armarCorreoPedido(project, catalog, {
+    esReenvio: opciones.esReenvio,
+    paraQuien: nombre || undefined,
+  });
   const correo: CorreoEnCola = { para, copia, asunto, cuerpo };
 
   try {
