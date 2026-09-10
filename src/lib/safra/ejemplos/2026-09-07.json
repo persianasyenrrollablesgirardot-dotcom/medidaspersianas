@@ -1,0 +1,404 @@
+{
+  "fecha_reporte": "2026-09-07",
+  "generado_en": "2026-09-07T17:55:00-05:00",
+  "empresa_proveedor": "PERSIANAS Y ENROLLABLES SAFRA S A S",
+  "cliente": "CUBIDES MARTINEZ JOHN EDISON",
+  "nit_cliente": "1014208880",
+  "resumen_economico": {
+    "total_pedidos": 7,
+    "total_piezas": 18,
+    "subtotal_cop": 4755758.00,
+    "iva_cop": 903594.39,
+    "total_cop": 5659352.39
+  },
+  "pedidos": [
+    {
+      "pedido_id": "P-1150672",
+      "referencia_personalizada": "PATRICIA - VERTICAL",
+      "facturacion": {
+        "factura_numero": "PPAL16080610",
+        "fecha": "2026-09-01",
+        "forma_pago": "Crédito",
+        "subtotal": 71874.00,
+        "iva": 13656.06,
+        "total": 85530.06
+      },
+      "productos": [
+        {
+          "item": 1,
+          "tipo": "Persiana Vertical",
+          "tela": "Rayas Vertical Azul",
+          "cantidad": 1,
+          "ancho_m": 4.69,
+          "alto_m": 0.50,
+          "cantidad_lamas": 59,
+          "mando": "Derecho",
+          "apertura": "Derecha",
+          "coordinado": "Blanco",
+          "pesa_lama": "Con cadenilla",
+          "altura_cordon": "2.25 m",
+          "encajonada": true,
+          "ubicacion": "vertical",
+          "precio_final": 71874.00
+        }
+      ]
+    },
+    {
+      "pedido_id": "P-1151633",
+      "referencia_personalizada": "CAMILO RICAURTE",
+      "facturacion": {
+        "factura_numero": "PPAL16080700",
+        "fecha": "2026-09-02",
+        "forma_pago": "Crédito",
+        "subtotal": 2632876.00,
+        "iva": 500246.44,
+        "total": 3133122.44
+      },
+      "productos": [
+        {
+          "item": 1,
+          "tipo": "Persiana Enrollable Premium",
+          "tela": "Blackout Pinpoint 1.83 Mts Gris",
+          "cantidad": 1,
+          "ancho_m": 2.52,
+          "alto_m": 1.60,
+          "cabezal": "Cabezal Redondo",
+          "perfil": "Perfil Cuadrado",
+          "coordinado": "Blanco",
+          "mando": "Derecha",
+          "enrollado": "Detrás",
+          "cover_light": "Tres laterales 5cm a 45°",
+          "encajonada": true,
+          "ubicacion": "HAB PISO 1",
+          "precio_final": 360125.00
+        },
+        {
+          "item": 2,
+          "tipo": "Persiana Enrollable Premium",
+          "tela": "Blackout Pinpoint 2.50 Mts Gris",
+          "cantidad": 1,
+          "ancho_m": 2.05,
+          "alto_m": 2.30,
+          "cabezal": "Cabezal Redondo",
+          "perfil": "Perfil Cuadrado",
+          "coordinado": "Blanco",
+          "mando": "Derecha",
+          "enrollado": "Detrás",
+          "cover_light": "Dos laterales 5cm",
+          "encajonada": true,
+          "ubicacion": "HAB 4",
+          "precio_final": 377963.00
+        },
+        {
+          "item": 3,
+          "tipo": "Persiana Enrollable Premium",
+          "tela": "Blackout Pinpoint 2.50 Mts Gris",
+          "cantidad": 1,
+          "ancho_m": 2.05,
+          "alto_m": 2.30,
+          "cabezal": "Cabezal Redondo",
+          "perfil": "Perfil Cuadrado",
+          "coordinado": "Blanco",
+          "mando": "Derecha",
+          "enrollado": "Detrás",
+          "cover_light": "Dos laterales 5cm",
+          "encajonada": true,
+          "ubicacion": "HAB 1",
+          "precio_final": 377963.00
+        },
+        {
+          "item": 4,
+          "tipo": "Persiana Enrollable Premium",
+          "tela": "Blackout Pinpoint 2.50 Mts Gris",
+          "cantidad": 1,
+          "ancho_m": 2.43,
+          "alto_m": 2.10,
+          "cabezal": "Cabezal Redondo",
+          "perfil": "Perfil Cuadrado",
+          "coordinado": "Blanco",
+          "mando": "Derecha",
+          "enrollado": "Detrás",
+          "cover_light": "Tres laterales 5cm a 45°",
+          "encajonada": true,
+          "ubicacion": "HAB 2",
+          "precio_final": 445399.00
+        },
+        {
+          "item": 5,
+          "tipo": "Persiana Enrollable Premium",
+          "tela": "Blackout Pinpoint 2.50 Mts Gris",
+          "cantidad": 1,
+          "ancho_m": 2.30,
+          "alto_m": 1.47,
+          "cabezal": "Cabezal Redondo",
+          "perfil": "Perfil Cuadrado",
+          "coordinado": "Blanco",
+          "mando": "Derecha",
+          "enrollado": "Detrás",
+          "cover_light": "Tres laterales 5cm a 45°",
+          "encajonada": true,
+          "ubicacion": "HAB 2",
+          "precio_final": 313740.00
+        },
+        {
+          "item": 6,
+          "tipo": "Persiana Enrollable Premium",
+          "tela": "Blackout Pinpoint 2.50 Mts Gris",
+          "cantidad": 1,
+          "ancho_m": 2.42,
+          "alto_m": 2.10,
+          "cabezal": "Cabezal Redondo",
+          "perfil": "Perfil Cuadrado",
+          "coordinado": "Blanco",
+          "mando": "Derecha",
+          "enrollado": "Detrás",
+          "cover_light": "Tres laterales 5cm a 45°",
+          "encajonada": true,
+          "ubicacion": "HAB 3",
+          "precio_final": 443946.00
+        },
+        {
+          "item": 7,
+          "tipo": "Persiana Enrollable Premium",
+          "tela": "Blackout Pinpoint 2.50 Mts Gris",
+          "cantidad": 1,
+          "ancho_m": 2.30,
+          "alto_m": 1.47,
+          "cabezal": "Cabezal Redondo",
+          "perfil": "Perfil Cuadrado",
+          "coordinado": "Blanco",
+          "mando": "Derecha",
+          "enrollado": "Detrás",
+          "cover_light": "Tres laterales 5cm a 45°",
+          "encajonada": true,
+          "ubicacion": "HAB 3",
+          "precio_final": 313740.00
+        }
+      ]
+    },
+    {
+      "pedido_id": "P-1151629",
+      "referencia_personalizada": "RESERVAS DEL PEÑON",
+      "facturacion": {
+        "factura_numero": "PPAL16080830",
+        "fecha": "2026-09-02",
+        "forma_pago": "PSE",
+        "subtotal": 1195431.00,
+        "iva": 227131.89,
+        "total": 1422562.89
+      },
+      "productos": [
+        {
+          "item": 1,
+          "tipo": "Persiana Sheer 2En1",
+          "tela": "Blackout Pinpoint Fawn + Sheer Screen Gris/Blanco",
+          "cantidad": 1,
+          "ancho_m": 1.55,
+          "alto_m": 1.65,
+          "cabezal": "Cabezal Redondo Blanco",
+          "coordinado": "Ivory/Blanco",
+          "mando": "Derecha",
+          "encajonada": true,
+          "ubicacion": "HAB 1",
+          "precio_final": 328587.00
+        },
+        {
+          "item": 2,
+          "tipo": "Persiana Sheer",
+          "tela": "Sheer Screen Gris/Blanco",
+          "cantidad": 1,
+          "ancho_m": 1.55,
+          "alto_m": 1.65,
+          "cabezal": "Cabezal Redondo",
+          "perfil": "Perfil Sheer Estandar",
+          "coordinado": "Blanco",
+          "mando": "Derecha",
+          "enrollado": "Detrás",
+          "encajonada": true,
+          "ubicacion": "Espacio 2",
+          "precio_final": 184692.00
+        },
+        {
+          "item": 3,
+          "tipo": "Persiana Sheer",
+          "tela": "Sheer Screen Gris/Blanco",
+          "cantidad": 1,
+          "ancho_m": 1.55,
+          "alto_m": 1.65,
+          "cabezal": "Cabezal Redondo",
+          "perfil": "Perfil Sheer Estandar",
+          "coordinado": "Blanco",
+          "mando": "Derecha",
+          "enrollado": "Detrás",
+          "encajonada": true,
+          "ubicacion": "Espacio 3",
+          "precio_final": 184692.00
+        },
+        {
+          "item": 4,
+          "tipo": "Persiana Panel Japones",
+          "tela": "Screen Noa Combinado (2 telos Café + 4 telos Beige)",
+          "cantidad": 1,
+          "ancho_m": 2.64,
+          "alto_m": 2.43,
+          "perfil": "Perfil Cuadrado",
+          "coordinado": "Ivory",
+          "mando": "Derecho",
+          "apertura": "Extremos",
+          "color_cordon": "Café",
+          "posicion_telo_fijo": "Frente",
+          "cenefa": "Sin Cenefa",
+          "encajonada": true,
+          "ubicacion": "Espacio 4",
+          "precio_final": 497460.00
+        }
+      ]
+    },
+    {
+      "pedido_id": "P-1153104",
+      "referencia_personalizada": "nubia",
+      "facturacion": {
+        "factura_numero": "PPAL16081650",
+        "fecha": "2026-09-05",
+        "forma_pago": "CUPO",
+        "subtotal": 175265.00,
+        "iva": 33300.35,
+        "total": 208565.35
+      },
+      "productos": [
+        {
+          "item": 1,
+          "tipo": "Persiana Enrollable",
+          "tela": "Blackout Pinpoint 1.83 Mts Blanco",
+          "cantidad": 1,
+          "ancho_m": 2.98,
+          "alto_m": 1.44,
+          "perfil": "Estándar",
+          "coordinado": "Blanco",
+          "mando": "Derecha",
+          "enrollado": "Detrás",
+          "encajonada": true,
+          "ubicacion": "hab derecha",
+          "precio_final": 175265.00
+        }
+      ]
+    },
+    {
+      "pedido_id": "P-1153107",
+      "referencia_personalizada": "Maria",
+      "facturacion": {
+        "factura_numero": "PPAL16081593",
+        "fecha": "2026-09-05",
+        "forma_pago": "CUPO",
+        "subtotal": 185386.00,
+        "iva": 35223.34,
+        "total": 220609.34
+      },
+      "productos": [
+        {
+          "item": 1,
+          "tipo": "Persiana Enrollable",
+          "tela": "Blackout Pinpoint 1.83 Mts Blanco",
+          "cantidad": 1,
+          "ancho_m": 1.19,
+          "alto_m": 1.68,
+          "perfil": "Estándar",
+          "coordinado": "Blanco",
+          "mando": "Derecha",
+          "enrollado": "Detrás",
+          "encajonada": true,
+          "ubicacion": "hab 1",
+          "precio_final": 81653.00
+        },
+        {
+          "item": 2,
+          "tipo": "Persiana Enrollable",
+          "tela": "Blackout Pinpoint 1.83 Mts Blanco",
+          "cantidad": 1,
+          "ancho_m": 1.53,
+          "alto_m": 1.66,
+          "perfil": "Estándar",
+          "coordinado": "Blanco",
+          "mando": "Derecha",
+          "enrollado": "Detrás",
+          "encajonada": true,
+          "ubicacion": "hab 1",
+          "precio_final": 103733.00
+        }
+      ]
+    },
+    {
+      "pedido_id": "P-1153108",
+      "referencia_personalizada": "ingeniero",
+      "facturacion": {
+        "factura_numero": "PPAL16081643",
+        "fecha": "2026-09-05",
+        "forma_pago": "CUPO",
+        "subtotal": 186573.00,
+        "iva": 35448.87,
+        "total": 222021.87
+      },
+      "productos": [
+        {
+          "item": 1,
+          "tipo": "Persiana Enrollable",
+          "tela": "Blackout Pinpoint 2.50 Mts Blanco",
+          "cantidad": 1,
+          "ancho_m": 2.00,
+          "alto_m": 2.16,
+          "perfil": "Estándar",
+          "coordinado": "Blanco",
+          "mando": "Derecha",
+          "enrollado": "Detrás",
+          "encajonada": true,
+          "ubicacion": "hab",
+          "precio_final": 186573.00
+        }
+      ]
+    },
+    {
+      "pedido_id": "P-1153111",
+      "referencia_personalizada": "paraiso san marcos",
+      "facturacion": {
+        "factura_numero": "PPAL16081605",
+        "fecha": "2026-09-05",
+        "forma_pago": "CUPO",
+        "subtotal": 318353.00,
+        "iva": 60487.07,
+        "total": 378840.07
+      },
+      "productos": [
+        {
+          "item": 1,
+          "tipo": "Persiana Enrollable",
+          "tela": "Blackout Pinpoint 1.83 Mts Blanco",
+          "cantidad": 1,
+          "ancho_m": 1.80,
+          "alto_m": 1.90,
+          "perfil": "Estándar",
+          "coordinado": "Blanco",
+          "mando": "Derecha",
+          "enrollado": "Detrás",
+          "encajonada": true,
+          "ubicacion": "cocina",
+          "precio_final": 139683.00
+        },
+        {
+          "item": 2,
+          "tipo": "Persiana Enrollable",
+          "tela": "Blackout Pinpoint 2.50 Mts Blanco",
+          "cantidad": 1,
+          "ancho_m": 1.97,
+          "alto_m": 2.10,
+          "perfil": "Estándar",
+          "coordinado": "Blanco",
+          "mando": "Derecha",
+          "enrollado": "Detrás",
+          "encajonada": true,
+          "ubicacion": "hab 1",
+          "precio_final": 178670.00
+        }
+      ]
+    }
+  ]
+}

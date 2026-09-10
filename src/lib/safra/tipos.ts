@@ -53,9 +53,17 @@ export interface FacturacionSafra {
   fecha: string;
   /** "Credito", "CUPO", "PSE"... tal cual lo escribe Safra. */
   forma_pago: string;
-  subtotal: number;
-  iva: number;
-  total: number;
+  /**
+   * `null` cuando el archivo NO trae el dato, que no es lo mismo que traer un cero.
+   *
+   * Desde el 08-sep Gemini manda los pedidos viejos resumidos: solo id, fecha y total. Si un
+   * subtotal ausente se leyera como 0, ese 0 pisaria el subtotal bueno que ya estaba guardado
+   * — exactamente la perdida de informacion que las defensas tienen que evitar. Ya paso en
+   * una simulacion: el resumen del dia 9 dejaba en cero los subtotales del dia 7.
+   */
+  subtotal: number | null;
+  iva: number | null;
+  total: number | null;
 }
 
 export interface PedidoSafra {

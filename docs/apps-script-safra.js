@@ -89,8 +89,20 @@ function subirReportesDeSafra() {
       fallados++;
       continue;
     }
-    if (!datos || !datos.pedidos || !datos.pedidos.length) {
-      Logger.log('SALTADO (sin pedidos): ' + archivo.getName());
+    /**
+     * SOLO se comprueba que sea un objeto JSON. NADA MAS.
+     *
+     * La primera version exigia una clave `pedidos`, y el 8 y el 9 de septiembre no subio
+     * nada: Gemini le cambio el nombre a esa clave (novedades_dia_08_septiembre,
+     * novedad_dia_09_septiembre) y el script descarto los archivos en silencio. Hizo lo
+     * correcto con la regla que tenia — pero la regla estaba mal.
+     *
+     * Del otro lado no hay un sistema, hay un modelo que reescribe la estructura cuando le
+     * parece. Asi que este script mueve bytes y punto: quien decide si sirve es la app, que
+     * busca los pedidos por FORMA y no por nombre, y que ademas se puede probar.
+     */
+    if (!datos || typeof datos !== 'object') {
+      Logger.log('SALTADO (no es un objeto JSON): ' + archivo.getName());
       fallados++;
       continue;
     }
@@ -101,7 +113,8 @@ function subirReportesDeSafra() {
       generado_en: datos.generado_en || null,
       hash: huella(texto),
       json_crudo: datos,
-      pedidos_en_archivo: datos.pedidos.length
+      // Cuantos pedidos trae lo cuenta la app al procesarlo: aca no se sabe donde estan.
+      pedidos_en_archivo: null
     };
 
     var respuesta = UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/safra_reportes', {

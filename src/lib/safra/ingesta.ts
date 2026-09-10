@@ -1,4 +1,5 @@
 import type { PedidoSafra, ProductoSafra, ReporteSafra } from './tipos';
+import { normalizarReporte } from './normalizar';
 
 /**
  * Toda la logica de "meter un reporte de Safra en la base" vive aca y es PURA:
@@ -206,10 +207,18 @@ export function huella(texto: string): string {
 /** Valida que lo que llego sea realmente un reporte de Safra antes de tocarlo. */
 export function validarReporte(dato: unknown): { ok: true; reporte: ReporteSafra } | { ok: false; motivo: string } {
   if (!dato || typeof dato !== 'object') return { ok: false, motivo: 'El archivo no es un objeto JSON.' };
-  const r = dato as Partial<ReporteSafra>;
-  if (!Array.isArray(r.pedidos)) return { ok: false, motivo: 'Al archivo le falta la lista de pedidos.' };
-  if (r.pedidos.length === 0) return { ok: false, motivo: 'El archivo no trae ningun pedido.' };
-  const sinId = r.pedidos.filter(p => !p?.pedido_id).length;
-  if (sinId === r.pedidos.length) return { ok: false, motivo: 'Ningun pedido trae `pedido_id`: no se puede deduplicar.' };
-  return { ok: true, reporte: dato as ReporteSafra };
+
+  /**
+   * NO se exige la clave `pedidos`. La primera version si, y por eso el 8 y el 9 de
+   * septiembre no entro nada: Gemini renombro esa clave (`novedades_dia_08_septiembre`,
+   * `novedad_dia_09_septiembre`) y el archivo entero quedo descartado en silencio.
+   *
+   * Ahora se normaliza primero — los pedidos se buscan por FORMA, no por nombre — y recien
+   * despues se valida lo unico que de verdad hace falta: que haya pedidos con id.
+   */
+  const reporte = normalizarReporte(dato);
+  if (reporte.pedidos.length === 0) {
+    return { ok: false, motivo: 'No encontre ningun pedido con `pedido_id` en el archivo.' };
+  }
+  return { ok: true, reporte };
 }

@@ -12,7 +12,7 @@ import os from 'os';
 import path from 'path';
 
 const tmp = path.join(os.tmpdir(), 'ingesta-safra-' + Date.now() + '.mjs');
-execSync(`npx esbuild src/lib/safra/ingesta.ts --format=esm --outfile="${tmp}" --log-level=error`, { stdio: 'inherit' });
+execSync(`npx esbuild src/lib/safra/ingesta.ts --bundle --format=esm --outfile="${tmp}" --log-level=error`, { stdio: 'inherit' });
 const { prepararIngesta, huella, validarReporte } = await import('file://' + tmp);
 
 const RUTA = 'src/lib/safra/reporte-2026-09-07.json';
@@ -153,6 +153,74 @@ console.log('\n=== 10. Varios reportes de un tiron: gana el MAS NUEVO ===');
   const queda = est.pedidos.get('P-1153104').total;
   ok(queda === 222222, `queda el total del reporte del 8-sep (${queda}), no el del 7`);
   ok(enOrden[0].fecha_reporte === '2026-09-07', 'se aplican del mas viejo al mas nuevo');
+}
+
+
+/**
+ * ============================================================================
+ * LOS TRES FORMATOS REALES QUE MANDÓ GEMINI
+ * ============================================================================
+ *
+ * El 8 de septiembre no entró nada a la nube y el 9 tampoco. La causa: Gemini
+ * le cambió el nombre a la clave que trae los pedidos, y le pone el número del
+ * día adentro, así que cambia TODOS LOS DÍAS:
+ *
+ *   07-sep  { pedidos: [...] }
+ *   08-sep  { novedades_dia_08_septiembre: { pedidos_recientes: [...] },
+ *             pedidos_facturados_anteriores_septiembre: [...] }
+ *   09-sep  { novedad_dia_09_septiembre: {...},
+ *             pedidos_anteriores_septiembre: [...] }
+ *
+ * Y además cambió QUÉ manda: hoy solo los del día vienen con detalle, los
+ * anteriores llegan resumidos (id, fecha, total y nada más).
+ *
+ * Estas pruebas corren contra los tres archivos REALES guardados en
+ * `src/lib/safra/ejemplos/`. Si mañana Gemini inventa un cuarto formato, se
+ * agrega el archivo acá y se ve enseguida qué se rompe.
+ */
+{
+  const norm = path.join(os.tmpdir(), 'norm-safra-' + Date.now() + '.mjs');
+  execSync(`npx esbuild src/lib/safra/normalizar.ts --format=esm --outfile="${norm}" --log-level=error`, { stdio: 'inherit' });
+  const { normalizarReporte } = await import('file://' + norm);
+  const leer = (d) => JSON.parse(fs.readFileSync(`src/lib/safra/ejemplos/2026-09-${d}.json`, 'utf8'));
+
+  console.log('\n=== 11. Encuentra los pedidos en los tres formatos ===');
+  ok(normalizarReporte(leer('07')).pedidos.length === 7, '07-sep (clave `pedidos`): 7 pedidos');
+  ok(normalizarReporte(leer('08')).pedidos.length === 12, '08-sep (clave con el día adentro): 12 pedidos');
+  ok(normalizarReporte(leer('09')).pedidos.length === 13, '09-sep (un pedido suelto, no una lista): 13 pedidos');
+
+  console.log('\n=== 12. La facturación, venga anidada o suelta ===');
+  const p7 = normalizarReporte(leer('07')).pedidos.find(p => p.pedido_id === 'P-1150672');
+  ok(p7.facturacion.factura_numero === 'PPAL16080610', `07: la lee de facturacion:{} (${p7.facturacion.factura_numero})`);
+  const p8 = normalizarReporte(leer('08')).pedidos.find(p => p.pedido_id === 'P-1156472');
+  ok(p8.facturacion.total === 244959.12, `08: la lee suelta del pedido ($${p8.facturacion.total})`);
+  ok(p8.facturacion.fecha === '2026-09-08', `08: recorta la hora de fecha_generacion (${p8.facturacion.fecha})`);
+  ok(p8.facturacion.factura_numero === '', '08: "Pendiente de emisión" NO se guarda como número de factura');
+
+  console.log('\n=== 13. Un dato ausente es null, NUNCA cero ===');
+  const resumido = normalizarReporte(leer('09')).pedidos.find(p => p.pedido_id === 'P-1156472');
+  ok(resumido.facturacion.subtotal === null, 'el pedido resumido trae subtotal null');
+  ok(resumido.facturacion.iva === null, 'y el IVA null');
+  ok(resumido.facturacion.total === 244959.12, 'pero conserva el total, que sí vino');
+  // Con 0 en vez de null, el resumen del día 9 pisaba los subtotales del día 7.
+
+  console.log('\n=== 14. Los tres días seguidos: nada se pierde ===');
+  let est = { pedidos: new Map(), productos: new Map(), cambios: [] };
+  for (const d of ['07', '08', '09']) {
+    const v = validarReporte(leer(d));
+    ok(v.ok, `${d}-sep se acepta`);
+    if (!v.ok) continue;
+    est = aplicar(est, prepararIngesta(v.reporte, guardadosDe(est), `${d}.json`));
+  }
+  ok(est.pedidos.size === 13, `quedan 13 pedidos (${est.pedidos.size})`);
+  ok(est.productos.size === 26, `quedan 26 piezas (${est.productos.size})`);
+  ok(est.cambios.length === 0, `sin falsas alarmas de cambio (${est.cambios.length})`);
+
+  const viejo = est.pedidos.get('P-1151633');
+  ok(viejo.subtotal === 2632876, `el subtotal del día 7 sobrevive al resumen del 9 (${viejo.subtotal})`);
+  ok(viejo.factura_numero === 'PPAL16080700', 'y su número de factura también');
+  ok(viejo.forma_pago === 'Crédito', 'y su forma de pago');
+  ok([...est.productos.keys()].filter(k => k.startsWith('P-1151633#')).length === 7, 'y sus 7 piezas');
 }
 
 console.log('\n' + (fallos === 0 ? '*** TODO OK ***' : `*** ${fallos} FALLOS ***`));

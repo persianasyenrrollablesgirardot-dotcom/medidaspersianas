@@ -149,12 +149,12 @@ export function FacturasSafra() {
     // Lo mas reciente primero; a igual fecha, la factura mas grande arriba.
     return [...lista].sort((a, b) =>
       (b.facturacion.fecha || '').localeCompare(a.facturacion.fecha || '') ||
-      b.facturacion.total - a.facturacion.total);
+      (b.facturacion.total ?? 0) - (a.facturacion.total ?? 0));
   }, [busqueda, tipoFiltro, formaFiltro, reporte]);
 
   const visible = useMemo(() => ({
     piezas: pedidos.reduce((s, p) => s + piezasPedido(p), 0),
-    total: pedidos.reduce((s, p) => s + p.facturacion.total, 0),
+    total: pedidos.reduce((s, p) => s + (p.facturacion.total ?? 0), 0),
   }), [pedidos]);
 
   const hayFiltro = busqueda.trim() !== '' || tipoFiltro !== 'all' || formaFiltro !== 'all';

@@ -44,6 +44,45 @@ Vista: **`src/pages/SupplierProjectView.tsx`** — "Orden de Producción" plana,
 
 6. **Facturación IA usa Claude** (`src/lib/facturador/claude.ts`, modelo `claude-haiku-4-5` que SÍ lee PDF). Key en `localStorage.CUSTOM_CLAUDE_API_KEY` o `VITE_CLAUDE_API_KEY`. El `.env.local` tiene `VITE_GEMINI_API_KEY` que NO se usa (histórico).
 
+## Facturas Safra — el archivo lo escribe un MODELO, no un sistema (09-sep-2026)
+
+El 8 y el 9 de septiembre no entró nada a la nube. Causa: **Gemini le cambió el nombre a la
+clave que trae los pedidos, y le pone el número del día adentro** — o sea que cambia todos los
+días:
+
+```
+07-sep  { pedidos: [ ...7 con detalle completo... ] }
+08-sep  { novedades_dia_08_septiembre: { pedidos_recientes: [...] },
+          pedidos_facturados_anteriores_septiembre: [...resumidos...] }
+09-sep  { novedad_dia_09_septiembre: { ...UN pedido, no una lista... },
+          pedidos_anteriores_septiembre: [...resumidos...] }
+```
+
+Y además cambió QUÉ manda: hoy solo los del día vienen con detalle; los anteriores llegan
+resumidos (id, fecha, total y nada más).
+
+**Reglas que salieron de esto:**
+
+- **Los pedidos se buscan por FORMA, no por nombre de clave.** `normalizarReporte()` recorre el
+  JSON entero y junta todo objeto que tenga `pedido_id`, esté donde esté y se llame como se
+  llame el contenedor. Buscar `pedidos` por nombre se rompe mañana otra vez.
+- **El Apps Script solo comprueba que sea un objeto JSON.** Antes exigía la clave `pedidos` y
+  por eso descartó los dos archivos en silencio — hizo lo correcto con una regla equivocada.
+  El script mueve bytes; quien decide si sirve es la app, que se puede probar.
+- **Un dato ausente es `null`, NUNCA 0.** Fue un bug real y grave: `aNumero()` devolvía 0
+  cuando el campo no venía, y como 0 no es "vacío", el resumen del día 9 **pisaba con cero los
+  subtotales del día 7** y disparaba 24 avisos de cambio falsos. `FacturacionSafra` ahora tiene
+  `subtotal/iva/total: number | null` y `pesos(null)` muestra "—", no "$ 0".
+- **"Pendiente de emisión por Safra" no es un número de factura.** Guardarlo como tal haría que
+  un pedido facturado de verdad después no se reconociera.
+- **El descuadre solo se compara si el resumen habla de lo mismo que el archivo.** Desde el 08
+  el resumen es "acumulado de septiembre" y el archivo trae otra cosa: compararlos daría una
+  alarma roja permanente, y a la semana Jhon dejaría de mirarla. Peor que no avisar es avisar
+  siempre.
+
+Los tres archivos reales viven en `src/lib/safra/ejemplos/` y `npm run probar:safra` corre
+contra ellos. **Si aparece un cuarto formato, se agrega el archivo ahí y se ve qué se rompe.**
+
 ## Papelera — proyectos vs. SUB-elementos (dos mecanismos distintos, a propósito)
 
 - **Proyectos:** soft-delete en su propia tabla. `trashFallbackProject` pone `deletedAt` y las listas filtran por `deletedAt === 0`. Restaurar = poner `deletedAt: 0`.

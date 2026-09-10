@@ -1,0 +1,166 @@
+{
+  "fecha_reporte": "2026-09-09",
+  "corte_hora": "10:25:00-05:00",
+  "empresa_proveedor": "PERSIANAS Y ENROLLABLES SAFRA S A S",
+  "cliente": "CUBIDES MARTINEZ JOHN EDISON",
+  "nit_cliente": "1014208880",
+  "resumen_economico_acumulado_septiembre": {
+    "total_pedidos": 13,
+    "total_piezas": 26,
+    "subtotal_cop": 9181543.00,
+    "iva_cop": 1744493.54,
+    "total_cop": 10926036.54
+  },
+  "novedad_dia_09_septiembre": {
+    "pedido_id": "P-1157025",
+    "fecha_generacion": "2026-09-09T10:22:28-05:00",
+    "forma_pago": "Crédito",
+    "subtotal": 2501941.00,
+    "iva": 475368.79,
+    "total": 2977309.79,
+    "factura_electronica": "Pendiente de emisión por Safra",
+    "referencia_personalizada": "En proceso (ubicación: hab principal - motorizado)",
+    "productos": [
+      {
+        "item": 1,
+        "tipo": "Persiana Enrollable Premium Motorizada",
+        "tela": "Blackout Pinpoint 1.83 Mts Blanco",
+        "cantidad": 1,
+        "ancho_m": 3.00,
+        "alto_m": 1.48,
+        "cabezal": "Cabezal Redondo",
+        "perfil": "Perfil Cuadrado",
+        "coordinado": "Blanco",
+        "mando": "Derecha",
+        "enrollado": "Detrás",
+        "motorizacion": {
+          "motor": "Motor Batería 35mm Recargable",
+          "control": "Control Monocanal Motor Batería 35mm",
+          "soporte_motor": "Soporte R24"
+        },
+        "cover_light": "Tres laterales 5cm a 45°",
+        "encajonada": true,
+        "ubicacion": "hab principal",
+        "precio_final": 894729.00
+      },
+      {
+        "item": 2,
+        "tipo": "Persiana Panel Japones Motorizado",
+        "tela": "Screen Jacquard Cristal Gris",
+        "cantidad": 1,
+        "ancho_m": 4.77,
+        "alto_m": 2.44,
+        "cantidad_lamas": 10,
+        "perfil": "Perfil Cuadrado",
+        "coordinado": "Gris",
+        "mando": "Derecho",
+        "apertura": "Extremos",
+        "posicion_telo_fijo": "Frente",
+        "tamano_traslape": "9cm",
+        "cenefa": "Cenefa Metálica Gris",
+        "motorizacion": {
+          "motor": "Motor Ultrasilencioso Cortina/Panel Wifi/Rf",
+          "control": "Control Motor Wifi/RF (Canal 1)"
+        },
+        "encajonada": true,
+        "ubicacion": "hab principal",
+        "precio_final": 1607212.00
+      }
+    ]
+  },
+  "pedidos_anteriores_septiembre": [
+    {
+      "pedido_id": "P-1156472",
+      "fecha": "2026-09-08",
+      "forma_pago": "Crédito",
+      "total": 244959.12,
+      "resumen": "2 Enrollables Blackout Pinpoint Blanco (1.20 x 2.10 m c/u)"
+    },
+    {
+      "pedido_id": "P-1156452",
+      "fecha": "2026-09-08",
+      "forma_pago": "Crédito",
+      "total": 276492.93,
+      "resumen": "1 Enrollable Premium Blackout Blanco (1.03 x 1.99 m, C.L. 45°)"
+    },
+    {
+      "pedido_id": "P-1156450",
+      "fecha": "2026-09-08",
+      "forma_pago": "Crédito",
+      "total": 897810.97,
+      "resumen": "1 Panel Japonés Screen 351 Beige (4.00 x 2.35 m, Cenefa Ivory)"
+    },
+    {
+      "pedido_id": "P-1156386",
+      "referencia_personalizada": "vanessa",
+      "fecha": "2026-09-08",
+      "forma_pago": "Crédito",
+      "total": 435055.67,
+      "resumen": "1 Sheer Screen Fina Blanco Óptico con Impresión (2.18 x 1.60 m)"
+    },
+    {
+      "pedido_id": "P-1156381",
+      "referencia_personalizada": "vanessa",
+      "fecha": "2026-09-08",
+      "forma_pago": "Crédito",
+      "total": 435055.67,
+      "resumen": "1 Sheer Screen Fina Blanco Óptico con Impresión (2.18 x 1.60 m)"
+    },
+    {
+      "pedido_id": "P-1153111",
+      "referencia_personalizada": "paraiso san marcos",
+      "factura_numero": "PPAL16081605",
+      "fecha": "2026-09-05",
+      "total": 378840.07,
+      "resumen": "2 Enrollables Blackout Pinpoint Blanco"
+    },
+    {
+      "pedido_id": "P-1153108",
+      "referencia_personalizada": "ingeniero",
+      "factura_numero": "PPAL16081643",
+      "fecha": "2026-09-05",
+      "total": 222021.87,
+      "resumen": "1 Enrollable Blackout Pinpoint Blanco"
+    },
+    {
+      "pedido_id": "P-1153107",
+      "referencia_personalizada": "Maria",
+      "factura_numero": "PPAL16081593",
+      "fecha": "2026-09-05",
+      "total": 220609.34,
+      "resumen": "2 Enrollables Blackout Pinpoint Blanco"
+    },
+    {
+      "pedido_id": "P-1153104",
+      "referencia_personalizada": "nubia",
+      "factura_numero": "PPAL16081650",
+      "fecha": "2026-09-05",
+      "total": 208565.35,
+      "resumen": "1 Enrollable Blackout Pinpoint Blanco"
+    },
+    {
+      "pedido_id": "P-1151633",
+      "referencia_personalizada": "CAMILO RICAURTE",
+      "factura_numero": "PPAL16080700",
+      "fecha": "2026-09-02",
+      "total": 3133122.44,
+      "resumen": "7 Enrollables Premium Blackout Gris con Cover Light 45°"
+    },
+    {
+      "pedido_id": "P-1151629",
+      "referencia_personalizada": "RESERVAS DEL PEÑON",
+      "factura_numero": "PPAL16080830",
+      "fecha": "2026-09-02",
+      "total": 1422562.89,
+      "resumen": "1 Sheer 2en1, 2 Sheer Screen y 1 Panel Japonés Screen Noa"
+    },
+    {
+      "pedido_id": "P-1150672",
+      "referencia_personalizada": "PATRICIA - VERTICAL",
+      "factura_numero": "PPAL16080610",
+      "fecha": "2026-09-01",
+      "total": 85530.06,
+      "resumen": "1 Persiana Vertical Rayas Azul (4.69 x 0.50 m)"
+    }
+  ]
+}

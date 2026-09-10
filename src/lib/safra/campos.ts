@@ -52,8 +52,12 @@ function formatearValor(valor: unknown): string {
   return String(valor);
 }
 
-export const pesos = (n: number) =>
-  '$ ' + Math.round(n).toLocaleString('es-CO');
+/**
+ * `null` significa "el archivo no trajo este dato", y se muestra como "—", no como "$ 0".
+ * Un cero en pantalla se lee como un precio de cero, que es otra cosa.
+ */
+export const pesos = (n: number | null | undefined) =>
+  n === null || n === undefined ? '—' : '$ ' + Math.round(n).toLocaleString('es-CO');
 
 export const metros = (n: number) => `${n.toFixed(2)} m`;
 
@@ -91,16 +95,26 @@ export function calcularResumen(reporte: ReporteSafra) {
     facturas: new Set(pedidos.map(p => p.facturacion.factura_numero)).size,
     pedidos: pedidos.length,
     piezas: pedidos.reduce((s, p) => s + piezasPedido(p), 0),
-    subtotal: pedidos.reduce((s, p) => s + p.facturacion.subtotal, 0),
-    iva: pedidos.reduce((s, p) => s + p.facturacion.iva, 0),
-    total: pedidos.reduce((s, p) => s + p.facturacion.total, 0),
+    subtotal: pedidos.reduce((s, p) => s + (p.facturacion.subtotal ?? 0), 0),
+    iva: pedidos.reduce((s, p) => s + (p.facturacion.iva ?? 0), 0),
+    total: pedidos.reduce((s, p) => s + (p.facturacion.total ?? 0), 0),
     areaM2: pedidos.reduce((s, p) => s + areaPedido(p), 0),
   };
 
   const decl = reporte.resumen_economico;
   const dif = (a: number, b: number) => Math.abs(a - b) > 0.5;
   const descuadres: Array<{ campo: string; archivo: number; real: number }> = [];
-  if (decl) {
+
+  /**
+   * Solo tiene sentido comparar si el resumen habla de LO MISMO que trae el archivo.
+   *
+   * Desde el 08-sep el resumen es "acumulado de septiembre" y el archivo trae solo los
+   * pedidos del dia con detalle mas los viejos resumidos. Compararlos daria una diferencia
+   * enorme todos los dias — una alarma roja permanente que no significa nada, y que a la
+   * semana Jhon dejaria de mirar. Peor que no avisar es avisar siempre.
+   */
+  const mismoAlcance = !!decl && decl.total_pedidos === real.pedidos;
+  if (decl && mismoAlcance) {
     if (dif(decl.subtotal_cop, real.subtotal)) descuadres.push({ campo: 'Subtotal', archivo: decl.subtotal_cop, real: real.subtotal });
     if (dif(decl.iva_cop, real.iva)) descuadres.push({ campo: 'IVA', archivo: decl.iva_cop, real: real.iva });
     if (dif(decl.total_cop, real.total)) descuadres.push({ campo: 'Total', archivo: decl.total_cop, real: real.total });
@@ -118,7 +132,7 @@ export function porFormaDePago(pedidos: PedidoSafra[]) {
     const forma = p.facturacion.forma_pago || 'Sin forma de pago';
     const actual = mapa.get(forma) || { forma, cuantas: 0, total: 0 };
     actual.cuantas += 1;
-    actual.total += p.facturacion.total;
+    actual.total += p.facturacion.total ?? 0;
     mapa.set(forma, actual);
   }
   return [...mapa.values()].sort((a, b) => b.total - a.total);
