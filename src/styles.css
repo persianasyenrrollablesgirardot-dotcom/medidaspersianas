@@ -322,10 +322,15 @@ button { cursor: pointer; }
 .space-tile-main { width: 100%; border: 0; color: inherit; background: #111821; border-radius: 8px; padding: 12px; text-align: left; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; min-height: 88px; }
 .space-tile-main strong { font-size: 17px; line-height: 1.08; overflow-wrap: anywhere; }
 .space-tile-main span { color: #95a1ad; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
-.space-tile-edit { display: grid; grid-template-columns: 1fr 34px; gap: 6px; }
+.space-tile-edit { display: grid; grid-template-columns: 1fr 34px 34px; gap: 6px; }
 .space-tile-edit .input { min-height: 36px; padding: 8px; font-size: 12px; }
 .mini-danger { width: 34px; min-height: 36px; border: 1px solid #442121; border-radius: 8px; background: #170909; color: #ff7777; display: grid; place-items: center; }
 .mini-danger .icon { width: 17px; height: 17px; }
+/* Duplicar espacio / ventana. Mismo tamaño que el de borrar, en azul: la
+   acción es constructiva, no destructiva, y van uno al lado del otro. */
+.mini-action { width: 34px; min-height: 36px; border: 1px solid #24384f; border-radius: 8px; background: #0c151f; color: #7fb8ff; display: grid; place-items: center; }
+.mini-action .icon { width: 17px; height: 17px; }
+.tile-actions { display: flex; gap: 6px; }
 .danger-outline { border-color: #5b2525; color: #ff8888; background: #190909; }
 .trash-card {
   border: 1px solid #2a2020; background: #0d0a0a; border-radius: 8px; padding: 14px;
@@ -710,6 +715,11 @@ body { color: var(--text); background: var(--bg); }
   background: rgba(239, 68, 68, 0.1);
   color: var(--red);
 }
+.mini-action {
+  border-color: rgba(56, 189, 248, 0.3);
+  background: rgba(56, 189, 248, 0.1);
+  color: var(--blue);
+}
 .project-detail { border-color: rgba(56, 189, 248, 0.3); background: rgba(56, 189, 248, 0.1); color: var(--blue); }
 .project-setup { border-color: rgba(167, 139, 250, 0.3); background: rgba(139, 92, 246, 0.1); color: #C084FC; }
 .project-pdf { border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.1); color: var(--green); }
@@ -792,6 +802,8 @@ body { color: var(--text); background: var(--bg); }
 /* ROLES Y PERMISOS - MODO PROVEEDOR (CENSURADO Y SOLO LECTURA) */
 .role-proveedor .primary,
 .role-proveedor .mini-danger,
+.role-proveedor .mini-action,
+.role-proveedor .tile-actions,
 .role-proveedor .space-tile-edit,
 .role-proveedor .detail-edit-button,
 .role-proveedor .add-button,

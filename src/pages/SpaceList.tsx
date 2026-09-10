@@ -1,7 +1,7 @@
 import toast from 'react-hot-toast';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useParams } from 'react-router-dom';
-import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { DocumentDuplicateIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { db } from '../db';
 import { PageHeader } from '../components/PageHeader';
 import { TextInput } from '../components/Field';
@@ -12,6 +12,7 @@ import { solutionTotal, solutionArea } from '../lib/metrics';
 import { useAuth } from '../components/AuthContext';
 import { supplierStatusDocId, useSupplierStatuses } from '../lib/supplierStatus';
 import { trashSpace } from '../lib/trashStore';
+import { avisoDeCopias, copiarEspacio, nombresDeCopia, pedirCantidadDeCopias } from '../lib/duplicar';
 import type { SpaceRecord, TechnicalProject } from '../types';
 
 export function SpaceList() {
@@ -27,6 +28,25 @@ export function SpaceList() {
   if (!project) return <div className="page"><div className="empty">Cargando espacios...</div></div>;
 
   const add = () => saveProject({ ...project, spaces: [...project.spaces, newSpace(`Espacio ${project.spaces.length + 1}`)] });
+
+  /**
+   * Duplicar un espacio: habitaciones iguales, misma medida y mismo producto.
+   * Se copia todo lo tecnico con ids nuevos y SIN las fotos (ver `duplicar.ts`),
+   * y las copias entran justo DEBAJO del original, no al final de la lista.
+   */
+  const duplicateSpace = async (space: SpaceRecord) => {
+    const cantidad = pedirCantidadDeCopias('este espacio');
+    if (!cantidad) return;
+
+    const nombres = nombresDeCopia(space.name, project.spaces.map(s => s.name), cantidad);
+    const copias = nombres.map(nombre => copiarEspacio(space, nombre));
+    const index = project.spaces.findIndex(s => s.id === space.id);
+    const spaces = [...project.spaces];
+    spaces.splice(index < 0 ? spaces.length : index + 1, 0, ...copias);
+
+    await saveProject({ ...project, spaces });
+    toast.success(avisoDeCopias(nombres, 'Espacio duplicado', 'espacios creados'));
+  };
 
   /**
    * Borrar un espacio se lleva sus ventanas, persianas y fotos. Antes era un
@@ -96,6 +116,9 @@ export function SpaceList() {
               {role === 'admin' && (
                 <div className="space-tile-edit">
                   <TextInput value={space.name} onChange={e => saveProject({ ...project, spaces: project.spaces.map(s => s.id === space.id ? { ...s, name: e.target.value } : s) })} aria-label={`Nombre de ${space.name}`} />
+                  <button className="mini-action" onClick={() => duplicateSpace(space)} aria-label={`Duplicar ${space.name}`} title="Duplicar espacio">
+                    <DocumentDuplicateIcon className="icon" />
+                  </button>
                   <button className="mini-danger" onClick={() => removeSpace(space)} aria-label={`Eliminar ${space.name}`}>
                     <TrashIcon className="icon" />
                   </button>

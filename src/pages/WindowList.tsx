@@ -1,7 +1,7 @@
 import toast from 'react-hot-toast';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useParams } from 'react-router-dom';
-import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { DocumentDuplicateIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { db } from '../db';
 import { PageHeader } from '../components/PageHeader';
 import { newWindow } from '../lib/projectFactory';
@@ -12,6 +12,7 @@ import { solutionTotal, solutionArea } from '../lib/metrics';
 import { useAuth } from '../components/AuthContext';
 import { supplierStatusDocId, useSupplierStatuses } from '../lib/supplierStatus';
 import { trashWindow } from '../lib/trashStore';
+import { avisoDeCopias, copiarVentana, nombresDeCopia, pedirCantidadDeCopias } from '../lib/duplicar';
 import type { TechnicalProject, WindowRecord } from '../types';
 
 export function WindowList() {
@@ -28,6 +29,29 @@ export function WindowList() {
   if (!project || !space) return <div className="page"><div className="empty">Cargando ventanas...</div></div>;
 
   const add = () => updateSpace(project, space.id, current => ({ ...current, windows: [...current.windows, newWindow(`Ventana ${current.windows.length + 1}`)] }));
+
+  /**
+   * Duplicar una ventana adentro del mismo espacio. Ids nuevos y sin fotos
+   * (ver `duplicar.ts`); las copias quedan justo despues del original.
+   */
+  const duplicateWindow = async (win: WindowRecord) => {
+    const cantidad = pedirCantidadDeCopias('esta ventana');
+    if (!cantidad) return;
+
+    const nombres = nombresDeCopia(win.label, space.windows.map(w => w.label), cantidad);
+    const copias = nombres.map(label => copiarVentana(win, label));
+
+    // El insertado se calcula sobre `current` (la copia mas fresca del store),
+    // no sobre el snapshot de React: si algo mas toco el espacio mientras
+    // tanto, el indice del snapshot ya no es el bueno.
+    await updateSpace(project, space.id, current => {
+      const index = current.windows.findIndex(w => w.id === win.id);
+      const windows = [...current.windows];
+      windows.splice(index < 0 ? windows.length : index + 1, 0, ...copias);
+      return { ...current, windows };
+    });
+    toast.success(avisoDeCopias(nombres, 'Ventana duplicada', 'ventanas creadas'));
+  };
 
   /** Aviso + copia a la papelera antes de sacar la ventana. Ver `trashStore`. */
   const removeWindow = async (win: WindowRecord) => {
@@ -91,9 +115,14 @@ export function WindowList() {
                 <em className={blockers ? 'bad' : warnings ? 'warn' : 'ok'} style={{ marginTop: '4px' }}>{badge}</em>
               </button>
               {role === 'admin' && (
-                <button className="mini-danger" onClick={() => removeWindow(win)} aria-label={`Eliminar ${win.label}`}>
-                  <TrashIcon className="icon" />
-                </button>
+                <div className="tile-actions">
+                  <button className="mini-action" onClick={() => duplicateWindow(win)} aria-label={`Duplicar ${win.label}`} title="Duplicar ventana">
+                    <DocumentDuplicateIcon className="icon" />
+                  </button>
+                  <button className="mini-danger" onClick={() => removeWindow(win)} aria-label={`Eliminar ${win.label}`}>
+                    <TrashIcon className="icon" />
+                  </button>
+                </div>
               )}
             </article>
           );

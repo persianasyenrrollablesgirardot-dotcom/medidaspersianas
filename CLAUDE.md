@@ -262,6 +262,34 @@ Mientras no estén, el endpoint responde 503 diciendo exactamente eso.
 - Caso borde ya cubierto: en **Cotización rápida**, borrar la última persiana de una ventana se lleva la ventana entera. Pasaba en silencio; ahora se avisa y lo que se guarda en la papelera es la **ventana completa**.
 - `src/pages/ProjectEditor.tsx` **no está ruteado** (código muerto). Sus botones de borrar siguen sin aviso ni papelera. Si alguna vez se vuelve a rutear, hay que wirearlo igual que las demás pantallas.
 
+## Duplicar espacios y ventanas (10-sep-2026)
+
+Jhon mide seguido habitaciones IGUALES — misma medida, mismo producto. Botón de duplicar en
+`SpaceList` (por espacio) y en `WindowList` (por ventana), admin-only; pregunta **cuántas
+copias** (tope 20) y las inserta **justo debajo del original**, no al final. Todo en
+`src/lib/duplicar.ts`, probado con `npm run probar:duplicar` (39 comprobaciones).
+
+- **TODO id se vuelve a generar** — espacio, ventana, condiciones del sitio, persiana,
+  divisiones, accesorios, alertas y tareas de mantenimiento. No es cosmético: el id de la
+  persiana es la llave de `supplier_statuses` (`solutionId -> true`, **un** documento por
+  pedido). Dos persianas con el mismo id adentro del mismo proyecto = el proveedor marca una
+  y se le tildan las dos, **fabrica una sola** y el cliente recibe una persiana menos. Eso no
+  se ve en pantalla; aparece en la obra. La prueba lo que más comprueba es justo eso.
+- **La copia NO se lleva las fotos** (`evidence: []`). Todo el dato técnico sí. Una foto del
+  cuarto 1 colgada del cuarto 2 es evidencia falsa el día que haya que revisar por qué salió
+  mal. Decisión de Jhon, 10-sep-2026.
+- **Los nombres siguen la cuenta:** "Habitación 1" → 2, 3, 4, salteando los que ya existen
+  (si ya hay una "Habitación 2", la copia es la 3). Sin número al final → "(copia)",
+  "(copia 2)". Compara sin distinguir mayúsculas.
+- **Objetos anidados se copian, no se comparten** (`assembly`, `geometry`, `quickQuote`,
+  `motor`, `customFields`, `planTemplate`). Con `...spread` solo, editar la medida de la copia
+  cambiaba la del original.
+- **Claves opcionales: asignación condicional, nunca `undefined`.** Crear una clave que vale
+  `undefined` hace que Firestore rechace el documento ENTERO (gotcha 4). Hay una prueba para
+  eso.
+- Las copias son elementos nuevos: la papelera, `cloudSync`, los totales y el correo al
+  proveedor los tratan como cualquier otro. No hubo que tocar nada de eso.
+
 ## Dashboard del PROVEEDOR (qué es suyo y qué es del admin)
 
 - El proveedor lee `cloud_projects` y esos docs son **`TechnicalProject` crudos**, NO `ProjectSummary`: **no traen** `spacesCount`, `windowsCount`, `solutionsCount`, `totalAreaM2`, `systemTotals`, `totalEstimate`. Cualquier cosa del Dashboard que use esos campos sale vacía para él. Por eso existe `projectCounts()`, que los calcula del árbol cuando no vienen.
