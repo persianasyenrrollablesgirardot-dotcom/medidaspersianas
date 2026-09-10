@@ -98,33 +98,81 @@ function ProjectSupplierBadge({ project, statuses }: { project: any; statuses: S
   );
 }
 
+/**
+ * El codigo de Firebase traducido a algo que Jhon pueda accionar.
+ *
+ * Cada uno se arregla en un lugar distinto, y confundirlos hace perder horas:
+ * `permission-denied` es la consola de Firebase, `unavailable` es el equipo o su red.
+ */
+const MOTIVOS: Record<string, string> = {
+  'permission-denied':
+    'Firebase esta rechazando la lectura. Suele ser que las reglas de Firestore vencieron ' +
+    '(las de modo prueba caducan a los 30 dias). Se arregla en la consola de Firebase, no aca.',
+  unauthenticated:
+    'La sesion no llego a Firebase. Cerra sesion y volve a entrar en este equipo.',
+  unavailable:
+    'No se pudo llegar a Firebase desde ESTE equipo. Suele ser un bloqueador de anuncios, una ' +
+    'extension de privacidad o un antivirus que corta la conexion. Proba en una ventana de ' +
+    'incognito o en otro navegador: si ahi funciona, es una extension.',
+  'failed-precondition':
+    'Firebase encontro la app abierta en varias pestanas a la vez. Cerra las demas y recarga.',
+  'resource-exhausted':
+    'Se paso la cuota gratuita de Firebase por hoy. Se resuelve solo, o revisando el plan.',
+};
+
 export function Dashboard() {
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const { role } = useAuth();
   const visibleLocalProjects = useFallbackSummaries();
   const [cloudProjects, setCloudProjects] = useState<ProjectSummary[]>([]);
-  
+  /**
+   * Por que el fallo de la nube deja de ser SOLO un toast.
+   *
+   * El toast duraba 8 segundos y despues no quedaba nada: el proveedor veia una
+   * lista vacia sin ninguna explicacion, y desde afuera era imposible saber que
+   * habia pasado. Ademas Jhon no puede mandar capturas por la consola, asi que
+   * un mensaje que se borra solo es un mensaje que no existe.
+   *
+   * Ahora el motivo se queda EN PANTALLA, con el codigo de Firebase textual
+   * (`permission-denied`, `unavailable`, `unauthenticated`...) y un boton para
+   * reintentar. Y si alguna vez la lista cargo bien en este equipo, se muestra
+   * la copia guardada en vez de dejarlo sin nada.
+   */
+  const [falloNube, setFalloNube] = useState<string | null>(null);
+  const [reintento, setReintento] = useState(0);
+
   useEffect(() => {
-    if (role === 'proveedor') {
-      getDocs(collection(dbFirestore, 'cloud_projects')).then(snapshot => {
-        const projs = snapshot.docs
-          .map(doc => ({ ...doc.data(), projectId: doc.data().id || doc.data().projectId } as unknown as ProjectSummary))
-          // Firestore devuelve los documentos ordenados por su ID (el codigo),
-          // que para el proveedor es un orden sin sentido: los pedidos nuevos
-          // le aparecian mezclados entre los viejos. Por defecto, lo mas
-          // reciente primero — igual que la lista del admin.
-          .sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
-        setCloudProjects(projs);
-        window.localStorage.setItem('cloud_projects_cache', JSON.stringify(projs));
-      }).catch(e => {
-        console.error(e);
-        // Mostramos el motivo REAL de Firebase (ej: 'permission-denied' = reglas
-        // de Firestore vencidas/bloqueadas) para poder diagnosticar sin la consola.
-        toast.error('Error nube: ' + (e?.code || e?.message || String(e)), { duration: 8000 });
-      });
-    }
-  }, [role]);
+    if (role !== 'proveedor') return;
+    let vigente = true;
+
+    getDocs(collection(dbFirestore, 'cloud_projects')).then(snapshot => {
+      if (!vigente) return;
+      const projs = snapshot.docs
+        .map(doc => ({ ...doc.data(), projectId: doc.data().id || doc.data().projectId } as unknown as ProjectSummary))
+        // Firestore devuelve los documentos ordenados por su ID (el codigo),
+        // que para el proveedor es un orden sin sentido: los pedidos nuevos
+        // le aparecian mezclados entre los viejos. Por defecto, lo mas
+        // reciente primero — igual que la lista del admin.
+        .sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+      setCloudProjects(projs);
+      setFalloNube(null);
+      window.localStorage.setItem('cloud_projects_cache', JSON.stringify(projs));
+    }).catch(e => {
+      if (!vigente) return;
+      console.error(e);
+      setFalloNube(String(e?.code || e?.message || e));
+
+      // La copia de la ultima vez que si cargo. Mejor eso que una pantalla en
+      // blanco: los pedidos de ayer siguen siendo utiles para trabajar hoy.
+      try {
+        const guardado = window.localStorage.getItem('cloud_projects_cache');
+        if (guardado) setCloudProjects(JSON.parse(guardado) as ProjectSummary[]);
+      } catch { /* la copia esta rota: se queda vacio y el aviso lo explica */ }
+    });
+
+    return () => { vigente = false; };
+  }, [role, reintento]);
 
   const visibleProjects = role === 'proveedor' ? cloudProjects : visibleLocalProjects;
   const fallbackCatalog = useFallbackCatalog();
@@ -397,6 +445,27 @@ Solo se limpia el cache del navegador. NO se pierde ningun pedido ni lo que ya m
           </div>
         )}
       </header>
+
+      {/*
+        El motivo del fallo se queda a la vista, con el codigo de Firebase textual.
+        Antes era un toast de 8 segundos: el proveedor quedaba con la lista vacia y sin
+        ninguna explicacion, y desde afuera no habia forma de saber que habia pasado.
+      */}
+      {falloNube && (
+        <section className="panel" style={{ borderColor: 'rgba(239,68,68,.5)', background: 'rgba(239,68,68,.08)' }}>
+          <div style={{ fontWeight: 800, color: '#fca5a5' }}>No pude leer los pedidos de la nube</div>
+          <p className="muted" style={{ margin: '6px 0 0', fontSize: 12.5, lineHeight: 1.5 }}>
+            {MOTIVOS[falloNube] ?? 'Fallo al conectar con la nube.'}
+          </p>
+          <p className="muted" style={{ margin: '6px 0 0', fontSize: 11.5 }}>
+            Motivo tecnico: <code style={{ color: 'var(--blue)' }}>{falloNube}</code>
+            {cloudProjects.length > 0 && ' · abajo se muestra la ultima lista que si cargo en este equipo'}
+          </p>
+          <button className="secondary" style={{ marginTop: 10 }} onClick={() => setReintento(n => n + 1)}>
+            Reintentar
+          </button>
+        </section>
+      )}
 
       <section className="stats-row">
         <Stat label={role === 'proveedor' ? 'Pedidos' : 'Proyectos'} value={visibleProjects.length} tone="blue" />
