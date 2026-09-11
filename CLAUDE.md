@@ -393,9 +393,17 @@ pieza:
 | Tela **Screen Solar** | **3 anios** |
 | Tela blackout | 1 anio |
 | Tela de poliester | 1 anio |
-| Perfileria: perfiles, mecanismos, herrajes | 1 anio |
+| Perfileria: perfiles, mecanismos, herrajes **y cadenillas** | 1 anio |
 | Motor | 1 anio |
 | Mano de obra de instalacion | 1 anio |
+| Pelicula solar | 1 anio, **solo por defectos de pegado** |
+
+- **La cadenilla NO es una pieza aparte**: va dentro de la perfileria. `PIEZAS` tiene cinco, no
+  seis, y `construirCaso` rechaza 'cadenilla'.
+- **Un plazo no es lo mismo que una cobertura.** La pelicula solar es el unico caso con el
+  alcance acotado a un tipo de falla, por eso `PiezaDef` lleva `alcance` y la explicacion lo
+  arrastra siempre: decir "un anio" a secas ahi prometeria de mas. Una pelicula decolorada no
+  entra, aunque este dentro del anio.
 
 - **El plazo sigue a la TELA, no al sistema.** Los tres anios del Screen Solar valen igual en
   Sheer Elegance, en enrollables y en panel japones. Por eso `familiaDeTela()` clasifica por el
@@ -428,6 +436,31 @@ pieza:
 **Sin fijar todavia (no inventar):** cadenillas y peliculas solares. Y el documento que firma el
 cliente **sigue sin decir ningun plazo**, asi que lo firmado y lo prometido todavia no coinciden:
 es una correccion pendiente del documento, no una decision.
+
+### El proveedor respalda MAS de lo que se ofrece (aviso interno)
+
+La politica oficial de Safra (PDF `615_Politica_de_Garantias_Persianas`, en la raiz del Escritorio)
+cubre al distribuidor con: Screen y Sheer Screen 3 anios, **Blackout 3**, **Poliester 2**, **Motores
+5**, accesorios 1 anio, baterias de control 6 meses. Aca se ofrece **1 anio** en blackout, poliester
+y motores.
+
+`PiezaDef.respaldoProveedorMeses` guarda ese dato y `evaluarCobertura` devuelve `respaldoVigente`
+cuando la garantia propia ya vencio pero la del proveedor no. **Va marcado `INTERNO` y no se le dice
+al cliente**: sirve para no negar de memoria una pieza que la fabrica todavia repone. Si trasladar
+esos plazos al cliente es una decision de negocio abierta, no algo que decida el codigo.
+
+### Lo que la politica del proveedor exige, y que toca al proceso
+
+- **4 dias** desde que llega la caja para reportar faltantes, golpes o danos (con foto de la caja y
+  observacion firmada en la guia) y **10 dias** para arrugas, marcas o error de especificacion.
+  Vencidos, lo paga el negocio. Es el fusible mas corto de toda la operacion.
+- **Un producto que llega con defecto NO se instala ni se repara**: hacerlo pierde la garantia.
+- **Si quedo mal instalado, la garantia la asume el distribuidor.** Y una visita tecnica que resulte
+  no ser garantia se cobra **desde $50.000 + viaticos**.
+- **Cornamusa obligatoria por la Resolucion 12667 de 2013 de la SIC**, con firma del cliente. Sin
+  ella no hay garantia en verticales, Hannas ni Vintage. Es obligacion legal de quien instala.
+- **Mantenimiento** 2 veces al año en telas oscuras y cada 3 meses en claras, guardando certificado.
+- **Girardot no es ciudad principal**: toda garantia implica despachar a Bogota por cuenta propia.
 
 ## Papelera — proyectos vs. SUB-elementos (dos mecanismos distintos, a propósito)
 

@@ -118,10 +118,19 @@ export function GarantiaPanel({
     }
   };
 
-  const tarjetaCobertura = (c: { veredicto: string; explicacion: string }) => (
-    <p style={{ margin: '4px 0 0', fontSize: '0.88em', color: COLOR_VEREDICTO[c.veredicto] }}>
-      {c.veredicto === 'sin_definir' ? '⚠ ' : c.veredicto === 'dentro' ? '✓ ' : '✕ '}{c.explicacion}
-    </p>
+  const tarjetaCobertura = (c: { veredicto: string; explicacion: string; respaldoVigente?: string }) => (
+    <>
+      <p style={{ margin: '4px 0 0', fontSize: '0.88em', color: COLOR_VEREDICTO[c.veredicto] }}>
+        {c.veredicto === 'sin_definir' ? '⚠ ' : c.veredicto === 'dentro' ? '✓ ' : '✕ '}{c.explicacion}
+      </p>
+      {/* Aviso interno: la garantia propia vencio pero el proveedor todavia responde.
+          No se le dice al cliente; sirve para no negar algo que la fabrica repone. */}
+      {c.respaldoVigente && (
+        <p style={{ margin: '4px 0 0', fontSize: '0.82em', color: '#2563eb', background: 'rgba(37,99,235,0.08)', borderRadius: '4px', padding: '6px 8px' }}>
+          {c.respaldoVigente}
+        </p>
+      )}
+    </>
   );
 
   const listaAbiertos = abiertos(casos);

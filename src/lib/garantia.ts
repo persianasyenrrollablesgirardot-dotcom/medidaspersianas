@@ -1,5 +1,5 @@
 /**
- * Garantia: que cubre, por cuanto tiempo, y —sobre todo— cuando NO hay que responder.
+ * Garantia: que cubre, por cuanto tiempo, con que alcance, y cuando NO hay que responder.
  *
  * Modulo PURO (cero imports). La escritura esta en `casosGarantia.ts`.
  *
@@ -14,9 +14,12 @@
  *   tela Screen Solar                            ->  3 anios
  *   tela blackout                                ->  1 anio
  *   tela de poliester                            ->  1 anio
- *   perfileria (perfiles, mecanismos, herrajes)  ->  1 anio
+ *   perfileria (perfiles, mecanismos, herrajes,
+ *               y las CADENILLAS, que no son
+ *               pieza aparte)                    ->  1 anio
  *   motor                                        ->  1 anio
  *   mano de obra de instalacion                  ->  1 anio
+ *   pelicula solar                               ->  1 anio, SOLO por defectos de pegado
  *
  * **El plazo sigue a la TELA, no al sistema**: los tres anios del Screen Solar valen igual
  * en Sheer Elegance, en enrollables y en panel japones.
@@ -28,22 +31,25 @@
  * anio" promete de menos. La pregunta del cliente es una sola; la respuesta honesta son dos
  * cifras.
  *
+ * ## Un plazo no es lo mismo que una cobertura
+ *
+ * La pelicula solar tiene un anio, pero **solo por defectos de pegado**. Es el unico caso del
+ * portafolio donde el alcance esta acotado a un tipo de falla, y por eso `PiezaDef` lleva
+ * `alcance`: decir "un anio" a secas seria prometer de mas. Una pelicula que se decoloro o
+ * que se rayo no entra, aunque este dentro del anio.
+ *
  * ## Lo que NO se sabe se responde como no sabido
  *
- * Quedan las **cadenillas y las peliculas solares**, sin plazo fijado desde siempre. Para
- * esas esto devuelve `sin_definir` con el motivo, y NUNCA un numero estimado. Un plazo
- * inventado aca se convierte en una promesa al cliente que la empresa no puede sostener.
- *
- * La misma respuesta vale para una tela cuya familia no se reconoce: sin saber que tela es,
- * no se sabe que plazo le toca, y adivinar hacia el lado de los tres anios promete de mas.
+ * Queda el caso de una tela cuya familia no se reconoce: sin saber que tela es, no se sabe
+ * que plazo le toca. Ahi devuelve `sin_definir` con el motivo y NUNCA un numero estimado,
+ * porque adivinar hacia el lado de los tres anios promete de mas.
  */
 
 export type PiezaGarantia =
   | 'tela'
-  | 'perfileria'
+  | 'perfileria'   // incluye las cadenillas: no son pieza aparte
   | 'motor'
   | 'instalacion'
-  | 'cadenilla'
   | 'pelicula';
 
 export type FamiliaTela = 'screen_solar' | 'poliester' | 'blackout' | 'otra';
@@ -84,13 +90,26 @@ export interface PiezaDef {
   meses: number | null;
   /** Por que ese plazo, o por que no hay. Sale en pantalla: es lo que sostiene la respuesta. */
   motivo: string;
+  /**
+   * Si la cobertura esta acotada a un tipo de falla. Solo la pelicula solar lo tiene hoy.
+   * Estar dentro del plazo NO alcanza cuando esto existe: la falla tambien tiene que caber.
+   */
+  alcance?: string;
+  /**
+   * Meses que el PROVEEDOR respalda esa pieza, cuando son mas que los propios.
+   *
+   * Dato interno, nunca una promesa al cliente: la politica de Safra cubre blackout 3 anios,
+   * poliester 2 y motores 5, y aca se ofrece 1. Sirve para no negar por plazo algo que la
+   * fabrica todavia repone. Si trasladarlo o no al cliente es una decision abierta.
+   */
+  respaldoProveedorMeses?: number;
 }
 
 const PERFILERIA: PiezaDef = {
   id: 'perfileria',
-  etiqueta: 'Perfileria (perfiles, mecanismos y herrajes)',
+  etiqueta: 'Perfileria (perfiles, mecanismos, herrajes y cadenillas)',
   meses: 12,
-  motivo: 'Un anio, fijado por el propietario el 11-sep-2026.',
+  motivo: 'Un anio, fijado por el propietario el 11-sep-2026. Las cadenillas entran aca: no son una pieza aparte.',
 };
 
 const OTRAS_PIEZAS: Record<Exclude<PiezaGarantia, 'tela' | 'perfileria'>, PiezaDef> = {
@@ -99,6 +118,7 @@ const OTRAS_PIEZAS: Record<Exclude<PiezaGarantia, 'tela' | 'perfileria'>, PiezaD
     etiqueta: 'Motor',
     meses: 12,
     motivo: 'Un anio, fijado por el propietario el 11-sep-2026. El documento al cliente dice "segun fabricante" sin nombrar ninguno; la empresa responde un anio igual, sea el motor que sea.',
+    respaldoProveedorMeses: 60,
   },
   instalacion: {
     id: 'instalacion',
@@ -106,17 +126,12 @@ const OTRAS_PIEZAS: Record<Exclude<PiezaGarantia, 'tela' | 'perfileria'>, PiezaD
     meses: 12,
     motivo: 'Un anio, fijado por el propietario el 11-sep-2026.',
   },
-  cadenilla: {
-    id: 'cadenilla',
-    etiqueta: 'Cadenilla',
-    meses: null,
-    motivo: 'Marcada "por definir" desde siempre. Nunca se fijo.',
-  },
   pelicula: {
     id: 'pelicula',
     etiqueta: 'Pelicula solar',
-    meses: null,
-    motivo: 'Marcada "por definir" desde siempre. Nunca se fijo.',
+    meses: 12,
+    motivo: 'Un anio, fijado por el propietario el 11-sep-2026. Es el unico caso cuyo respaldo NO viene del proveedor: la pelicula no figura en la tabla de garantias de Safra.',
+    alcance: 'Solo por defectos de pegado. Decoloracion, rayones o cualquier otra falla NO entran, aunque este dentro del anio.',
   },
 };
 
@@ -132,12 +147,14 @@ const TELAS: Record<FamiliaTela, PiezaDef> = {
     etiqueta: 'Tela de poliester',
     meses: 12,
     motivo: 'Un anio, fijado por el propietario el 11-sep-2026. En Girardot no se comercializa poliester.',
+    respaldoProveedorMeses: 24,
   },
   blackout: {
     id: 'tela',
     etiqueta: 'Tela blackout',
     meses: 12,
     motivo: 'Un anio, fijado por el propietario el 11-sep-2026. Necesitaba respuesta propia porque el blackout es PVC con fibra de vidrio: no es Screen Solar ni poliester.',
+    respaldoProveedorMeses: 36,
   },
   otra: {
     id: 'tela',
@@ -172,6 +189,12 @@ export type Veredicto = 'dentro' | 'vencida' | 'sin_definir';
 export interface Cobertura {
   pieza: PiezaDef;
   veredicto: Veredicto;
+  /**
+   * Aviso INTERNO cuando la garantia propia vencio pero el proveedor todavia respalda la
+   * pieza. No es algo que se le diga al cliente: es para no negar de memoria algo que la
+   * fabrica repone.
+   */
+  respaldoVigente?: string;
   /** Cuando vence, si hay plazo y fecha de instalacion. */
   venceEl?: number;
   /** Dias que faltan (positivo) o que pasaron (negativo). */
@@ -218,7 +241,7 @@ export function evaluarCobertura(entrada: {
     return {
       pieza: def,
       veredicto: 'sin_definir',
-      explicacion: `${def.etiqueta}: ${plazo} de garantia. Falta la fecha de instalacion para saber si el caso esta dentro.`,
+      explicacion: `${def.etiqueta}: ${plazo} de garantia.${def.alcance ? ` ${def.alcance}` : ''} Falta la fecha de instalacion para saber si el caso esta dentro.`,
     };
   }
 
@@ -227,14 +250,28 @@ export function evaluarCobertura(entrada: {
   const diasRestantes = Math.round((venceEl - reclamo) / DIA);
   const dentro = reclamo <= venceEl;
 
+  // Si la propia vencio, mirar si el proveedor todavia responde por la pieza.
+  let respaldoVigente: string | undefined;
+  if (!dentro && def.respaldoProveedorMeses) {
+    const venceProveedor = sumarMeses(entrada.fechaInstalacion, def.respaldoProveedorMeses);
+    if (reclamo <= venceProveedor) {
+      const anios = def.respaldoProveedorMeses / 12;
+      respaldoVigente =
+        `INTERNO: la garantia propia vencio, pero Safra respalda esta pieza ${anios} anios, ` +
+        `hasta el ${fechaCorta(venceProveedor)}. Consultar con el proveedor antes de negar.`;
+    }
+  }
+
   return {
     pieza: def,
     veredicto: dentro ? 'dentro' : 'vencida',
     venceEl,
     diasRestantes,
-    explicacion: dentro
+    ...(respaldoVigente ? { respaldoVigente } : {}),
+    explicacion: (dentro
       ? `${def.etiqueta}: ${plazo} de garantia, vigente hasta el ${fechaCorta(venceEl)}.`
-      : `${def.etiqueta}: ${plazo} de garantia, vencida el ${fechaCorta(venceEl)} (hace ${Math.abs(diasRestantes)} dias).`,
+      : `${def.etiqueta}: ${plazo} de garantia, vencida el ${fechaCorta(venceEl)} (hace ${Math.abs(diasRestantes)} dias).`)
+      + (def.alcance ? ` ${def.alcance}` : ''),
   };
 }
 
@@ -355,7 +392,7 @@ export function construirCaso(entrada: {
   return caso;
 }
 
-export const PIEZAS: PiezaGarantia[] = ['tela', 'perfileria', 'motor', 'instalacion', 'cadenilla', 'pelicula'];
+export const PIEZAS: PiezaGarantia[] = ['tela', 'perfileria', 'motor', 'instalacion', 'pelicula'];
 
 export function causaDef(id: string): CausaDef | undefined {
   return CAUSAS.find(c => c.id === id);

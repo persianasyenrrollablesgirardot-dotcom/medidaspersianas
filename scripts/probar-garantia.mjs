@@ -3,9 +3,13 @@
  *
  * Lo que se cuida, en orden de importancia:
  *
- * 1. **Que NO invente un plazo cuando no lo hay.** Quedan las cadenillas y las peliculas
- *    solares, y tambien una tela cuya familia no se reconoce. Un numero estimado aca se
- *    convierte en una promesa al cliente que la empresa no puede sostener.
+ * 1. **Que NO invente un plazo cuando no lo hay.** Queda una tela cuya familia no se
+ *    reconoce. Un numero estimado aca se convierte en una promesa al cliente que la
+ *    empresa no puede sostener.
+ *
+ * 1-bis. **Que un plazo no se confunda con una cobertura.** La pelicula solar tiene un anio
+ *    pero SOLO por defectos de pegado. Estar dentro del plazo no alcanza: la falla tambien
+ *    tiene que caber. Decir "un anio" a secas ahi seria prometer de mas.
  *
  * 2. **Que devuelva los DOS plazos de una persiana**, tela y perfileria. Una sola cifra
  *    siempre miente para alguno de los dos lados: "tres anios" promete de mas, "un anio"
@@ -56,8 +60,6 @@ const dias = n => ENE_2025 + n * 24 * 60 * 60 * 1000;
 // ── 1. Lo que NO se sabe se responde como no sabido ─────────────────────────
 console.log('\nLo que no tiene plazo fijado');
 for (const [pieza, familia, etiqueta] of [
-  ['cadenilla', undefined, 'la cadenilla'],
-  ['pelicula', undefined, 'la pelicula solar'],
   ['tela', 'otra', 'una tela sin identificar'],
 ]) {
   const c = evaluarCobertura({ pieza, familiaTela: familia, fechaInstalacion: ENE_2025, fechaReclamo: dias(30) });
@@ -77,7 +79,32 @@ ok(piezaDef('perfileria').meses === 12, 'La perfileria es de 12 meses');
 ok(piezaDef('motor').meses === 12, 'El motor es de 12 meses');
 ok(piezaDef('instalacion').meses === 12, 'La mano de obra de instalacion es de 12 meses');
 ok(piezaDef('tela', 'otra').meses === null, 'Una tela sin identificar no tiene plazo');
-ok(PIEZAS.length === 6, 'Son seis piezas posibles');
+ok(piezaDef('pelicula').meses === 12, 'La pelicula solar es de 12 meses');
+ok(PIEZAS.length === 5, 'Son cinco piezas: la cadenilla NO es una, va dentro de la perfileria');
+ok(!PIEZAS.includes('cadenilla'), 'La cadenilla no existe como pieza aparte');
+ok(
+  piezaDef('perfileria').etiqueta.toLowerCase().includes('cadenilla'),
+  'Y la perfileria lo dice: las cadenillas entran ahi',
+);
+
+// El unico caso del portafolio con la cobertura acotada a un tipo de falla.
+console.log('\nUn plazo no es una cobertura');
+ok(piezaDef('pelicula').alcance !== undefined, 'La pelicula solar declara un alcance acotado');
+ok(piezaDef('pelicula').alcance.includes('pegado'), 'Y dice cual: solo defectos de pegado');
+ok(
+  ['tela', 'perfileria', 'motor', 'instalacion'].every(p => piezaDef(p, 'screen_solar').alcance === undefined),
+  'Ninguna otra pieza tiene el alcance acotado: es el unico caso',
+);
+const peli = evaluarCobertura({ pieza: 'pelicula', fechaInstalacion: ENE_2025, fechaReclamo: dias(100) });
+ok(peli.veredicto === 'dentro', 'Una pelicula de 100 dias esta dentro del plazo');
+ok(
+  peli.explicacion.includes('pegado'),
+  'Pero la explicacion NO dice solo "un anio": arrastra el alcance, o prometeria de mas',
+);
+ok(
+  evaluarCobertura({ pieza: 'pelicula' }).explicacion.includes('pegado'),
+  'Y tambien lo dice cuando todavia no hay fecha de instalacion',
+);
 // La regla entera, dicha de una: es asi de simple y conviene que la prueba lo fije.
 const conPlazo = PIEZAS
   .flatMap(p => p === 'tela' ? ['screen_solar', 'blackout', 'poliester'].map(f => piezaDef(p, f)) : [piezaDef(p)])
@@ -127,6 +154,27 @@ ok(
   desconocida.tela.veredicto === 'sin_definir' && desconocida.perfileria.veredicto === 'dentro',
   'Con una tela que no se reconoce se responde por la perfileria y NO por la tela',
 );
+
+// ── 4-bis. El proveedor respalda mas que la garantia propia ────────────────
+console.log('\nRespaldo del proveedor (aviso interno)');
+const blackoutVencido = evaluarCobertura({ pieza: 'tela', familiaTela: 'blackout', fechaInstalacion: ENE_2025, fechaReclamo: dias(500) });
+ok(blackoutVencido.veredicto === 'vencida', 'A los 500 dias la garantia propia del blackout vencio');
+ok(
+  blackoutVencido.respaldoVigente !== undefined && blackoutVencido.respaldoVigente.includes('Safra'),
+  'Pero avisa que Safra todavia lo respalda: 3 anios contra el anio propio',
+);
+ok(
+  blackoutVencido.respaldoVigente.startsWith('INTERNO'),
+  'Marcado como INTERNO: es para no negar de memoria, NO para prometerselo al cliente',
+);
+const motorViejo = evaluarCobertura({ pieza: 'motor', fechaInstalacion: ENE_2025, fechaReclamo: dias(1000) });
+ok(motorViejo.respaldoVigente !== undefined, 'Un motor de casi 3 anios sigue respaldado por Safra: son 5');
+const screenDentro = evaluarCobertura({ pieza: 'tela', familiaTela: 'screen_solar', fechaInstalacion: ENE_2025, fechaReclamo: dias(100) });
+ok(!('respaldoVigente' in screenDentro), 'Si la propia sigue vigente no aparece el aviso: no haria falta');
+const perfileriaVencida = evaluarCobertura({ pieza: 'perfileria', fechaInstalacion: ENE_2025, fechaReclamo: dias(500) });
+ok(!('respaldoVigente' in perfileriaVencida), 'La perfileria no lo tiene: ahi los plazos coinciden');
+const muyViejo = evaluarCobertura({ pieza: 'tela', familiaTela: 'blackout', fechaInstalacion: ENE_2025, fechaReclamo: dias(1500) });
+ok(!('respaldoVigente' in muyViejo), 'Pasados los 3 anios del proveedor, tampoco hay respaldo que avisar');
 
 // ── 5. Vigencia ─────────────────────────────────────────────────────────────
 console.log('\nVigencia');
@@ -184,6 +232,8 @@ lanza(() => construirCaso({ projectId: 0, projectCode: 'P', actor: 'a', descripc
   'Rechaza un caso sin proyecto');
 lanza(() => construirCaso({ projectId: 4, projectCode: 'P', actor: 'a', descripcion: 'x', pieza: 'vidrio' }),
   'Rechaza una pieza que no existe');
+lanza(() => construirCaso({ projectId: 4, projectCode: 'P', actor: 'a', descripcion: 'x', pieza: 'cadenilla' }),
+  'Y rechaza "cadenilla", que dejo de ser una pieza: va dentro de la perfileria');
 
 const lista = [
   { ...caso, id: 1 },
