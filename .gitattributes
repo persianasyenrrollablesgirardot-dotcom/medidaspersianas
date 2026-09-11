@@ -1,0 +1,20 @@
+# Fines de línea: el repositorio guarda LF, siempre.
+#
+# Este árbol se edita desde Windows y desde WSL. Sin esta regla, cada vez que cambia el
+# editor se reescriben los archivos completos y `git status` muestra 27 archivos
+# modificados con 8.249 líneas que no cambiaron nada. Eso entierra el cambio de verdad,
+# y el análisis forense del historial es la primera herramienta cuando algo se rompe.
+* text=auto eol=lf
+
+# Binarios: su contenido no se normaliza nunca.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.ico   binary
+*.webp  binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.zip   binary
+*.xlsx  binary
