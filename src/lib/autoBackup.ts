@@ -101,7 +101,7 @@ export function descargarTexto(nombre: string, contenido: string, tipo = 'applic
  * sí solo, aunque se pierda la app y el celular. Es el formato que salvó julio.
  *
  * Desde la v2 se lleva ademas los registros que NO viven dentro del proyecto:
- * recibos, facturas, constancias de puerta y seguimiento del pedido. Antes se perdian
+ * recibos, facturas, constancias de puerta, seguimiento del pedido y casos de garantia. Antes se perdian
  * en silencio — el archivo decia "respaldo completo" y solo traia proyectos.
  *
  * `version: 2` y las claves nuevas son ADITIVAS: quien lee el archivo sigue buscando
@@ -115,11 +115,12 @@ export function descargarTexto(nombre: string, contenido: string, tipo = 'applic
 export async function descargarRespaldoCompleto(): Promise<{ proyectos: number; bytes: number }> {
   await flushWrites();
   const proyectos = await hydrateProjectsPhotos(getFallbackProjects());
-  const [receipts, invoices, gateEvents, trackingEvents] = await Promise.all([
+  const [receipts, invoices, gateEvents, trackingEvents, warrantyCases] = await Promise.all([
     db.receipts.toArray(),
     db.invoices.toArray(),
     db.projectEvents.toArray(),
     db.trackingEvents.toArray(),
+    db.warrantyCases.toArray(),
   ]);
   const contenido = JSON.stringify(
     {
@@ -131,6 +132,7 @@ export async function descargarRespaldoCompleto(): Promise<{ proyectos: number; 
       invoices,
       gateEvents,
       trackingEvents,
+      warrantyCases,
     },
     null,
     2,

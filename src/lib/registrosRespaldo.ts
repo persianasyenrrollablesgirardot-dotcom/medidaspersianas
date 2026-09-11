@@ -35,13 +35,14 @@ export interface RegistrosRespaldo {
   invoices: Record<string, unknown>[];
   gateEvents: Record<string, unknown>[];
   trackingEvents: Record<string, unknown>[];
+  warrantyCases: Record<string, unknown>[];
 }
 
 export type TablaRegistro = keyof RegistrosRespaldo;
 
-export const TABLAS: TablaRegistro[] = ['receipts', 'invoices', 'gateEvents', 'trackingEvents'];
+export const TABLAS: TablaRegistro[] = ['receipts', 'invoices', 'gateEvents', 'trackingEvents', 'warrantyCases'];
 
-export const VACIO: RegistrosRespaldo = { receipts: [], invoices: [], gateEvents: [], trackingEvents: [] };
+export const VACIO: RegistrosRespaldo = { receipts: [], invoices: [], gateEvents: [], trackingEvents: [], warrantyCases: [] };
 
 function filas(valor: unknown): Record<string, unknown>[] {
   if (!Array.isArray(valor)) return [];
@@ -62,6 +63,7 @@ export function leerRegistros(parsed: unknown): RegistrosRespaldo {
     invoices: filas(raiz.invoices),
     gateEvents: filas(raiz.gateEvents),
     trackingEvents: filas(raiz.trackingEvents),
+    warrantyCases: filas(raiz.warrantyCases),
   };
 }
 
@@ -75,6 +77,7 @@ export function sumarRegistros(a: RegistrosRespaldo, b: RegistrosRespaldo): Regi
     invoices: [...a.invoices, ...b.invoices],
     gateEvents: [...a.gateEvents, ...b.gateEvents],
     trackingEvents: [...a.trackingEvents, ...b.trackingEvents],
+    warrantyCases: [...a.warrantyCases, ...b.warrantyCases],
   };
 }
 
@@ -107,11 +110,18 @@ export function claveNatural(tabla: TablaRegistro, fila: Record<string, unknown>
       if (!projectCode || !tipo || !estado || typeof at !== 'number') return null;
       return `${projectCode}|${tipo}|${estado}|${at}|${actor ?? ''}`;
     }
+    case 'warrantyCases': {
+      // Un caso se reconoce por el proyecto, el momento en que se abrio y lo que reclamaba
+      // el cliente. No por su estado: un caso cerrado y el mismo caso abierto son el mismo.
+      const { projectCode, abiertoEl, descripcion } = fila;
+      if (!projectCode || typeof abiertoEl !== 'number') return null;
+      return `${projectCode}|${abiertoEl}|${String(descripcion ?? '').slice(0, 80)}`;
+    }
   }
 }
 
 /** Las tablas que cuelgan de un proyecto y hay que volver a apuntar. */
-const LIGADAS_A_PROYECTO: TablaRegistro[] = ['receipts', 'gateEvents', 'trackingEvents'];
+const LIGADAS_A_PROYECTO: TablaRegistro[] = ['receipts', 'gateEvents', 'trackingEvents', 'warrantyCases'];
 
 export interface PlanTabla {
   /** Listos para insertar: sin `id`, con `projectId` ya apuntando al local. */
@@ -132,6 +142,7 @@ export function planVacio(): PlanRestauracion {
     invoices: { aInsertar: [], duplicados: 0, huerfanos: 0, invalidos: 0 },
     gateEvents: { aInsertar: [], duplicados: 0, huerfanos: 0, invalidos: 0 },
     trackingEvents: { aInsertar: [], duplicados: 0, huerfanos: 0, invalidos: 0 },
+    warrantyCases: { aInsertar: [], duplicados: 0, huerfanos: 0, invalidos: 0 },
   };
 }
 
@@ -152,8 +163,10 @@ export function planRestauracion(
   const plan = planVacio();
 
   for (const tabla of TABLAS) {
-    const vistas = new Set(existentes[tabla]);
-    const filasTabla = [...entrantes[tabla]];
+    const vistas = new Set(existentes[tabla] ?? []);
+    // Tolerante a que falte una tabla entera: un respaldo viejo no la trae, y quien llame
+    // con un objeto incompleto no debe voltear la restauracion completa.
+    const filasTabla = [...(entrantes[tabla] ?? [])];
 
     // Los eventos se insertan de viejo a nuevo: `corrigeA` apunta siempre hacia atras,
     // asi que al llegar a la correccion ya se conoce el id nuevo de lo corregido.

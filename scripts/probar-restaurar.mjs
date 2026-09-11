@@ -47,7 +47,7 @@ const {
 let fallos = 0;
 const ok = (cond, msg) => { console.log((cond ? '  OK   ' : '  FALLA') + ' ' + msg); if (!cond) fallos++; };
 
-const sinNada = { receipts: new Set(), invoices: new Set(), gateEvents: new Set(), trackingEvents: new Set() };
+const sinNada = { receipts: new Set(), invoices: new Set(), gateEvents: new Set(), trackingEvents: new Set(), warrantyCases: new Set() };
 const codigos = new Map([['PRY-0001', 41], ['PRY-0002', 77]]);
 
 // ── 1. Leer el archivo ───────────────────────────────────────────────────────
@@ -89,6 +89,7 @@ const entrantes = {
   invoices: [{ id: 800, type: 'FACTURA', documentNumber: 'FAC-0007' }],
   gateEvents: [{ id: 700, projectId: 5, projectCode: 'PRY-0002', etapa: 'P-05.3', at: 20, actor: 'a' }],
   trackingEvents: [{ id: 600, projectId: 5, projectCode: 'PRY-0001', tipo: 'produccion', estado: 'en_produccion', at: 30, actor: 'a' }],
+  warrantyCases: [{ id: 500, projectId: 5, projectCode: 'PRY-0002', abiertoEl: 40, descripcion: 'No sube', actor: 'a', pieza: 'tela' }],
 };
 const plan = planRestauracion(entrantes, codigos, sinNada);
 ok(plan.receipts.aInsertar[0].projectId === 41, 'El recibo queda apuntando al id local de su codigo, no al viejo');
@@ -96,7 +97,8 @@ ok(plan.gateEvents.aInsertar[0].projectId === 77, 'La constancia tambien, y a OT
 ok(plan.receipts.aInsertar[0].id === undefined, 'El id viejo no se guarda');
 ok(plan.gateEvents.aInsertar[0].__idViejo === 700, 'Pero se conserva aparte, para poder traducir corrigeA');
 ok(plan.invoices.aInsertar[0].projectId === undefined, 'Una factura no cuelga de un proyecto: no se le inventa uno');
-ok(resumir(plan).insertados === 4, 'Entran los cuatro registros');
+ok(resumir(plan).insertados === 5, 'Entran los cinco registros');
+ok(plan.warrantyCases.aInsertar[0].projectId === 77, 'Un caso de garantia tambien se vuelve a apuntar por codigo');
 
 // ── 4. No duplicar ───────────────────────────────────────────────────────────
 console.log('\nRestaurar dos veces no duplica');
@@ -105,10 +107,11 @@ const yaEstan = {
   invoices: new Set([claveNatural('invoices', entrantes.invoices[0])]),
   gateEvents: new Set([claveNatural('gateEvents', entrantes.gateEvents[0])]),
   trackingEvents: new Set([claveNatural('trackingEvents', entrantes.trackingEvents[0])]),
+  warrantyCases: new Set([claveNatural('warrantyCases', entrantes.warrantyCases[0])]),
 };
 const segundaVez = planRestauracion(entrantes, codigos, yaEstan);
 ok(resumir(segundaVez).insertados === 0, 'La segunda pasada no inserta NADA');
-ok(resumir(segundaVez).duplicados === 4, 'Y cuenta los cuatro como duplicados');
+ok(resumir(segundaVez).duplicados === 5, 'Y cuenta los cinco como duplicados');
 
 const repetidoEnElArchivo = planRestauracion(
   { ...entrantes, receipts: [entrantes.receipts[0], { ...entrantes.receipts[0], id: 901 }] },
@@ -123,14 +126,14 @@ ok(
 // ── 5. Huerfanos e invalidos ─────────────────────────────────────────────────
 console.log('\nLo que no tiene dueno');
 const huerfano = planRestauracion(
-  { receipts: [{ projectCode: 'PRY-9999', date: 1, total: 1, abono: 1 }], invoices: [], gateEvents: [], trackingEvents: [] },
+  { receipts: [{ projectCode: 'PRY-9999', date: 1, total: 1, abono: 1 }], invoices: [], gateEvents: [], trackingEvents: [], warrantyCases: [] },
   codigos,
   sinNada,
 );
 ok(huerfano.receipts.aInsertar.length === 0, 'Un recibo de un proyecto que no existe aca NO se inserta');
 ok(huerfano.receipts.huerfanos === 1, 'Se cuenta como huerfano, no se cuelga de cualquier proyecto');
 const invalido = planRestauracion(
-  { receipts: [{ total: 5 }], invoices: [], gateEvents: [], trackingEvents: [] },
+  { receipts: [{ total: 5 }], invoices: [], gateEvents: [], trackingEvents: [], warrantyCases: [] },
   codigos,
   sinNada,
 );
@@ -140,7 +143,7 @@ ok(invalido.receipts.invalidos === 1, 'Una fila sin llave utilizable se cuenta a
 console.log('\nOrden de insercion de las constancias');
 const desordenadas = planRestauracion(
   {
-    receipts: [], invoices: [], trackingEvents: [],
+    receipts: [], invoices: [], trackingEvents: [], warrantyCases: [],
     gateEvents: [
       { id: 2, projectCode: 'PRY-0001', etapa: 'P-05.3', at: 2000, actor: 'a', corrigeA: 1 },
       { id: 1, projectCode: 'PRY-0001', etapa: 'P-05.3', at: 1000, actor: 'a' },
@@ -173,6 +176,16 @@ ok(
   siguienteConsecutivo([{ type: 'FACTURA', documentNumber: 'pendiente' }], 'FACTURA') === 'FAC-0001',
   'Un numero que no se puede leer no arrastra la serie',
 );
+
+// ── 8. Tolerancia a un respaldo al que le falta una tabla entera ────────────
+console.log('\nRespaldo incompleto');
+const incompleto = planRestauracion({ receipts: [], invoices: [] }, codigos, sinNada);
+ok(resumir(incompleto).insertados === 0, 'Un objeto al que le faltan tablas no voltea la restauracion');
+const soloCaso = planRestauracion(
+  { warrantyCases: [{ projectCode: 'PRY-0001', abiertoEl: 9, descripcion: 'x' }] },
+  codigos, sinNada,
+);
+ok(soloCaso.warrantyCases.aInsertar.length === 1, 'Y lo que si viene se procesa igual');
 
 fs.unlinkSync(tmp);
 console.log(fallos === 0 ? '\nTodo bien.' : `\n${fallos} fallas.`);

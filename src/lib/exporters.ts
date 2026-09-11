@@ -21,6 +21,7 @@ export interface BackupPayload {
   invoices?: unknown[];
   gateEvents?: unknown[];
   trackingEvents?: unknown[];
+  warrantyCases?: unknown[];
 }
 
 /**
@@ -35,7 +36,7 @@ export interface BackupPayload {
  */
 export function buildBackup(
   projects: TechnicalProject[],
-  registros?: { receipts: unknown[]; invoices: unknown[]; gateEvents: unknown[]; trackingEvents: unknown[] },
+  registros?: { receipts: unknown[]; invoices: unknown[]; gateEvents: unknown[]; trackingEvents: unknown[]; warrantyCases: unknown[] },
 ): BackupPayload {
   return {
     app: 'App_Tecnica_Campo_Juno',

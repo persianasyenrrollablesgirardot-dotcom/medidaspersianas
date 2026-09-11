@@ -39,6 +39,7 @@ async function filasDe(tabla: TablaRegistro): Promise<Record<string, unknown>[]>
     case 'invoices': return db.invoices.toArray() as unknown as Promise<Record<string, unknown>[]>;
     case 'gateEvents': return db.projectEvents.toArray() as unknown as Promise<Record<string, unknown>[]>;
     case 'trackingEvents': return db.trackingEvents.toArray() as unknown as Promise<Record<string, unknown>[]>;
+    case 'warrantyCases': return db.warrantyCases.toArray() as unknown as Promise<Record<string, unknown>[]>;
   }
 }
 
@@ -88,6 +89,9 @@ export async function restaurarRegistros(entrantes: RegistrosRespaldo): Promise<
   }
   if (plan.trackingEvents.aInsertar.length) {
     await db.trackingEvents.bulkAdd(plan.trackingEvents.aInsertar.map(limpiar) as never[]);
+  }
+  if (plan.warrantyCases.aInsertar.length) {
+    await db.warrantyCases.bulkAdd(plan.warrantyCases.aInsertar.map(limpiar) as never[]);
   }
 
   // Las constancias, una por una y en orden: hay que traducir `corrigeA`.

@@ -14,7 +14,8 @@
     "probar:duplicar": "node scripts/probar-duplicar.mjs",
     "probar:bitacora": "node scripts/probar-bitacora.mjs",
     "probar:seguimiento": "node scripts/probar-seguimiento.mjs",
-    "probar:restaurar": "node scripts/probar-restaurar.mjs"
+    "probar:restaurar": "node scripts/probar-restaurar.mjs",
+    "probar:garantia": "node scripts/probar-garantia.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.2",

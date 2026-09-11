@@ -19,6 +19,7 @@ import { dbFirestore } from '../lib/firebase';
 import { useEffect } from 'react';
 import { supplierStatusDocId, useAllSupplierStatuses, type SupplierStatuses } from '../lib/supplierStatus';
 import { produccionPorProyecto, estadoDef, ESTADOS_PRODUCCION, type TrackingEvent } from '../lib/bitacoraSeguimiento';
+import { casosAbiertosPorProyecto } from '../lib/casosGarantia';
 
 // Quita tildes/diacríticos y pasa a minúsculas para que la búsqueda sea "congruente":
 // "José" == "jose", "Girardot" == "girardot". Base de la búsqueda por palabras.
@@ -276,6 +277,13 @@ export function Dashboard() {
   // interna: al proveedor no se le muestra ni se le calcula.
   const produccionPorId = useLiveQuery(
     () => role === 'admin' ? produccionPorProyecto() : Promise.resolve(new Map<number, TrackingEvent>()),
+    [role],
+  );
+  // Un reclamo abierto tiene que verse desde afuera del proyecto. La posventa crítica pesa
+  // más que la venta nueva, y eso no sirve de nada si hay que entrar a cada proyecto para
+  // enterarse de que hay uno esperando.
+  const casosAbiertosPorId = useLiveQuery(
+    () => role === 'admin' ? casosAbiertosPorProyecto() : Promise.resolve(new Map<number, number>()),
     [role],
   );
   const statusesOf = useMemo(
@@ -651,6 +659,14 @@ Solo se limpia el cache del navegador. NO se pierde ningun pedido ni lo que ya m
                       style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '6px', fontSize: '11px', fontWeight: 800, color: '#b45309', background: 'rgba(217,119,6,0.15)', border: '1px solid rgba(217,119,6,0.5)', borderRadius: '999px', padding: '3px 9px', cursor: 'pointer' }}
                     >
                       🧾 Con recibo · sin enviar — marcar enviado
+                    </span>
+                  )}
+                  {role === 'admin' && (casosAbiertosPorId?.get(project.projectId) ?? 0) > 0 && (
+                    <span
+                      title="Este proyecto tiene un reclamo de posventa sin cerrar."
+                      style={{ display: 'inline-block', marginTop: '6px', marginRight: '6px', fontSize: '11px', fontWeight: 800, color: '#b45309', background: 'rgba(217,119,6,0.15)', border: '1px solid rgba(217,119,6,0.5)', borderRadius: '999px', padding: '3px 9px' }}
+                    >
+                      ⚠ {casosAbiertosPorId!.get(project.projectId)} reclamo{casosAbiertosPorId!.get(project.projectId)! > 1 ? 's' : ''} abierto{casosAbiertosPorId!.get(project.projectId)! > 1 ? 's' : ''}
                     </span>
                   )}
                   {role === 'admin' && (() => {

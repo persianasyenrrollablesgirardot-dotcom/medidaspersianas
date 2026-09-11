@@ -15,6 +15,7 @@ import { quoteArea, solutionArea, solutionTotal } from '../lib/metrics';
 import { useAuth } from '../components/AuthContext';
 import { BitacoraPanel } from '../components/BitacoraPanel';
 import { SeguimientoPanel } from '../components/SeguimientoPanel';
+import { GarantiaPanel } from '../components/GarantiaPanel';
 import { syncProjectToCloud } from '../lib/cloudSync';
 import { enviarPedidoPorCorreo } from '../lib/enviarCorreo';
 import type { TechnicalCatalog, TechnicalProject, TechnicalSolution } from '../types';
@@ -33,6 +34,17 @@ export function ProjectDetail() {
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const { role } = useAuth();
+
+  // Telas que de verdad tiene este proyecto. El plazo de garantía sale de la familia de la
+  // tela, y la familia se deduce del nombre: elegir de una lista evita que un nombre mal
+  // escrito deje el caso sin plazo.
+  const telasDelProyecto = Array.from(new Set(
+    (project?.spaces ?? []).flatMap(space =>
+      (space.windows ?? []).flatMap(win =>
+        (win.solutions ?? []).map(sol => sol.fabric).filter((f): f is string => !!f),
+      ),
+    ),
+  )).sort();
 
   const handleSendToSupplier = async () => {
     if (!project) return;
@@ -338,6 +350,7 @@ export function ProjectDetail() {
         <>
           <SeguimientoPanel projectId={project.id} projectCode={project.code} />
           <BitacoraPanel projectId={project.id} projectCode={project.code} />
+          <GarantiaPanel projectId={project.id} projectCode={project.code} telasDelProyecto={telasDelProyecto} />
         </>
       )}
 

@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import type { ProjectSummary, TechnicalCatalog, TechnicalProject, SyncQueueItem, InvoiceRecord, ReceiptRecord, PhotoRecord, BackupRecord, TrashedItem } from './types';
 import type { GateEvent } from './lib/puertas';
 import type { TrackingEvent } from './lib/seguimiento';
+import type { CasoGarantia } from './lib/garantia';
 import { siguienteConsecutivo } from './lib/registrosRespaldo';
 import { DEFAULT_MAINTENANCE_CATALOG } from './lib/defaultTasks';
 
@@ -41,6 +42,7 @@ class TechnicalFieldDB extends Dexie {
   trash!: Table<TrashedItem, number>;
   projectEvents!: Table<GateEvent, number>;
   trackingEvents!: Table<TrackingEvent, number>;
+  warrantyCases!: Table<CasoGarantia, number>;
 
   constructor() {
     super(DB_NAME);
@@ -136,6 +138,30 @@ class TechnicalFieldDB extends Dexie {
       trash: '++id, projectId, kind, deletedAt',
       projectEvents: '++id, projectId, projectCode, etapa, at',
       trackingEvents: '++id, projectId, projectCode, tipo, estado, at',
+    });
+    // v8: casos de posventa y garantia. No habia donde registrar un reclamo, su causa ni
+    // que se le respondio al cliente — y la respuesta es justamente lo que hace falta
+    // probar meses despues.
+    //
+    // A diferencia de las dos tablas anteriores, esta NO es append-only: un caso es un
+    // pendiente que se abre y se cierra, no un hecho que ya paso. Lo que si se congela es
+    // el veredicto de cobertura al abrirlo, para que un cambio de regla no reescriba lo
+    // que se prometio aquel dia. Ver `garantia.ts`.
+    //
+    // Solo AGREGA tabla.
+    this.version(8).stores({
+      projects: '++id, code, clientName, status, createdAt, updatedAt, deletedAt, synced',
+      projectSummaries: '++id, &projectId, code, clientName, status, updatedAt, deletedAt, synced',
+      catalog: '++id',
+      syncQueue: '++id, type, refId, status, nextAttemptAt, createdAt',
+      invoices: '++id, type, documentNumber, clientName, date',
+      receipts: '++id, projectId, projectCode, clientName, date, status',
+      photos: 'id, projectId, projectCode, createdAt, uploadedAt',
+      backups: '++id, createdAt, reason',
+      trash: '++id, projectId, kind, deletedAt',
+      projectEvents: '++id, projectId, projectCode, etapa, at',
+      trackingEvents: '++id, projectId, projectCode, tipo, estado, at',
+      warrantyCases: '++id, projectId, projectCode, abiertoEl, cerradoEl',
     });
   }
 }

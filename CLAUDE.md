@@ -337,7 +337,7 @@ el Dashboard del admin.
 Al auditar el flujo aparecio que `descargarRespaldoCompleto()` decia "respaldo completo" y
 **solo guardaba proyectos**: los recibos y las facturas ya se perdian en silencio desde
 antes. Ahora el archivo va en `version: 2` y lleva ademas `receipts`, `invoices`,
-`gateEvents` y `trackingEvents`. Las claves nuevas son aditivas — quien lee sigue buscando
+`gateEvents`, `trackingEvents` y `warrantyCases`. Las claves nuevas son aditivas — quien lee sigue buscando
 `projects`, asi que un archivo nuevo se restaura con el rescate de siempre.
 
 **Cerrado el 11-sep** con `registrosRespaldo.ts` (puro) + `restaurarRegistros.ts` (base).
@@ -374,6 +374,55 @@ copia perdia datos en silencio. Nadie lee el numero de version para decidir como
 asi que subirlo no rompe ningun archivo viejo.
 
 `npm run probar:restaurar` corre 29 comprobaciones.
+
+## Garantia y posventa (11-sep-2026)
+
+Tabla Dexie **v8** `warrantyCases`, panel en `ProjectDetail`, insignia de reclamo abierto en el
+Dashboard del admin. Reglas en `src/lib/garantia.ts` (puro), escritura en `casosGarantia.ts`.
+
+### No hay UN plazo de garantia, y esa era la pregunta mal hecha
+
+Convivian cuatro cifras (1 anio, 12 meses, 5 anios, "sin plazo escrito") y ninguna tenia razon
+del todo porque **todas buscaban un numero unico**. Jhon lo fijo el 11-sep-2026 y depende de la
+pieza:
+
+| Pieza | Plazo |
+|---|---|
+| Perfileria: perfiles, mecanismos, herrajes | **1 anio** |
+| Tela **Screen Solar** | **3 anios** |
+| Tela de **poliester** | **1 anio** |
+
+- **El plazo sigue a la TELA, no al sistema.** Los tres anios del Screen Solar valen igual en
+  Sheer Elegance, en enrollables y en panel japones. Por eso `familiaDeTela()` clasifica por el
+  nombre comercial y no por el sistema donde esta montada.
+- **Una persiana lleva DOS plazos a la vez** y la pantalla muestra los dos. Decir "tres anios" a
+  secas promete de mas y decir "un anio" promete de menos. `coberturaDeSolucion()` devuelve el
+  par, nunca uno solo.
+- **Lo que NO se sabe se responde como no sabido.** Blackout, motores, mano de obra de
+  instalacion, cadenillas y peliculas no tienen plazo fijado: devuelve `sin_definir` con el
+  motivo y **jamas un numero estimado**. El blackout no es un caso raro —es de lo mas vendido en
+  Girardot— y es PVC con fibra de vidrio, asi que no es ni Screen Solar ni poliester y ninguno de
+  los dos plazos confirmados le aplica. Un plazo inventado aca se vuelve una promesa que la
+  empresa no puede sostener.
+- **Ante "Blackout Screen" manda blackout.** Hay una prueba para eso: la regla mira blackout
+  antes que screen, porque equivocarse hacia el lado de los 3 anios promete de mas.
+- **El veredicto queda CONGELADO en el caso** (`veredictoAlAbrir`, `explicacionAlAbrir`). Se
+  guarda aunque se pueda recalcular: si manana cambia una regla, el caso tiene que seguir
+  diciendo que se le respondio al cliente aquel dia. Recalcular al vuelo reescribiria la
+  historia, que es lo que no puede pasar en un reclamo.
+- **Esta tabla NO es append-only**, a diferencia de la bitacora y el seguimiento, y la diferencia
+  es de fondo: aquellos registran hechos que pasaron; un caso es un pendiente que se abre y se
+  cierra. Forzarlo obligaria a reconstruir el estado de cada reclamo leyendo su historia.
+- Causas (6) y resoluciones (4) son listas cerradas del vocabulario del negocio.
+- Las telas del formulario salen del propio proyecto, no se escriben a mano: el plazo depende de
+  la familia y la familia se deduce del nombre, asi que un nombre mal escrito dejaria el caso sin
+  plazo.
+
+`npm run probar:garantia` corre 52 comprobaciones.
+
+**Sin fijar todavia (no inventar):** blackout, motores, mano de obra de instalacion, cadenillas y
+peliculas solares. Y el documento que firma el cliente **sigue sin decir ningun plazo**, asi que
+lo firmado y lo prometido todavia no coinciden: es una correccion pendiente del documento.
 
 ## Papelera — proyectos vs. SUB-elementos (dos mecanismos distintos, a propósito)
 
