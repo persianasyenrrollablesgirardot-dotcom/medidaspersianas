@@ -14,6 +14,7 @@ import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
 import { quoteArea, solutionArea, solutionTotal } from '../lib/metrics';
 import { useAuth } from '../components/AuthContext';
 import { BitacoraPanel } from '../components/BitacoraPanel';
+import { SeguimientoPanel } from '../components/SeguimientoPanel';
 import { syncProjectToCloud } from '../lib/cloudSync';
 import { enviarPedidoPorCorreo } from '../lib/enviarCorreo';
 import type { TechnicalCatalog, TechnicalProject, TechnicalSolution } from '../types';
@@ -334,7 +335,10 @@ export function ProjectDetail() {
       {/* La bitacora se apoya en el id real de Dexie: en modo fallback no hay dónde
           escribirla, así que no se muestra en vez de ofrecer un botón que no guarda. */}
       {role === 'admin' && !fallbackMode && project.id !== undefined && (
-        <BitacoraPanel projectId={project.id} projectCode={project.code} />
+        <>
+          <SeguimientoPanel projectId={project.id} projectCode={project.code} />
+          <BitacoraPanel projectId={project.id} projectCode={project.code} />
+        </>
       )}
 
       <section className="detail-space-list">

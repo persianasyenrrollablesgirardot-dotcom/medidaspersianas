@@ -99,12 +99,39 @@ export function descargarTexto(nombre: string, contenido: string, tipo = 'applic
 /**
  * Respaldo portable: incluye las fotos en base64 para que el archivo sirva por
  * sí solo, aunque se pierda la app y el celular. Es el formato que salvó julio.
+ *
+ * Desde la v2 se lleva ademas los registros que NO viven dentro del proyecto:
+ * recibos, facturas, constancias de puerta y seguimiento del pedido. Antes se perdian
+ * en silencio — el archivo decia "respaldo completo" y solo traia proyectos.
+ *
+ * `version: 2` y las claves nuevas son ADITIVAS: quien lee el archivo sigue buscando
+ * `projects`, asi que un respaldo nuevo se puede restaurar con el rescate de siempre y
+ * uno viejo se sigue leyendo igual.
+ *
+ * OJO: la restauracion de hoy (`restoreIntoFallback`) solo reinstala PROYECTOS. Estas
+ * tablas viajan en el archivo pero todavia no se vuelven a cargar solas. Es mejor que
+ * perderlas, y es lo siguiente que hay que cerrar.
  */
 export async function descargarRespaldoCompleto(): Promise<{ proyectos: number; bytes: number }> {
   await flushWrites();
   const proyectos = await hydrateProjectsPhotos(getFallbackProjects());
+  const [receipts, invoices, gateEvents, trackingEvents] = await Promise.all([
+    db.receipts.toArray(),
+    db.invoices.toArray(),
+    db.projectEvents.toArray(),
+    db.trackingEvents.toArray(),
+  ]);
   const contenido = JSON.stringify(
-    { app: 'App_Tecnica_Campo_Juno', version: 1, exportedAt: Date.now(), projects: proyectos },
+    {
+      app: 'App_Tecnica_Campo_Juno',
+      version: 2,
+      exportedAt: Date.now(),
+      projects: proyectos,
+      receipts,
+      invoices,
+      gateEvents,
+      trackingEvents,
+    },
     null,
     2,
   );

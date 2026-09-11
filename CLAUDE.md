@@ -293,6 +293,57 @@ reclamo. Panel en `ProjectDetail` (admin), tabla Dexie **v6** `projectEvents`.
 despues caso de posventa y garantia, despues embudo comercial. Ojo con el segundo: el Dashboard
 filtra y agrupa por `status`, asi que hay que auditar el flujo completo.
 
+## Seguimiento del pedido (11-sep-2026)
+
+`ProjectStatus` terminaba en `ready_for_fabrication`: la app no sabia nada de lo que pasa
+despues. Si el pedido salio al proveedor, si esta en produccion, si quedo retenido, si se
+entrego, si ya esta instalado — nada de eso se podia registrar, y tampoco como salio una
+visita. Tabla Dexie **v7** `trackingEvents`, panel en `ProjectDetail`, insignia y filtro en
+el Dashboard del admin.
+
+- **Es un EJE APARTE, no una ampliacion de `ProjectStatus`.** Ese responde "que tan completo
+  esta el levantamiento"; este responde "donde va el pedido". Un proyecto puede estar
+  `ready_for_fabrication` y `en_produccion` a la vez, sin contradiccion. Mezclarlos habria
+  obligado a los filtros y las estadisticas del Dashboard —que hoy parten el mundo en
+  "listos" y "pendientes"— a decidir de que lado cae `retenido` o `entregado`, y no hay
+  respuesta buena. El campo es opcional: un proyecto sin produccion arrancada no tiene
+  ninguno y nada de lo que ya funcionaba cambio.
+- **Dos listas cerradas**, del vocabulario oficial del negocio: produccion
+  (`pendiente_abono`, `pedido_proveedor`, `en_produccion`, `listo_instalar`, `retenido`,
+  `entregado`, `instalado`) y visita (`programada`, `completa`, `parcial`, `fallida`,
+  `reagendada`). **No inventar estados intermedios**: la lista tambien es como se habla del
+  pedido, y un estado inventado en pantalla termina siendo un estado inventado al telefono.
+- **El orden NO se bloquea, a proposito.** La realidad lo rompe todo el tiempo: un pedido
+  queda retenido desde cualquier punto, una instalacion vuelve a taller. Bloquear los saltos
+  obligaria a registrar mentiras para poder avanzar. `esRetroceso()` hace que la pantalla
+  PREGUNTE, no que impida.
+- **`retenido` esta fuera de secuencia (`orden: null`) y no devuelve el avance a cero.** Un
+  pedido frenado en produccion sigue en produccion, frenado. Hay una prueba para eso.
+- **`at` y `fechaVisita` son campos distintos**: cuando se REGISTRO vs. para cuando ES la
+  visita. Confundirlos hace que una visita programada para el viernes parezca hecha hoy.
+- **Append-only**, como la bitacora de puertas: el vigente es el ultimo evento y los
+  anteriores quedan. Un campo mutable habria dado el estado de hoy y borrado la historia
+  cada vez, que es justo lo que faltaba.
+- **Al proveedor NO se le muestra ni se le calcula**: es informacion interna, y el ya tiene
+  su propio avance en `supplier_statuses`. La tabla es aparte de `TechnicalProject`, asi que
+  `cloudSync` no la sube y no hay filtracion posible.
+- **Dashboard: una sola lectura para todas las tarjetas** (`produccionPorProyecto()`), no una
+  consulta por tarjeta.
+- `seguimiento.ts` es puro; `bitacoraSeguimiento.ts` guarda. `npm run probar:seguimiento`
+  corre 37 comprobaciones sin navegador.
+
+### El respaldo portable ahora se lleva los registros sueltos (v2)
+
+Al auditar el flujo aparecio que `descargarRespaldoCompleto()` decia "respaldo completo" y
+**solo guardaba proyectos**: los recibos y las facturas ya se perdian en silencio desde
+antes. Ahora el archivo va en `version: 2` y lleva ademas `receipts`, `invoices`,
+`gateEvents` y `trackingEvents`. Las claves nuevas son aditivas — quien lee sigue buscando
+`projects`, asi que un archivo nuevo se restaura con el rescate de siempre.
+
+⚠️ **PENDIENTE:** `restoreIntoFallback()` sigue reinstalando SOLO proyectos. Esas tablas
+viajan en el archivo pero todavia no se vuelven a cargar solas. Es mejor que perderlas, pero
+no esta cerrado.
+
 ## Papelera — proyectos vs. SUB-elementos (dos mecanismos distintos, a propósito)
 
 - **Proyectos:** soft-delete en su propia tabla. `trashFallbackProject` pone `deletedAt` y las listas filtran por `deletedAt === 0`. Restaurar = poner `deletedAt: 0`.

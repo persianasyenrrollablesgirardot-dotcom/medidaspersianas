@@ -18,6 +18,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { dbFirestore } from '../lib/firebase';
 import { useEffect } from 'react';
 import { supplierStatusDocId, useAllSupplierStatuses, type SupplierStatuses } from '../lib/supplierStatus';
+import { produccionPorProyecto, estadoDef, ESTADOS_PRODUCCION, type TrackingEvent } from '../lib/bitacoraSeguimiento';
 
 // Quita tildes/diacríticos y pasa a minúsculas para que la búsqueda sea "congruente":
 // "José" == "jose", "Girardot" == "girardot". Base de la búsqueda por palabras.
@@ -261,6 +262,7 @@ export function Dashboard() {
   const [expandedActions, setExpandedActions] = useState<number | null>(null);
   const [supplierFilter, setSupplierFilter] = useState<'all' | 'sent' | 'unsent' | 'sent_no_receipt' | 'receipt_not_sent'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'ready'>('all');
+  const [produccionFilter, setProduccionFilter] = useState<string>('all');
   // Filtro y orden del PROVEEDOR. Los dos filtros de arriba son del admin y no
   // le sirven de nada: lo unico que le importa es que le falta por gestionar.
   const [progressFilter, setProgressFilter] = useState<'all' | 'pending' | 'done'>('all');
@@ -270,6 +272,12 @@ export function Dashboard() {
   // tarjeta, y solo servia para pintar el badge: no se podia ni ordenar ni
   // filtrar por avance).
   const allStatuses = useAllSupplierStatuses(role === 'proveedor');
+  // Una sola lectura para todas las tarjetas. El estado de produccion es informacion
+  // interna: al proveedor no se le muestra ni se le calcula.
+  const produccionPorId = useLiveQuery(
+    () => role === 'admin' ? produccionPorProyecto() : Promise.resolve(new Map<number, TrackingEvent>()),
+    [role],
+  );
   const statusesOf = useMemo(
     () => (project: any): SupplierStatuses => allStatuses[supplierStatusDocId(project.projectId, project.code)] || {},
     [allStatuses],
@@ -305,6 +313,16 @@ export function Dashboard() {
       // "Listos" = listos para fabricación; "Pendientes" = todo lo demás
       // (mismo criterio que las estadísticas de arriba).
       result = result.filter(p => statusFilter === 'ready' ? p.status === 'ready_for_fabrication' : p.status !== 'ready_for_fabrication');
+    }
+
+    // Estado de produccion (solo admin): donde va el pedido. Eje distinto del de arriba,
+    // que mira si el levantamiento esta completo.
+    if (produccionFilter !== 'all') {
+      result = result.filter(p => {
+        const actual = produccionPorId?.get(p.projectId);
+        if (produccionFilter === 'sin_registrar') return !actual;
+        return actual?.estado === produccionFilter;
+      });
     }
 
     // Avance del pedido (solo proveedor): pendientes vs completados.
@@ -353,7 +371,7 @@ export function Dashboard() {
     }
 
     return ordered;
-  }, [visibleProjects, searchTerm, dateFilter, supplierFilter, statusFilter, receiptProjectIds, progressFilter, sortBy, statusesOf, role]);
+  }, [visibleProjects, searchTerm, dateFilter, supplierFilter, statusFilter, produccionFilter, produccionPorId, receiptProjectIds, progressFilter, sortBy, statusesOf, role]);
 
   // Cuántos pedidos enviados a proveedor NO tienen recibo (la alarma).
   const sentWithoutReceiptCount = useMemo(() => {
@@ -593,6 +611,14 @@ Solo se limpia el cache del navegador. NO se pierde ningun pedido ni lo que ya m
                 <option value="ready">✓ Listos para fabricación</option>
               </select>
             </div>
+            <div className="filter-group">
+              <span className="filter-label">Estado de producción</span>
+              <select className="filter-select wide" value={produccionFilter} onChange={e => setProduccionFilter(e.target.value)}>
+                <option value="all">Todos</option>
+                <option value="sin_registrar">Sin registrar</option>
+                {ESTADOS_PRODUCCION.map(e => <option key={e.id} value={e.id}>{e.etiqueta}</option>)}
+              </select>
+            </div>
           </div>
         )}
       </section>
@@ -627,6 +653,23 @@ Solo se limpia el cache del navegador. NO se pierde ningun pedido ni lo que ya m
                       🧾 Con recibo · sin enviar — marcar enviado
                     </span>
                   )}
+                  {role === 'admin' && (() => {
+                    const actual = produccionPorId?.get(project.projectId);
+                    if (!actual) return null;
+                    const def = estadoDef('produccion', actual.estado);
+                    if (!def) return null;
+                    const alerta = def.orden === null;   // retenido
+                    const listo = actual.estado === 'instalado';
+                    const color = alerta ? '#dc2626' : listo ? '#16a34a' : '#2563eb';
+                    return (
+                      <span
+                        title={def.descripcion}
+                        style={{ display: 'inline-block', marginTop: '6px', marginRight: '6px', fontSize: '11px', fontWeight: 800, color, background: `${color}26`, border: `1px solid ${color}66`, borderRadius: '999px', padding: '3px 9px' }}
+                      >
+                        {alerta ? '⏸ ' : ''}{def.etiqueta}
+                      </span>
+                    );
+                  })()}
                   {role === 'admin' && project.sentToSupplier && (
                     receiptProjectIds && !receiptProjectIds.has(project.projectId) ? (
                       <span

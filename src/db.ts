@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import type { ProjectSummary, TechnicalCatalog, TechnicalProject, SyncQueueItem, InvoiceRecord, ReceiptRecord, PhotoRecord, BackupRecord, TrashedItem } from './types';
 import type { GateEvent } from './lib/puertas';
+import type { TrackingEvent } from './lib/seguimiento';
 import { DEFAULT_MAINTENANCE_CATALOG } from './lib/defaultTasks';
 
 const DB_NAME = 'AppCampoJunoMobileV3DB';
@@ -38,6 +39,7 @@ class TechnicalFieldDB extends Dexie {
   backups!: Table<BackupRecord, number>;
   trash!: Table<TrashedItem, number>;
   projectEvents!: Table<GateEvent, number>;
+  trackingEvents!: Table<TrackingEvent, number>;
 
   constructor() {
     super(DB_NAME);
@@ -105,6 +107,34 @@ class TechnicalFieldDB extends Dexie {
       backups: '++id, createdAt, reason',
       trash: '++id, projectId, kind, deletedAt',
       projectEvents: '++id, projectId, projectCode, etapa, at',
+    });
+    // v7: seguimiento del pedido. `ProjectStatus` termina en `ready_for_fabrication` y no
+    // sabe nada de lo que pasa despues: si el pedido salio al proveedor, si esta en
+    // produccion, si quedo retenido, si se entrego o si ya esta instalado. Tampoco habia
+    // forma de registrar como salio una visita.
+    //
+    // Va en su PROPIO eje, no ampliando `ProjectStatus`: ese responde "que tan completo
+    // esta el levantamiento" y este "donde va el pedido". Un proyecto puede estar
+    // ready_for_fabrication y en_produccion a la vez. Mezclarlos habria obligado a los
+    // filtros del Dashboard a decidir de que lado cae `retenido`, y no hay respuesta buena.
+    //
+    // Append-only como la bitacora: el estado vigente es el ultimo evento y los anteriores
+    // quedan. No alcanza con saber que algo esta instalado; hace falta poder decir cuando
+    // entro a produccion y por que estuvo frenado. Un campo mutable borraria eso cada vez.
+    //
+    // Solo AGREGA tabla.
+    this.version(7).stores({
+      projects: '++id, code, clientName, status, createdAt, updatedAt, deletedAt, synced',
+      projectSummaries: '++id, &projectId, code, clientName, status, updatedAt, deletedAt, synced',
+      catalog: '++id',
+      syncQueue: '++id, type, refId, status, nextAttemptAt, createdAt',
+      invoices: '++id, type, documentNumber, clientName, date',
+      receipts: '++id, projectId, projectCode, clientName, date, status',
+      photos: 'id, projectId, projectCode, createdAt, uploadedAt',
+      backups: '++id, createdAt, reason',
+      trash: '++id, projectId, kind, deletedAt',
+      projectEvents: '++id, projectId, projectCode, etapa, at',
+      trackingEvents: '++id, projectId, projectCode, tipo, estado, at',
     });
   }
 }
