@@ -3,6 +3,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { dbFirestore } from './firebase';
 import type { TechnicalProject } from '../types';
 import { restoreProjects } from './localFallbackStore';
+import { leerRegistros, sumarRegistros, VACIO, type RegistrosRespaldo } from './registrosRespaldo';
 
 // Nota: la clave legada `juno_fallback_projects_v1` ya no se escribe. El escaneo
 // la sigue encontrando porque recorre TODAS las claves de localStorage, así que
@@ -30,12 +31,26 @@ export interface StoreReport {
   note?: string;
   /** Proyectos recuperados de este cajón. */
   projects: TechnicalProject[];
+  /**
+   * Registros que NO viven dentro del proyecto: recibos, facturas, constancias de puerta
+   * y seguimiento del pedido. Solo los traen los respaldos `version: 2` en adelante; en
+   * los demás cajones viene vacío y no es un error.
+   */
+  registros?: RegistrosRespaldo;
 }
 
 export interface ScanResult {
   reports: StoreReport[];
   /** Todos los proyectos únicos encontrados en cualquier cajón (deduplicados). */
   merged: TechnicalProject[];
+}
+
+/** Junta los registros sueltos hallados en todos los cajones. */
+export function mergeRegistros(reports: StoreReport[]): RegistrosRespaldo {
+  return reports.reduce<RegistrosRespaldo>(
+    (acc, r) => (r.registros ? sumarRegistros(acc, r.registros) : acc),
+    { ...VACIO },
+  );
 }
 
 /**
@@ -355,6 +370,15 @@ export async function scanArchivos(files: File[]): Promise<StoreReport[]> {
         continue;
       }
       const { projects, repaired } = projectsFromRaw(texto);
+      // Los registros sueltos solo existen en los respaldos `version: 2`. Si el archivo
+      // está dañado y no parsea, se sigue con los proyectos rescatados: mejor recuperar
+      // una parte que perder todo por una llave que falta.
+      let registros: RegistrosRespaldo | undefined;
+      try {
+        registros = leerRegistros(JSON.parse(texto));
+      } catch {
+        registros = undefined;
+      }
       reports.push({
         source: `Archivo · ${file.name}`,
         ok: true,
@@ -363,6 +387,7 @@ export async function scanArchivos(files: File[]): Promise<StoreReport[]> {
         approxKb,
         note: repaired && projects.length ? `rescatados de un archivo dañado` : undefined,
         projects,
+        ...(registros ? { registros } : {}),
       });
     } catch (e: any) {
       reports.push({ source: `Archivo · ${file.name}`, ok: false, count: 0, approxKb, projects: [], note: String(e?.message || e) });

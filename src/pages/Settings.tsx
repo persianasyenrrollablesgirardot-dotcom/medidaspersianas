@@ -8,7 +8,8 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import type { TechnicalCatalog } from '../types';
 import { Field, SelectInput } from '../components/Field';
 import { MeasureInput } from '../components/MeasureInput';
-import { scanEverything, scanArchivos, scanNube, mergeProjects, downloadJson, restoreIntoFallback, collectDiagnostics, dumpRawStorage, type ScanResult, type StoreReport, type Diagnostics } from '../lib/rescue';
+import { scanEverything, scanArchivos, scanNube, mergeProjects, mergeRegistros, downloadJson, restoreIntoFallback, collectDiagnostics, dumpRawStorage, type ScanResult, type StoreReport, type Diagnostics } from '../lib/rescue';
+import { restaurarRegistros, hayRegistros } from '../lib/restaurarRegistros';
 import { buildBackup } from '../lib/exporters';
 import { BackupPanel } from '../components/BackupPanel';
 import { descargarRespaldoCompleto } from '../lib/autoBackup';
@@ -608,7 +609,7 @@ function RescuePanel() {
     const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
     // Mismo formato que "Importar JSON" del Centro de Exportación → se puede importar
     // en la PC (o en otro dispositivo) sin el error "Backup no compatible".
-    downloadJson(`respaldo-juno-${stamp}.json`, buildBackup(result.merged));
+    downloadJson(`respaldo-juno-${stamp}.json`, buildBackup(result.merged, mergeRegistros(result.reports)));
     toast.success('Respaldo descargado. Este archivo SÍ se puede importar en la PC.');
   };
 
@@ -619,6 +620,32 @@ function RescuePanel() {
     if (r.ok) {
       toast.success(`${r.written} proyectos restaurados. Vuelve al inicio para verlos.`);
       setRestored(true);
+
+      // Los registros sueltos van DESPUES de los proyectos, nunca antes: se vuelven a
+      // apuntar por CODIGO de proyecto, así que los proyectos tienen que existir ya.
+      // En su propio try: si esto falla, los proyectos igual quedaron restaurados y ese
+      // es el rescate que de verdad importa.
+      try {
+        const registros = mergeRegistros(result.reports);
+        if (hayRegistros(registros)) {
+          const res = await restaurarRegistros(registros);
+          if (res.insertados > 0) {
+            const sobras = [
+              res.duplicados ? `${res.duplicados} ya estaban` : '',
+              res.huerfanos ? `${res.huerfanos} sin proyecto` : '',
+            ].filter(Boolean).join(', ');
+            toast.success(
+              `Ademas: ${res.insertados} recibos, facturas y registros${sobras ? ` (${sobras})` : ''}.`,
+              { duration: 7000 },
+            );
+          } else if (res.duplicados > 0) {
+            toast(`Los ${res.duplicados} recibos y registros del archivo ya estaban: no se duplicaron.`, { duration: 6000 });
+          }
+        }
+      } catch (e) {
+        console.error('No se pudieron restaurar los registros sueltos:', e);
+        toast.error('Los proyectos se restauraron, pero los recibos y registros del archivo no. Estan a salvo en el archivo.', { duration: 8000 });
+      }
     } else {
       toast.error(`No se pudo restaurar: ${r.error || 'error desconocido'}. Tus datos siguen a salvo en el archivo de respaldo.`, { duration: 8000 });
     }

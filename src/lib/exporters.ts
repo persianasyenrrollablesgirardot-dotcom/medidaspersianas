@@ -14,13 +14,36 @@ const PROFILE_LABELS: Record<PdfReportProfile, string> = {
 
 export interface BackupPayload {
   app: 'App_Tecnica_Campo_Juno';
-  version: 1;
+  version: 2;
   exportedAt: number;
   projects: TechnicalProject[];
+  receipts?: unknown[];
+  invoices?: unknown[];
+  gateEvents?: unknown[];
+  trackingEvents?: unknown[];
 }
 
-export function buildBackup(projects: TechnicalProject[]): BackupPayload {
-  return { app: 'App_Tecnica_Campo_Juno', version: 1, exportedAt: Date.now(), projects };
+/**
+ * Arma un respaldo. `registros` son los recibos, facturas, constancias y seguimiento,
+ * que NO viven adentro del proyecto.
+ *
+ * Pasa a `version: 2` porque si no, escanear un respaldo nuevo y volver a descargarlo
+ * desde el panel de rescate devolvia un archivo sin esos registros: la copia de seguridad
+ * de la copia de seguridad perdia datos en silencio. Nadie lee el numero de version para
+ * decidir como importar —los proyectos se buscan por la clave `projects` y los registros
+ * son tolerantes a que falten—, asi que subirlo no rompe ningun archivo viejo.
+ */
+export function buildBackup(
+  projects: TechnicalProject[],
+  registros?: { receipts: unknown[]; invoices: unknown[]; gateEvents: unknown[]; trackingEvents: unknown[] },
+): BackupPayload {
+  return {
+    app: 'App_Tecnica_Campo_Juno',
+    version: 2,
+    exportedAt: Date.now(),
+    projects,
+    ...(registros ?? {}),
+  };
 }
 
 export function downloadText(filename: string, content: string, mime = 'text/plain') {

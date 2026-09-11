@@ -340,9 +340,40 @@ antes. Ahora el archivo va en `version: 2` y lleva ademas `receipts`, `invoices`
 `gateEvents` y `trackingEvents`. Las claves nuevas son aditivas — quien lee sigue buscando
 `projects`, asi que un archivo nuevo se restaura con el rescate de siempre.
 
-⚠️ **PENDIENTE:** `restoreIntoFallback()` sigue reinstalando SOLO proyectos. Esas tablas
-viajan en el archivo pero todavia no se vuelven a cargar solas. Es mejor que perderlas, pero
-no esta cerrado.
+**Cerrado el 11-sep** con `registrosRespaldo.ts` (puro) + `restaurarRegistros.ts` (base).
+Devolverlos era mas delicado que guardarlos, por tres cosas:
+
+- **El `projectId` del archivo no vale nada al volver.** `restoreProjects` fusiona por
+  CODIGO y reparte ids NUEVOS. El ancla es `projectCode`, la misma llave de la fusion, y
+  cada registro se vuelve a apuntar al id que ese codigo tenga HOY.
+- **No duplicar.** Cada tabla tiene una llave natural que NO incluye el id: facturas por
+  consecutivo, las demas por proyecto + momento + contenido. Restaurar dos veces el mismo
+  archivo no agrega nada. Importa sobre todo en `receipts`: Contabilidad suma abonos y
+  saldos, y duplicarlos le miente a Jhon sobre cuanta plata entro.
+- **Remapear `corrigeA`.** Una constancia corregida apunta al ID de la anterior, y ese id
+  cambia al restaurar. Por eso las constancias se insertan **una por una y de vieja a
+  nueva** (no `bulkAdd`): asi se va armando la traduccion de id viejo a nuevo. Si la
+  corregida no vino en el archivo, se QUITA el puntero en vez de dejarlo apuntando a un id
+  ajeno. Sin esto la constancia vieja volveria a figurar como vigente: corrupcion
+  silenciosa, la pantalla se ve bien y dice lo contrario de lo que paso.
+
+Un registro cuyo codigo de proyecto no existe localmente queda AFUERA y se informa.
+Colgarlo del proyecto equivocado seria peor que perderlo.
+
+Va en su propio `try`, DESPUES de los proyectos: si falla, los proyectos igual quedaron
+restaurados y ese es el rescate que de verdad importa.
+
+**Efecto colateral que habia que arreglar igual:** `generateDocumentSequence` tomaba la
+factura con el id mas alto y le sumaba uno. Al restaurar, las facturas viejas entran con
+ids nuevos, asi que la ultima por id pasa a ser una vieja por numero y el siguiente
+consecutivo seria uno que YA existe. Ahora se calcula sobre el MAXIMO numero, con prueba.
+
+**`buildBackup()` pasa a `version: 2`** por lo mismo: escanear un respaldo nuevo y volver a
+descargarlo desde el panel de rescate devolvia un archivo sin registros — la copia de la
+copia perdia datos en silencio. Nadie lee el numero de version para decidir como importar,
+asi que subirlo no rompe ningun archivo viejo.
+
+`npm run probar:restaurar` corre 29 comprobaciones.
 
 ## Papelera — proyectos vs. SUB-elementos (dos mecanismos distintos, a propósito)
 

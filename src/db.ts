@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import type { ProjectSummary, TechnicalCatalog, TechnicalProject, SyncQueueItem, InvoiceRecord, ReceiptRecord, PhotoRecord, BackupRecord, TrashedItem } from './types';
 import type { GateEvent } from './lib/puertas';
 import type { TrackingEvent } from './lib/seguimiento';
+import { siguienteConsecutivo } from './lib/registrosRespaldo';
 import { DEFAULT_MAINTENANCE_CATALOG } from './lib/defaultTasks';
 
 const DB_NAME = 'AppCampoJunoMobileV3DB';
@@ -152,22 +153,19 @@ export function ensureStorageReady() {
   return storageReadyPromise;
 }
 
+/**
+ * Proximo consecutivo. Se calcula sobre el MAXIMO numero, no sobre el ultimo id.
+ *
+ * Antes tomaba la fila con el id mas alto y le sumaba uno. Eso funciona mientras el orden
+ * de insercion coincida con el orden de los numeros, y deja de funcionar en cuanto se
+ * restaura un respaldo: las facturas viejas entran con ids nuevos, asi que la ultima por
+ * id pasa a ser una vieja por numero, y el siguiente consecutivo seria uno que YA existe.
+ * Dos facturas con el mismo numero es un problema de verdad. Mirando el maximo, el orden
+ * de insercion deja de importar. La logica y su prueba estan en `registrosRespaldo.ts`.
+ */
 export async function generateDocumentSequence(type: 'COTIZACION' | 'FACTURA'): Promise<string> {
-  const prefix = type === 'COTIZACION' ? 'COT-' : 'FAC-';
-  const lastRecord = await db.invoices
-    .where('type')
-    .equals(type)
-    .reverse()
-    .sortBy('id')
-    .then(arr => arr[0]);
-
-  if (!lastRecord || !lastRecord.documentNumber) {
-    return `${prefix}0001`;
-  }
-  
-  const lastNumber = parseInt(lastRecord.documentNumber.replace(prefix, ''), 10);
-  const nextNumber = isNaN(lastNumber) ? 1 : lastNumber + 1;
-  return `${prefix}${nextNumber.toString().padStart(4, '0')}`;
+  const documentos = await db.invoices.where('type').equals(type).toArray();
+  return siguienteConsecutivo(documentos, type);
 }
 
 export async function resetLocalAppData() {
