@@ -251,6 +251,48 @@ todos los datos técnicos del pedido. Con copia a Jhon.
 **Falta para encenderlo:** `RESEND_API_KEY` y `CORREO_REMITENTE` en Vercel (Production).
 Mientras no estén, el endpoint responde 503 diciendo exactamente eso.
 
+## Bitacora de puertas (10-sep-2026)
+
+Seis puntos del proceso se hacian y **no quedaba constancia de ninguno**: aprobar el precio,
+validar el abono, autorizar un descuento, aprobar un cambio con la produccion ya iniciada,
+verificar las medidas antes de taladrar y entregar la capacitacion de uso. El paso existia y
+nadie podia probar despues que se cumplio, que es justo lo que hace falta cuando llega un
+reclamo. Panel en `ProjectDetail` (admin), tabla Dexie **v6** `projectEvents`.
+
+- **Una pieza, no seis pantallas.** Las seis piden lo mismo: que quede escrito que una persona
+  verifico algo, cuando y con que resultado. Son el mismo gesto sobre objetos distintos. Seis
+  pantallas costarian seis veces mas y dejarian seis lugares donde olvidarse de escribir.
+- **Append-only de verdad: `bitacora.ts` no expone update ni delete.** No es un descuido — una
+  constancia que se puede editar despues no prueba nada. Para enmendar se agrega un evento con
+  `corrigeA`, y el anterior queda tachado en el historial. Igual que un asiento contable.
+- **La lista de puertas es CERRADA** (`src/lib/puertas.ts`, las 10 con su condicion y su
+  "si falla"). Los ids (`P-05.3`) son los mismos que usa la cadena de gestion del negocio a
+  proposito: si la app aceptara un id inventado, la constancia dejaria de coincidir con el paso
+  que dice cubrir y no se podria auditar. `construirEvento` lo rechaza.
+- **Toda puerta dice que hacer cuando NO se cumple**, y hay una prueba para eso. Una puerta que
+  no lo dice no detiene nada: quien la encuentre sigue igual.
+- **`actor` sale del usuario autenticado, nunca de un campo escrito a mano.** Sin sesion el
+  panel no deja registrar: una constancia sin autor no sirve para lo que fue hecha.
+- **Claves opcionales por asignacion condicional** (`nota`, `evidenceId`, `corrigeA`): se crean
+  solo si tienen valor. Es el gotcha 4 — una clave en `undefined` hace que Firestore rechace el
+  documento ENTERO. Hay pruebas especificas, porque este error no se nota al guardar local:
+  aparece el dia que se intente subir, con el registro ya lleno de datos.
+- **`puertas.ts` es puro** (cero imports) y `bitacora.ts` guarda. Por eso
+  `npm run probar:bitacora` corre las 39 comprobaciones sin navegador ni IndexedDB.
+- **Dexie v6 solo AGREGA tabla**, las existentes se repiten identicas. Los proyectos del admin
+  viven unicamente en su dispositivo y no hay respaldo completo en la nube: una migracion
+  descuidada aca se lleva trabajo que no esta en ningun otro lado.
+- **No se muestra en modo fallback**: ahi no hay id de Dexie donde colgar el evento, y es mejor
+  no ofrecer un boton que no guarda.
+- **Todavia NO sube a la nube**, a proposito. El evento ya esta armado para que Firestore lo
+  acepte, pero hoy ni los proyectos se respaldan completos: sincronizar la bitacora sola daria
+  una falsa sensacion de respaldo.
+
+**Lo que sigue, en orden:** estados de produccion reales (`ProjectStatus` termina en
+`ready_for_fabrication` y no cubre en_produccion / listo_instalar / entregado / instalado),
+despues caso de posventa y garantia, despues embudo comercial. Ojo con el segundo: el Dashboard
+filtra y agrupa por `status`, asi que hay que auditar el flujo completo.
+
 ## Papelera — proyectos vs. SUB-elementos (dos mecanismos distintos, a propósito)
 
 - **Proyectos:** soft-delete en su propia tabla. `trashFallbackProject` pone `deletedAt` y las listas filtran por `deletedAt === 0`. Restaurar = poner `deletedAt: 0`.

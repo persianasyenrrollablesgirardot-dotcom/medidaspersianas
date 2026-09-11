@@ -11,7 +11,8 @@
     "probar:safra": "node scripts/probar-ingesta-safra.mjs",
     "migrar": "node scripts/aplicar-migracion.mjs",
     "probar:correo": "node scripts/probar-correo-proveedor.mjs",
-    "probar:duplicar": "node scripts/probar-duplicar.mjs"
+    "probar:duplicar": "node scripts/probar-duplicar.mjs",
+    "probar:bitacora": "node scripts/probar-bitacora.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.2",

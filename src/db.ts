@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie';
 import type { ProjectSummary, TechnicalCatalog, TechnicalProject, SyncQueueItem, InvoiceRecord, ReceiptRecord, PhotoRecord, BackupRecord, TrashedItem } from './types';
+import type { GateEvent } from './lib/puertas';
 import { DEFAULT_MAINTENANCE_CATALOG } from './lib/defaultTasks';
 
 const DB_NAME = 'AppCampoJunoMobileV3DB';
@@ -36,6 +37,7 @@ class TechnicalFieldDB extends Dexie {
   photos!: Table<PhotoRecord, string>;
   backups!: Table<BackupRecord, number>;
   trash!: Table<TrashedItem, number>;
+  projectEvents!: Table<GateEvent, number>;
 
   constructor() {
     super(DB_NAME);
@@ -80,6 +82,29 @@ class TechnicalFieldDB extends Dexie {
       photos: 'id, projectId, projectCode, createdAt, uploadedAt',
       backups: '++id, createdAt, reason',
       trash: '++id, projectId, kind, deletedAt',
+    });
+    // v6: bitácora de puertas. Seis de los puntos donde el proyecto se detiene —aprobar
+    // el precio, validar el abono, autorizar un descuento, aprobar un cambio con la
+    // producción iniciada, verificar medidas antes de taladrar y entregar la capacitación—
+    // se hacían y no quedaba constancia de ninguno. El paso existía y nadie podía probar
+    // después que se cumplió, que es exactamente lo que hace falta cuando llega un reclamo.
+    //
+    // Es append-only: `bitacora.ts` no expone update ni delete. Para enmendar se agrega un
+    // evento con `corrigeA`. Ver `puertas.ts` para el catálogo y el porqué.
+    //
+    // Solo AGREGA tabla. Las existentes se repiten idénticas: los proyectos del admin
+    // viven únicamente en este dispositivo y no hay respaldo completo en la nube.
+    this.version(6).stores({
+      projects: '++id, code, clientName, status, createdAt, updatedAt, deletedAt, synced',
+      projectSummaries: '++id, &projectId, code, clientName, status, updatedAt, deletedAt, synced',
+      catalog: '++id',
+      syncQueue: '++id, type, refId, status, nextAttemptAt, createdAt',
+      invoices: '++id, type, documentNumber, clientName, date',
+      receipts: '++id, projectId, projectCode, clientName, date, status',
+      photos: 'id, projectId, projectCode, createdAt, uploadedAt',
+      backups: '++id, createdAt, reason',
+      trash: '++id, projectId, kind, deletedAt',
+      projectEvents: '++id, projectId, projectCode, etapa, at',
     });
   }
 }
