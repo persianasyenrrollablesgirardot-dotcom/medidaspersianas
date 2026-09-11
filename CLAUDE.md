@@ -386,11 +386,16 @@ Convivian cuatro cifras (1 anio, 12 meses, 5 anios, "sin plazo escrito") y ningu
 del todo porque **todas buscaban un numero unico**. Jhon lo fijo el 11-sep-2026 y depende de la
 pieza:
 
+**Un anio para todo, salvo la tela Screen Solar, que son tres.**
+
 | Pieza | Plazo |
 |---|---|
-| Perfileria: perfiles, mecanismos, herrajes | **1 anio** |
 | Tela **Screen Solar** | **3 anios** |
-| Tela de **poliester** | **1 anio** |
+| Tela blackout | 1 anio |
+| Tela de poliester | 1 anio |
+| Perfileria: perfiles, mecanismos, herrajes | 1 anio |
+| Motor | 1 anio |
+| Mano de obra de instalacion | 1 anio |
 
 - **El plazo sigue a la TELA, no al sistema.** Los tres anios del Screen Solar valen igual en
   Sheer Elegance, en enrollables y en panel japones. Por eso `familiaDeTela()` clasifica por el
@@ -398,12 +403,12 @@ pieza:
 - **Una persiana lleva DOS plazos a la vez** y la pantalla muestra los dos. Decir "tres anios" a
   secas promete de mas y decir "un anio" promete de menos. `coberturaDeSolucion()` devuelve el
   par, nunca uno solo.
-- **Lo que NO se sabe se responde como no sabido.** Blackout, motores, mano de obra de
-  instalacion, cadenillas y peliculas no tienen plazo fijado: devuelve `sin_definir` con el
-  motivo y **jamas un numero estimado**. El blackout no es un caso raro —es de lo mas vendido en
-  Girardot— y es PVC con fibra de vidrio, asi que no es ni Screen Solar ni poliester y ninguno de
-  los dos plazos confirmados le aplica. Un plazo inventado aca se vuelve una promesa que la
-  empresa no puede sostener.
+- **Lo que NO se sabe se responde como no sabido.** Quedan las cadenillas y las peliculas
+  solares, y tambien una tela cuya familia no se reconoce: devuelve `sin_definir` con el motivo y
+  **jamas un numero estimado**. Un plazo inventado aca se vuelve una promesa que la empresa no
+  puede sostener, y adivinar hacia el lado de los tres anios promete de mas.
+- **Del motor:** el documento al cliente dice "segun fabricante" sin nombrar ninguno, lo que en la
+  practica no le dice nada. La empresa responde **1 anio** igual, sea el motor que sea.
 - **Ante "Blackout Screen" manda blackout.** Hay una prueba para eso: la regla mira blackout
   antes que screen, porque equivocarse hacia el lado de los 3 anios promete de mas.
 - **El veredicto queda CONGELADO en el caso** (`veredictoAlAbrir`, `explicacionAlAbrir`). Se
@@ -420,9 +425,9 @@ pieza:
 
 `npm run probar:garantia` corre 52 comprobaciones.
 
-**Sin fijar todavia (no inventar):** blackout, motores, mano de obra de instalacion, cadenillas y
-peliculas solares. Y el documento que firma el cliente **sigue sin decir ningun plazo**, asi que
-lo firmado y lo prometido todavia no coinciden: es una correccion pendiente del documento.
+**Sin fijar todavia (no inventar):** cadenillas y peliculas solares. Y el documento que firma el
+cliente **sigue sin decir ningun plazo**, asi que lo firmado y lo prometido todavia no coinciden:
+es una correccion pendiente del documento, no una decision.
 
 ## Papelera — proyectos vs. SUB-elementos (dos mecanismos distintos, a propósito)
 

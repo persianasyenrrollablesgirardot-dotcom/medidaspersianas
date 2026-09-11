@@ -7,11 +7,16 @@
  *
  * Durante meses convivieron cuatro cifras distintas (1 anio, 12 meses, 5 anios, "sin plazo
  * escrito") y ninguna tenia razon del todo, porque todas buscaban UN numero. Jhon lo fijo
- * el 11-sep-2026: depende de la pieza.
+ * el 11-sep-2026, en dos rondas, y la regla que salio cabe en una linea:
  *
- *   perfileria (perfiles, mecanismos, herrajes)  ->  1 anio
+ *   **Un anio para todo, salvo la tela Screen Solar, que son tres.**
+ *
  *   tela Screen Solar                            ->  3 anios
+ *   tela blackout                                ->  1 anio
  *   tela de poliester                            ->  1 anio
+ *   perfileria (perfiles, mecanismos, herrajes)  ->  1 anio
+ *   motor                                        ->  1 anio
+ *   mano de obra de instalacion                  ->  1 anio
  *
  * **El plazo sigue a la TELA, no al sistema**: los tres anios del Screen Solar valen igual
  * en Sheer Elegance, en enrollables y en panel japones.
@@ -25,12 +30,12 @@
  *
  * ## Lo que NO se sabe se responde como no sabido
  *
- * Del blackout, de los motores, de la mano de obra de instalacion y de las cadenillas y
- * peliculas no hay plazo fijado. Esto devuelve `sin_definir` con el motivo, y NUNCA un
- * numero estimado. Es deliberado: un plazo inventado aca se convierte en una promesa al
- * cliente que la empresa no puede sostener, y el blackout no es un caso raro — es de lo mas
- * vendido en Girardot, y es PVC con fibra de vidrio, asi que no es ni Screen Solar ni
- * poliester y ninguno de los dos plazos confirmados le aplica.
+ * Quedan las **cadenillas y las peliculas solares**, sin plazo fijado desde siempre. Para
+ * esas esto devuelve `sin_definir` con el motivo, y NUNCA un numero estimado. Un plazo
+ * inventado aca se convierte en una promesa al cliente que la empresa no puede sostener.
+ *
+ * La misma respuesta vale para una tela cuya familia no se reconoce: sin saber que tela es,
+ * no se sabe que plazo le toca, y adivinar hacia el lado de los tres anios promete de mas.
  */
 
 export type PiezaGarantia =
@@ -88,18 +93,18 @@ const PERFILERIA: PiezaDef = {
   motivo: 'Un anio, fijado por el propietario el 11-sep-2026.',
 };
 
-const SIN_FIJAR: Record<Exclude<PiezaGarantia, 'tela' | 'perfileria'>, PiezaDef> = {
+const OTRAS_PIEZAS: Record<Exclude<PiezaGarantia, 'tela' | 'perfileria'>, PiezaDef> = {
   motor: {
     id: 'motor',
     etiqueta: 'Motor',
-    meses: null,
-    motivo: 'El documento al cliente dice "segun fabricante" y no nombra ninguno. Sin plazo propio fijado.',
+    meses: 12,
+    motivo: 'Un anio, fijado por el propietario el 11-sep-2026. El documento al cliente dice "segun fabricante" sin nombrar ninguno; la empresa responde un anio igual, sea el motor que sea.',
   },
   instalacion: {
     id: 'instalacion',
     etiqueta: 'Mano de obra de instalacion',
-    meses: null,
-    motivo: 'La unica fuente que hablaba de 12 meses quedo superada y no fue ratificada.',
+    meses: 12,
+    motivo: 'Un anio, fijado por el propietario el 11-sep-2026.',
   },
   cadenilla: {
     id: 'cadenilla',
@@ -131,8 +136,8 @@ const TELAS: Record<FamiliaTela, PiezaDef> = {
   blackout: {
     id: 'tela',
     etiqueta: 'Tela blackout',
-    meses: null,
-    motivo: 'Sin plazo fijado. El blackout es PVC con fibra de vidrio: no es Screen Solar ni poliester, asi que ninguno de los dos plazos confirmados le aplica.',
+    meses: 12,
+    motivo: 'Un anio, fijado por el propietario el 11-sep-2026. Necesitaba respuesta propia porque el blackout es PVC con fibra de vidrio: no es Screen Solar ni poliester.',
   },
   otra: {
     id: 'tela',
@@ -145,7 +150,7 @@ const TELAS: Record<FamiliaTela, PiezaDef> = {
 export function piezaDef(pieza: PiezaGarantia, familia?: FamiliaTela): PiezaDef {
   if (pieza === 'perfileria') return PERFILERIA;
   if (pieza === 'tela') return TELAS[familia ?? 'otra'];
-  return SIN_FIJAR[pieza];
+  return OTRAS_PIEZAS[pieza];
 }
 
 /** Familia de tela a partir del nombre comercial. Devuelve 'otra' si no reconoce. */

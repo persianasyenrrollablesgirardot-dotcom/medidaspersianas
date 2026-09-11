@@ -3,10 +3,9 @@
  *
  * Lo que se cuida, en orden de importancia:
  *
- * 1. **Que NO invente un plazo cuando no lo hay.** Del blackout, de los motores, de la
- *    mano de obra y de las cadenillas nadie fijo plazo. Un numero estimado aca se
- *    convierte en una promesa al cliente que la empresa no puede sostener. Y el blackout
- *    no es un caso raro: es de lo mas vendido en Girardot.
+ * 1. **Que NO invente un plazo cuando no lo hay.** Quedan las cadenillas y las peliculas
+ *    solares, y tambien una tela cuya familia no se reconoce. Un numero estimado aca se
+ *    convierte en una promesa al cliente que la empresa no puede sostener.
  *
  * 2. **Que devuelva los DOS plazos de una persiana**, tela y perfileria. Una sola cifra
  *    siempre miente para alguno de los dos lados: "tres anios" promete de mas, "un anio"
@@ -57,11 +56,9 @@ const dias = n => ENE_2025 + n * 24 * 60 * 60 * 1000;
 // ── 1. Lo que NO se sabe se responde como no sabido ─────────────────────────
 console.log('\nLo que no tiene plazo fijado');
 for (const [pieza, familia, etiqueta] of [
-  ['tela', 'blackout', 'el blackout'],
-  ['motor', undefined, 'el motor'],
-  ['instalacion', undefined, 'la mano de obra'],
   ['cadenilla', undefined, 'la cadenilla'],
   ['pelicula', undefined, 'la pelicula solar'],
+  ['tela', 'otra', 'una tela sin identificar'],
 ]) {
   const c = evaluarCobertura({ pieza, familiaTela: familia, fechaInstalacion: ENE_2025, fechaReclamo: dias(30) });
   ok(
@@ -70,19 +67,29 @@ for (const [pieza, familia, etiqueta] of [
   );
   ok(c.explicacion.length > 30, `Y explica por que no hay respuesta (${etiqueta})`);
 }
-ok(
-  evaluarCobertura({ pieza: 'tela', familiaTela: 'blackout' }).explicacion.includes('PVC'),
-  'Del blackout dice el motivo real: es PVC con fibra de vidrio, ni screen ni poliester',
-);
 
 // ── 2. Los plazos que SI estan fijados ──────────────────────────────────────
 console.log('\nLos plazos fijados');
-ok(piezaDef('perfileria').meses === 12, 'La perfileria es de 12 meses');
 ok(piezaDef('tela', 'screen_solar').meses === 36, 'La tela Screen Solar es de 36 meses');
+ok(piezaDef('tela', 'blackout').meses === 12, 'La tela blackout es de 12 meses');
 ok(piezaDef('tela', 'poliester').meses === 12, 'La tela de poliester es de 12 meses');
-ok(piezaDef('tela', 'blackout').meses === null, 'La tela blackout no tiene plazo');
-ok(piezaDef('tela', 'otra').meses === null, 'Una tela sin identificar tampoco');
+ok(piezaDef('perfileria').meses === 12, 'La perfileria es de 12 meses');
+ok(piezaDef('motor').meses === 12, 'El motor es de 12 meses');
+ok(piezaDef('instalacion').meses === 12, 'La mano de obra de instalacion es de 12 meses');
+ok(piezaDef('tela', 'otra').meses === null, 'Una tela sin identificar no tiene plazo');
 ok(PIEZAS.length === 6, 'Son seis piezas posibles');
+// La regla entera, dicha de una: es asi de simple y conviene que la prueba lo fije.
+const conPlazo = PIEZAS
+  .flatMap(p => p === 'tela' ? ['screen_solar', 'blackout', 'poliester'].map(f => piezaDef(p, f)) : [piezaDef(p)])
+  .filter(d => d.meses !== null);
+ok(
+  conPlazo.filter(d => d.meses !== 12).length === 1 && conPlazo.some(d => d.meses === 36),
+  'Un anio para TODO, salvo una sola excepcion de tres anios: el Screen Solar',
+);
+ok(
+  piezaDef('motor').motivo.includes('segun fabricante'),
+  'Del motor dice que la empresa responde un anio igual, aunque el documento diga "segun fabricante"',
+);
 
 // ── 3. El plazo sigue a la tela, no al sistema ──────────────────────────────
 console.log('\nEl plazo sigue a la TELA, no al sistema');
@@ -110,10 +117,15 @@ ok(
   alMes13.tela.veredicto !== alMes13.perfileria.veredicto,
   'Justo el caso que hace falta distinguir: una sola cifra habria mentido para un lado',
 );
-const mixta = coberturaDeSolucion({ nombreTela: 'Blackout Text', fechaInstalacion: ENE_2025, fechaReclamo: dias(100) });
+const blackout = coberturaDeSolucion({ nombreTela: 'Blackout Text', fechaInstalacion: ENE_2025, fechaReclamo: dias(400) });
 ok(
-  mixta.tela.veredicto === 'sin_definir' && mixta.perfileria.veredicto === 'dentro',
-  'En un blackout se puede responder por la perfileria y NO por la tela',
+  blackout.tela.veredicto === 'vencida' && blackout.perfileria.veredicto === 'vencida',
+  'En un blackout los dos plazos corren parejos: al ano se venceron los dos',
+);
+const desconocida = coberturaDeSolucion({ nombreTela: 'Trasluz Tiffany', fechaInstalacion: ENE_2025, fechaReclamo: dias(100) });
+ok(
+  desconocida.tela.veredicto === 'sin_definir' && desconocida.perfileria.veredicto === 'dentro',
+  'Con una tela que no se reconoce se responde por la perfileria y NO por la tela',
 );
 
 // ── 5. Vigencia ─────────────────────────────────────────────────────────────
@@ -146,6 +158,14 @@ const caso = construirCaso({
   descripcion: 'La persiana de la sala no sube', pieza: 'tela',
   nombreTela: 'Screen Solar 3%', fechaInstalacion: ENE_2025, abiertoEl: dias(400),
 });
+// Justo el caso que distingue: a los 400 dias un Screen Solar sigue cubierto y un
+// blackout no. Con un plazo unico, uno de los dos habria quedado mal contestado.
+const casoBlackout = construirCaso({
+  projectId: 4, projectCode: 'PRY-0004', actor: 'jhon@correo.com',
+  descripcion: 'Se despego la tela', pieza: 'tela',
+  nombreTela: 'Blackout Text', fechaInstalacion: ENE_2025, abiertoEl: dias(400),
+});
+ok(casoBlackout.veredictoAlAbrir === 'vencida', 'El mismo dia, un blackout ya esta vencido');
 ok(caso.veredictoAlAbrir === 'dentro', 'El caso guarda el veredicto del dia en que se abrio');
 ok(caso.explicacionAlAbrir.includes('3 anios'), 'Y la explicacion con la que se le respondio al cliente');
 ok(caso.familiaTela === 'screen_solar', 'Deduce la familia de la tela por su nombre');
