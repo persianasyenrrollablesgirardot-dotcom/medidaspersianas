@@ -3,6 +3,7 @@ import type { ProjectSummary, TechnicalCatalog, TechnicalProject, SyncQueueItem,
 import type { GateEvent } from './lib/puertas';
 import type { TrackingEvent } from './lib/seguimiento';
 import type { CasoGarantia } from './lib/garantia';
+import type { CapturaEvidencia } from './lib/evidencias';
 import { siguienteConsecutivo } from './lib/registrosRespaldo';
 import { DEFAULT_MAINTENANCE_CATALOG } from './lib/defaultTasks';
 
@@ -43,6 +44,7 @@ class TechnicalFieldDB extends Dexie {
   projectEvents!: Table<GateEvent, number>;
   trackingEvents!: Table<TrackingEvent, number>;
   warrantyCases!: Table<CasoGarantia, number>;
+  evidenceCaptures!: Table<CapturaEvidencia, number>;
 
   constructor() {
     super(DB_NAME);
@@ -162,6 +164,33 @@ class TechnicalFieldDB extends Dexie {
       projectEvents: '++id, projectId, projectCode, etapa, at',
       trackingEvents: '++id, projectId, projectCode, tipo, estado, at',
       warrantyCases: '++id, projectId, projectCode, abiertoEl, cerradoEl',
+    });
+    // v9: capturas de evidencia. El proveedor no responde una garantia con buena voluntad:
+    // pide foto de la caja, foto por persiana, imagen con la persiana nivelada y lista de
+    // empaque que coincida. Si falta una, el caso no arranca y nadie avisa.
+    //
+    // Registrar "el paso se hizo" no alcanzaba: hay que tener el artefacto. Y seis de las
+    // catorce son ANTICIPADAS — se capturan cuando no hay ningun problema, porque el dia que
+    // hagan falta ya no se van a poder tomar. La caja se bota al abrirla; la observacion en
+    // la guia solo se escribe al firmar.
+    //
+    // El catalogo NO vive aca: lo genera la base de conocimiento en `evidenciasCatalogo.ts`.
+    //
+    // Solo AGREGA tabla.
+    this.version(9).stores({
+      projects: '++id, code, clientName, status, createdAt, updatedAt, deletedAt, synced',
+      projectSummaries: '++id, &projectId, code, clientName, status, updatedAt, deletedAt, synced',
+      catalog: '++id',
+      syncQueue: '++id, type, refId, status, nextAttemptAt, createdAt',
+      invoices: '++id, type, documentNumber, clientName, date',
+      receipts: '++id, projectId, projectCode, clientName, date, status',
+      photos: 'id, projectId, projectCode, createdAt, uploadedAt',
+      backups: '++id, createdAt, reason',
+      trash: '++id, projectId, kind, deletedAt',
+      projectEvents: '++id, projectId, projectCode, etapa, at',
+      trackingEvents: '++id, projectId, projectCode, tipo, estado, at',
+      warrantyCases: '++id, projectId, projectCode, abiertoEl, cerradoEl',
+      evidenceCaptures: '++id, projectId, projectCode, evidencia, at',
     });
   }
 }
