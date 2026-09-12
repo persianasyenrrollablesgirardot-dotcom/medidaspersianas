@@ -248,8 +248,8 @@ todos los datos técnicos del pedido. Con copia a Jhon.
   Vercel le devuelve a `/api/...` el HTML de la app en vez de ejecutar la función, y no se
   entiende por qué. Es la misma trampa que causó la pantalla negra con `/assets`.
 
-**Falta para encenderlo:** `RESEND_API_KEY` y `CORREO_REMITENTE` en Vercel (Production).
-Mientras no estén, el endpoint responde 503 diciendo exactamente eso.
+**Ya está encendido:** `RESEND_API_KEY` y `CORREO_REMITENTE` están cargadas en Vercel (Production)
+desde el 09-sep-2026. Si alguna faltara, el endpoint responde 503 diciendo exactamente eso.
 
 ## Bitacora de puertas (10-sep-2026)
 
@@ -461,6 +461,83 @@ esos plazos al cliente es una decision de negocio abierta, no algo que decida el
   ella no hay garantia en verticales, Hannas ni Vintage. Es obligacion legal de quien instala.
 - **Mantenimiento** 2 veces al año en telas oscuras y cada 3 meses en claras, guardando certificado.
 - **Girardot no es ciudad principal**: toda garantia implica despachar a Bogota por cuenta propia.
+
+## El pedido vendido sale del teléfono — fase 0 (12-sep-2026)
+
+Los proyectos del admin viven en el IndexedDB del celular, y **un dato que vive ahí no lo puede
+ver nadie más**: ni el Gerente de voz, ni un agente, ni una automatización, ni Jhon desde el PC.
+De ahí salían tres síntomas que se trataban por separado (19 etapas del ciclo sin dónde
+registrarse, 11 alertas construidas y apagadas, el respaldo que perdía registros).
+
+Al marcar **"Enviar a Proveedor"** el pedido se publica en `gvs_pedidos_campo` (Supabase del
+Gerente). **Un solo sentido: Juno escribe, no lee de vuelta.** Esto solo AÑADE una salida — no
+toca el levantamiento, ni lo que ve el proveedor, ni Firestore, y **no sube la versión de Dexie**.
+
+- **`publicarPedido.ts` es PURO** (cero imports con efectos) y `enviarPublicacion.ts` hace la red,
+  igual que `correoProveedor.ts`/`enviarCorreo.ts`. Por eso `npm run probar:publicar` corre sus 33
+  comprobaciones sin navegador, sin red y sin IndexedDB.
+- **La identidad es `cloudDocId ?? code`, NUNCA el `code` pelado.** El rescate de julio dejó 28
+  códigos con 2 a 4 copias; con el código como identidad todas escriben sobre la misma fila y solo
+  UNA queda publicada. Es el fallo que ya obligó a inventar `cloudDocId`, y repetirlo en una tabla
+  nueva no lo notaría nadie.
+- **`actualizado_en` es un `Date.now()` al ENCOLAR, no `project.updatedAt`.** Hay cosas que se
+  publican sin modificar el proyecto (un retiro, por ejemplo): con `updatedAt` traerían el mismo
+  número que la anterior y el backend —que descarta lo viejo— se las tragaría para siempre. El
+  backend descarta lo **estrictamente** menor; lo igual pasa.
+- **El `refId` de la cola lleva prefijo `pub:`.** `enqueue()` busca lo pendiente solo por `refId` y
+  compara el tipo del PRIMERO que encuentra: si es de otro tipo, agrega una fila nueva cada vez.
+  Compartir el `refId` con `upsert_project` haría que cada reconciliación —cada 5 minutos—
+  acumulara una fila y resubiera el proyecto. Datos móviles gastados en la obra.
+- **Ninguna clave en `undefined`.** `JSON.stringify` las borra SIN AVISAR, así que el campo
+  desaparece del cuerpo en vez de fallar. Es el gotcha 4 por otra puerta: con Firestore al menos se
+  rechazaba el documento entero y se notaba. Todo lo ausente se normaliza a `null` explícito.
+- **Los totales salen del `ProjectSummary`**, que ya los calcula. No se recalculan: dos fórmulas
+  para el mismo número acaban discrepando, y se descubre cotizando. **Y ninguna foto viaja** en el
+  cuerpo — reventaría igual que reventaba el límite de 1 MB de Firestore.
+- **Retirar MARCA, no borra.** En Firestore el documento sí desaparece (el proveedor no tiene que
+  seguir viéndolo), pero la fila queda con `retirado_en`. Antes un pedido retirado se esfumaba y
+  con él cualquier rastro de que existió: eso convierte la nube en un espejo del presente en vez de
+  un histórico, y un reclamo sobre un pedido retirado se queda sin respaldo.
+- **`markAsSentLocally` (Dashboard) también publica, con `gestion: 'externa'`.** Son DOS nubes
+  distintas y confundirlas era el problema: la del proveedor —que ese botón sigue sin tocar— y el
+  registro interno. Un pedido gestionado por fuera es una venta igual de real, con garantía
+  corriendo. Los textos ya no dicen "sin subir a la nube": era ambiguo antes y sería mentira ahora.
+
+### ⚠️ La llave del servidor NO puede bajar al navegador
+
+**El endpoint `api/campo/publicar.ts` vive en el backend de JUNO, no en el del Gerente.** La
+primera versión de la spec mandaba a Juno contra el Gerente con un token propio, y era un fallo de
+seguridad: todo endpoint del Gerente exige `x-clave` con `APP_CLAVE`, así que Juno tendría que
+llevarla en el bundle — donde la lee cualquiera que abra la PWA, **incluido el proveedor, que tiene
+login**, y con ella se le pide `/api/respaldo` al Gerente y se baja la operación entera.
+
+Se usa el patrón ya probado de `api/enviar-pedido.ts`: token de Firebase verificado contra
+`accounts:lookup` y comparado con `OWNER_EMAIL`. **Falla CERRADA** si faltan las variables.
+Criterio que hay que poder demostrar: `grep -rn "SERVICE_ROLE" dist/` sin resultados.
+
+### Son DOS Supabase y las variables se llaman distinto a propósito
+
+Juno usa `dnsyyvtznkllneyuopoa` (bucket `evidencias`, las fotos). Las tablas `gvs_*` viven en
+`olububjdvboiqgmihsmk`, el del Gerente. Por eso las variables de Vercel son `GERENTE_SUPABASE_URL`
+y `GERENTE_SUPABASE_SERVICE_ROLE_KEY`: **confundirlas escribe en la base equivocada y no se nota.**
+
+### Los recibos NO los toca Juno (decisión de Jhon, 12-sep-2026)
+
+> *"Lo de los recibos por cliente lo podemos manejar por chat... Juno es importante para el
+> levantamiento de datos en campo, en eso enfócate."*
+
+`tiene_recibo` no es un campo de nadie: es el **cruce** entre `gvs_pedidos_campo` y `gvs_recibos`.
+Un dato derivado no se puede quedar viejo. Esa decisión se llevó por delante los cuatro enganches
+en `db.receipts` y, con ellos, el borrado de un recibo que dejaba el campo congelado.
+
+**Regla que salió de esto:** *si un dato no nace midiendo en la obra, no entra por Juno.* Antes de
+darle una responsabilidad nueva a esta app, la pregunta es si se captura con las manos ocupadas y
+sin señal.
+
+**Ojo con `cloudSync.ts:7`:** usa `String(project.id || project.code)` — el id numérico de Dexie,
+que es POR DISPOSITIVO. La nube del proveedor no sigue la regla de `cloudDocId ?? code`. Es un
+problema anterior y ajeno a esto; cambiar esa clave hoy dejaría huérfanos los documentos que el
+proveedor ya está viendo.
 
 ## Papelera — proyectos vs. SUB-elementos (dos mecanismos distintos, a propósito)
 
