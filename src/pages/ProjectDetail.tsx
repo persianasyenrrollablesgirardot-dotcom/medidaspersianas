@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import { generateReportHtml, technicalSummary, type PdfReportProfile } from '../lib/exporters';
 import { isFallbackId, useFallbackCatalog, useFallbackProject, saveFallbackProject } from '../lib/localFallbackStore';
 import { hydrateProjectPhotos } from '../lib/photoStore';
-import { saveProject } from '../lib/projectStore';
+import { encolarPublicacion, saveProject } from '../lib/projectStore';
 import { PdfPreviewModal } from '../components/PdfPreviewModal';
 import { PaymentReceiptModal } from '../components/PaymentReceiptModal';
 import { quoteArea, solutionArea, solutionTotal } from '../lib/metrics';
@@ -74,6 +74,14 @@ export function ProjectDetail() {
       toast.success('Proyecto enviado a proveedor correctamente');
 
       /**
+       * Y sale del telefono (fase 0). Va DESPUES de Firestore y encolado, por lo mismo
+       * que el correo: lo que hace que el proveedor pueda trabajar es el pedido en la
+       * nube; esto es para que el Gerente y el agente puedan verlo. Si no hay senal, la
+       * cola lo manda sola al volver. No tira nunca.
+       */
+      await encolarPublicacion(updated as TechnicalProject);
+
+      /**
        * El correo va DESPUES de subirlo a la nube y en su propio try.
        *
        * Ese orden importa: lo que hace que el proveedor pueda trabajar es el pedido en la
@@ -121,6 +129,17 @@ export function ProjectDetail() {
         await saveProject(updated as TechnicalProject);
       }
       await syncProjectToCloud(updated as TechnicalProject, catalog);
+
+      /**
+       * El retiro se MARCA, no se borra.
+       *
+       * En Firestore el documento sí desaparece (el proveedor no tiene que seguir
+       * viendolo), pero la fila de Supabase queda con `retirado_en`. Hasta ahora un
+       * pedido retirado se esfumaba y con el cualquier rastro de que existio: eso
+       * convierte la nube en un espejo del presente en vez de un historico, y un reclamo
+       * sobre un pedido retirado se queda sin respaldo.
+       */
+      await encolarPublicacion(updated as TechnicalProject, { retirado: true });
       toast.success('Proyecto retirado del proveedor');
     } catch (e) {
       console.error(e);

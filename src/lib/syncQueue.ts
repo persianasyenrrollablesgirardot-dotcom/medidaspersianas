@@ -4,6 +4,8 @@ import type { SyncQueueItem, TechnicalProject } from '../types';
 import { borrarProyectoDeLaNube, haySesion, subirProyecto } from './cloudBackup';
 import { subirFoto, supabaseConfigurado } from './supabasePhotos';
 import { mandarCorreoPendiente, type CorreoEnCola } from './enviarCorreo';
+import { mandarPublicacionPendiente } from './enviarPublicacion';
+import type { Publicacion } from './publicarPedido';
 
 /**
  * COLA DE SINCRONIZACIÓN
@@ -85,6 +87,11 @@ async function procesar(item: SyncQueueItem): Promise<void> {
 
   if (item.type === 'enviar_correo_proveedor') {
     await mandarCorreoPendiente(item.payload as CorreoEnCola);
+    return;
+  }
+
+  if (item.type === 'publicar_pedido') {
+    await mandarPublicacionPendiente(item.payload as Publicacion);
     return;
   }
 

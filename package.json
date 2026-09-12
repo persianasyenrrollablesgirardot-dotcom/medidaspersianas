@@ -16,7 +16,8 @@
     "probar:seguimiento": "node scripts/probar-seguimiento.mjs",
     "probar:restaurar": "node scripts/probar-restaurar.mjs",
     "probar:garantia": "node scripts/probar-garantia.mjs",
-    "probar:evidencias": "node scripts/probar-evidencias.mjs"
+    "probar:evidencias": "node scripts/probar-evidencias.mjs",
+    "probar:publicar": "node scripts/probar-publicar.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.2",

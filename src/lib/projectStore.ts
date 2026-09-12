@@ -5,6 +5,7 @@ import { uid } from './ids';
 import { isFallbackId, mutateFallbackProject, saveFallbackProject } from './localFallbackStore';
 import { compressToBlob, savePhoto } from './photoStore';
 import { enqueue } from './syncQueue';
+import { armarPublicacion, refDePublicacion } from './publicarPedido';
 
 const saveQueues = new Map<number, Promise<void>>();
 
@@ -116,6 +117,39 @@ export function buildProjectSummary(project: TechnicalProject): ProjectSummary |
     sentToSupplier: project.sentToSupplier,
     discountPercent: project.discountPercent,
   };
+}
+
+/**
+ * ENCOLA LA PUBLICACION DEL PEDIDO VENDIDO (fase 0).
+ *
+ * Vive aca y no en `enviarPublicacion.ts` para no armar un ciclo de imports: este archivo
+ * ya trae `enqueue` y es el dueno de `buildProjectSummary`, y `publicarPedido.ts` es puro
+ * (cero dependencias). `syncQueue` sigue sin saber nada de este modulo.
+ *
+ * ENCOLA, NO LLAMA DIRECTO. Jhon manda pedidos desde la obra, donde a veces no hay senal.
+ * Si se llamara directo, un pedido enviado sin senal no se publicaria nunca y nadie se
+ * enteraria — que es exactamente el fallo que la cola existe para evitar. Con red, la
+ * propia `enqueue` dispara el drenaje enseguida.
+ *
+ * Nunca tira: que falle la publicacion no puede romper "Enviar a Proveedor". Lo que hace
+ * que el proveedor pueda trabajar es el pedido en Firestore, y eso ya paso.
+ */
+export async function encolarPublicacion(
+  project: TechnicalProject,
+  opciones: { gestion?: 'app' | 'externa'; retirado?: boolean } = {},
+): Promise<void> {
+  try {
+    const resumen = buildProjectSummary(project);
+    if (!resumen) return; // sin id no hay nada que publicar
+    const publicacion = armarPublicacion(project, resumen, {
+      ahora: Date.now(),
+      gestion: opciones.gestion,
+      retirado: opciones.retirado,
+    });
+    await enqueue('publicar_pedido', refDePublicacion(publicacion.id), publicacion);
+  } catch (error) {
+    console.error('No se pudo encolar la publicación del pedido', error);
+  }
 }
 
 export async function upsertProjectSummary(project: TechnicalProject) {

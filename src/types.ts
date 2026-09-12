@@ -339,8 +339,17 @@ export interface SyncQueueItem {
    * se pierde en silencio es peor que uno que tarda — el proveedor no se entera de que hay
    * trabajo y nadie lo nota hasta que el cliente llama.
    */
-  type: 'upsert_project' | 'delete_project' | 'upload_photo' | 'enviar_correo_proveedor';
-  /** Identidad estable del elemento: `code` del proyecto o id de la foto. */
+  type: 'upsert_project' | 'delete_project' | 'upload_photo' | 'enviar_correo_proveedor'
+      | 'publicar_pedido';
+  /**
+   * Identidad estable del elemento: `code` del proyecto o id de la foto.
+   *
+   * `publicar_pedido` lo lleva con prefijo `pub:` (ver `refDePublicacion`). `enqueue()`
+   * busca lo pendiente SOLO por `refId` y compara el tipo del primero que encuentra: si
+   * es de otro tipo, agrega una fila nueva en vez de reemplazar. Compartir el `refId` con
+   * `upsert_project` haria que cada reconciliacion acumulara una fila y resubiera el
+   * proyecto entero — datos moviles gastados en la obra, que es lo que se venia evitando.
+   */
   refId: string;
   payload: unknown;
   status: 'pending' | 'processing' | 'failed';

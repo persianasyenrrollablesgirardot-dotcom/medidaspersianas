@@ -20,6 +20,7 @@ import { useEffect } from 'react';
 import { supplierStatusDocId, useAllSupplierStatuses, type SupplierStatuses } from '../lib/supplierStatus';
 import { produccionPorProyecto, estadoDef, ESTADOS_PRODUCCION, type TrackingEvent } from '../lib/bitacoraSeguimiento';
 import { casosAbiertosPorProyecto } from '../lib/casosGarantia';
+import { encolarPublicacion } from '../lib/projectStore';
 
 // Quita tildes/diacríticos y pasa a minúsculas para que la búsqueda sea "congruente":
 // "José" == "jose", "Girardot" == "girardot". Base de la búsqueda por palabras.
@@ -244,18 +245,31 @@ export function Dashboard() {
     }
   };
 
-  // Marca el pedido como enviado a proveedor SOLO localmente (no sube a la nube de
-  // la app). Úsalo cuando el proveedor se gestiona por fuera y no hace falta enviarlo
-  // por la app. Para el envío real a la nube está "Enviar a Proveedor" en el detalle.
-  const markAsSentLocally = (projectId: number) => {
+  /**
+   * Marca el pedido como enviado cuando el proveedor se gestiona POR FUERA de la app.
+   * NO lo sube a Firestore: el proveedor no lo ve ni tiene que verlo, porque el pedido se
+   * le pasó por otro medio. Para el envío real está "Enviar a Proveedor" en el detalle.
+   *
+   * SÍ se publica en Supabase, con `gestion: 'externa'` (decidido el 12-sep-2026).
+   * Son DOS nubes distintas y confundirlas era el problema: la del proveedor —que esto
+   * efectivamente no toca— y el registro interno que leen el Gerente y el agente. Un
+   * pedido gestionado por fuera es una venta igual de real, con garantía corriendo y
+   * evidencia que reclamar; dejarlo afuera abría un punto ciego en una venta cobrada.
+   *
+   * Por eso el texto ya no dice "sin subir a la nube" a secas: era ambiguo antes y sería
+   * mentira ahora.
+   */
+  const markAsSentLocally = async (projectId: number) => {
     const full = getFallbackProject(projectId);
     if (!full) {
       toast.error('No se pudo abrir el proyecto.');
       return;
     }
-    if (!confirm('¿Marcar este pedido como ENVIADO a proveedor?\n\nSe marca como gestionado sin subirlo a la nube de la app (útil si el proveedor se maneja por otro medio).')) return;
-    saveFallbackProject({ ...full, sentToSupplier: true });
-    toast.success('Marcado como enviado a proveedor (gestión externa, sin subir a la nube).');
+    if (!confirm('¿Marcar este pedido como ENVIADO a proveedor?\n\nEl proveedor NO lo verá en la app (se gestiona por otro medio), pero queda registrado como venta para el seguimiento.')) return;
+    const actualizado = { ...full, sentToSupplier: true };
+    saveFallbackProject(actualizado);
+    await encolarPublicacion(actualizado, { gestion: 'externa' });
+    toast.success('Marcado como enviado (gestión externa). No se le muestra al proveedor.');
   };
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -653,9 +667,9 @@ Solo se limpia el cache del navegador. NO se pierde ningun pedido ni lo que ya m
                     <span
                       role="button"
                       tabIndex={0}
-                      onClick={(e) => { e.stopPropagation(); markAsSentLocally(project.projectId); }}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); markAsSentLocally(project.projectId); } }}
-                      title="Este pedido tiene recibo pero no se marcó como enviado. Toca para marcarlo como enviado (sin subir a la nube)."
+                      onClick={(e) => { e.stopPropagation(); void markAsSentLocally(project.projectId); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); void markAsSentLocally(project.projectId); } }}
+                      title="Este pedido tiene recibo pero no se marcó como enviado. Toca para marcarlo (gestión externa: el proveedor no lo ve en la app)."
                       style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '6px', fontSize: '11px', fontWeight: 800, color: '#b45309', background: 'rgba(217,119,6,0.15)', border: '1px solid rgba(217,119,6,0.5)', borderRadius: '999px', padding: '3px 9px', cursor: 'pointer' }}
                     >
                       🧾 Con recibo · sin enviar — marcar enviado
