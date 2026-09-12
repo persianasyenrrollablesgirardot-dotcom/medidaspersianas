@@ -122,9 +122,19 @@ export function armarPublicacion(
     espacios: oNulo(resumen.spacesCount),
     ventanas: oNulo(resumen.windowsCount),
     soluciones: oNulo(resumen.solutionsCount),
-    // Cuando se retira NO se toca `enviado_en`: sigue siendo cierto que se envio aquel
-    // dia. Pisarlo borraria la mitad de la historia que hace falta en un reclamo.
-    enviado_en: new Date(opciones.ahora).toISOString(),
+    /**
+     * Al retirar va `null`, y NO es "no se envio nunca": es "yo no se cuando fue".
+     *
+     * El backend conserva el `enviado_en` que ya tuviera guardado (`coalesce`). Mandar
+     * aca `ahora` pisaba la fecha de envio con la del retiro — las dos quedaban iguales
+     * al segundo— y borraba justo la mitad de la historia que hace falta en un reclamo:
+     * que el pedido SI estuvo en produccion, y desde cuando.
+     *
+     * Verificado con datos reales el 12-sep-2026: `TCJ-20260912-1I9` quedo con
+     * `enviado_en = retirado_en = 20:31:51.041`. El comentario decia que no se tocaba y
+     * el codigo lo tocaba igual.
+     */
+    enviado_en: retirado ? null : new Date(opciones.ahora).toISOString(),
     retirado_en: retirado ? new Date(opciones.ahora).toISOString() : null,
     gestion: opciones.gestion ?? 'app',
     actualizado_en: opciones.ahora,

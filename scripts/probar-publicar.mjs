@@ -172,8 +172,16 @@ console.log('\nRetirar del proveedor');
   const retirado = armarPublicacion(proyecto(), resumen(), { ahora: AHORA + 5000, retirado: true });
   ok(typeof retirado.retirado_en === 'string', 'Al retirar se MARCA con una fecha');
   ok(retirado.id === enviado.id, 'Sobre la MISMA fila: no nace otra, y ninguna se borra');
-  ok(typeof retirado.enviado_en === 'string',
-    'Y enviado_en sigue estando: que se envio aquel dia sigue siendo cierto');
+
+  /**
+   * Este es el bug que aparecio con datos reales el 12-sep-2026: el retiro mandaba
+   * `ahora` como `enviado_en` y pisaba la fecha de envio con la del retiro. Las dos
+   * quedaban iguales al milisegundo y se perdia que el pedido SI estuvo en produccion.
+   */
+  ok(retirado.enviado_en === null,
+    'El retiro NO manda enviado_en: no sabe la fecha original y no la puede inventar');
+  ok(retirado.enviado_en !== retirado.retirado_en,
+    'Y sobre todo NO manda la fecha del retiro como si fuera la del envio');
 }
 
 // ── 7. La gestion externa ───────────────────────────────────────────────────

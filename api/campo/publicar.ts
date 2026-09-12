@@ -108,13 +108,15 @@ export default async function handler(req: any, res: any) {
      * con el guardado y se descarta lo ESTRICTAMENTE menor: lo igual tiene que pasar,
      * porque un republish legitimo puede traer el mismo numero.
      */
+    let enviadoGuardado: string | null = null;
     const previo = await fetch(
-      `${url}/rest/v1/gvs_pedidos_campo?id=eq.${encodeURIComponent(pedido.id)}&select=actualizado_en`,
+      `${url}/rest/v1/gvs_pedidos_campo?id=eq.${encodeURIComponent(pedido.id)}&select=actualizado_en,enviado_en`,
       { headers: cabeceras },
     );
     if (previo.ok) {
-      const filas = (await previo.json()) as { actualizado_en: number }[];
+      const filas = (await previo.json()) as { actualizado_en: number; enviado_en: string | null }[];
       const guardado = filas?.[0]?.actualizado_en;
+      enviadoGuardado = filas?.[0]?.enviado_en ?? null;
       if (typeof guardado === 'number' && pedido.actualizado_en < guardado) {
         res.status(200).json({ ok: true, descartado: 'llegada vieja', guardado });
         return;
@@ -137,6 +139,18 @@ export default async function handler(req: any, res: any) {
       documento: pedido.documento ?? cliente?.documento ?? null,
       direccion: pedido.direccion ?? cliente?.direccion ?? null,
       ciudad: pedido.ciudad ?? cliente?.ciudad ?? null,
+      /**
+       * CUANDO SE ENVIO NO SE PISA NUNCA.
+       *
+       * Un retiro llega con `enviado_en: null` — no porque no se haya enviado, sino
+       * porque quien retira no sabe la fecha original. Si se escribiera ese null, la
+       * fila diria que el pedido nunca estuvo en produccion, que es lo contrario de lo
+       * que paso y justo lo que hace falta probar en un reclamo.
+       *
+       * Solo se escribe una fecha nueva cuando la trae la publicacion (un envio o un
+       * re-envio). En lo demas manda lo que ya estaba guardado.
+       */
+      enviado_en: pedido.enviado_en ?? enviadoGuardado,
       actualizado: new Date().toISOString(),
     };
 
